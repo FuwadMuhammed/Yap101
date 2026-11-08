@@ -103,7 +103,7 @@ export default function Landing() {
         {/* How it works */}
         <section id="how" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-20 sm:px-6">
           <h2 className="text-4xl font-extrabold sm:text-5xl">Three steps, every day.</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <article key={s.title} className={`${s.bg} relative flex min-h-[230px] flex-col overflow-hidden rounded-[28px] p-6 text-white`}>
                 <span className="text-sm font-bold text-white/70">0{i + 1}</span>
@@ -135,7 +135,7 @@ export default function Landing() {
         {/* Who it's for */}
         <section id="who" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-20 sm:px-6">
           <h2 className="text-4xl font-extrabold sm:text-5xl">Made for people who&apos;d rather not be on camera (yet).</h2>
-          <div className="mt-10 grid gap-3 md:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-3 md:grid-cols-3">
             {WHO.map((w) => (
               <article key={w.title} className="surface rounded-[28px] p-6">
                 <YapperAvatar index={w.i} className="size-14" />
@@ -153,7 +153,7 @@ export default function Landing() {
         </section>
 
         {/* Game */}
-        <section id="game" className="mx-auto grid max-w-5xl scroll-mt-24 items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2">
+        <section id="game" className="mx-auto grid max-w-5xl scroll-mt-24 grid-cols-1 items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2">
           <div>
             <h2 className="text-4xl leading-[1.02] font-extrabold sm:text-5xl">Practice that feels like a game.</h2>
             <p className="text-stone mt-4 text-lg leading-relaxed">

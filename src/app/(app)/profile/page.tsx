@@ -77,7 +77,7 @@ export default function Me() {
       </section>
 
       {/* Progress + streak protection */}
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="surface rounded-[28px] p-5">
           <p className="font-bold">Filler words per yap</p>
           {fillers.length >= 2 ? (

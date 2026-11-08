@@ -68,7 +68,7 @@ export function WaitlistForm({ source, dark, className }: { source: string; dark
             if (state === "error") setState("idle");
           }}
           className={cn(
-            "h-14 flex-1 rounded-full px-6 text-base outline-none",
+            "h-14 w-full min-w-0 shrink-0 rounded-full px-6 text-base outline-none sm:w-auto sm:flex-1",
             dark ? "bg-white/10 text-white placeholder:text-white/50 focus:bg-white/15" : "surface focus:border-ink",
           )}
         />

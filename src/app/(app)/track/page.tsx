@@ -32,7 +32,7 @@ export default function Track() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link href="/home" className="text-stone mb-3 inline-flex items-center gap-1 text-sm font-semibold hover:text-ink">
+      <Link href="/home" className="text-stone -ml-2 mb-1 inline-flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold hover:text-ink">
         <ChevronLeft className="size-4" /> Today
       </Link>
       <TopBar title="Your 30-day track" sub={`Day ${day} of 30 · ${track.filter((s) => s === "done").length} days yapped`} />
