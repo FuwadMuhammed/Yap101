@@ -12,7 +12,7 @@ type StoredYap = { id: string; prompt_id: number; title: string; skill?: string;
 type State = { signedIn: boolean; profile: Profile; yaps: StoredYap[] };
 
 const emptyProfile: Profile = {
-  display_name: "Demo yapper",
+  display_name: "Guest",
   niche: null,
   platform: null,
   confidence: null,

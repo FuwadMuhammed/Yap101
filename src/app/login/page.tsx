@@ -38,8 +38,8 @@ function DemoLogin() {
   }
   return (
     <div className="flex flex-col gap-3">
-      <YapButton size="xl" block arrow onClick={enter}>Continue as demo user</YapButton>
-      <p className="text-stone text-center text-sm">Demo mode: no account needed. Everything stays in this browser.</p>
+      <YapButton size="xl" block arrow onClick={enter}>Continue as guest</YapButton>
+      <p className="text-stone text-center text-sm">No account needed. Your yaps stay in this browser.</p>
     </div>
   );
 }
