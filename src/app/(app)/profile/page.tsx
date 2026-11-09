@@ -1,7 +1,6 @@
 "use client";
 
 import { Share, Snowflake } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { YapperAvatar } from "@/components/brand/mascot";
@@ -12,6 +11,7 @@ import { Sparkline } from "@/components/yap/sparkline";
 import { Bar, Flame } from "@/components/yap/stats";
 import { YapButton } from "@/components/yap/yap-button";
 import { api, isDemo } from "@/lib/data";
+import { reloadTo } from "@/lib/data/mode";
 import { demoBackfill, demoReset } from "@/lib/data/demo";
 import { FREEZE, LEVELS } from "@/lib/game";
 import { GOAL_OPTIONS, LEVEL_OPTIONS, NICHES, PLATFORMS, YAP_TIMES, labelFor } from "@/lib/options";
@@ -19,7 +19,6 @@ import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
 
 export default function Me() {
-  const router = useRouter();
   const { profile, game, yaps, day, refresh, loading } = useGame();
   // iOS only lets home-screen web apps send notifications, so nudge iPhone users to install.
   const [showInstall, setShowInstall] = useState(false);
@@ -159,11 +158,11 @@ export default function Me() {
       </section>
 
       <section className="flex flex-wrap gap-2">
-        <YapButton variant="soft" onClick={async () => { await api.signOut(); router.push("/"); }}>Sign out</YapButton>
+        <YapButton variant="soft" onClick={async () => { await api.signOut(); reloadTo("/"); }}>Sign out</YapButton>
         {isDemo && (
           <>
             <YapButton variant="soft" onClick={async () => { demoBackfill(6); await refresh(); toast.success("Added 6 earlier days of yaps"); }}>Demo: fake a 6-day streak</YapButton>
-            <YapButton variant="soft" className="text-cherry" onClick={async () => { await demoReset(); router.push("/"); }}>Demo: reset everything</YapButton>
+            <YapButton variant="soft" className="text-cherry" onClick={async () => { await demoReset(); reloadTo("/"); }}>Demo: reset everything</YapButton>
           </>
         )}
       </section>

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isDemo } from "@/lib/data/mode";
+import { GUEST_COOKIE, envDemo } from "@/lib/data/mode";
 
 const PUBLIC_PATHS = ["/", "/login", "/auth", "/privacy", "/terms"];
 
@@ -12,7 +12,8 @@ function isPublic(pathname: string) {
 // This is an optimistic check only; RLS in the database is the real guard.
 export async function updateSession(request: NextRequest) {
   // Demo mode keeps everything in the browser, so screens check sign-in themselves.
-  if (isDemo) return NextResponse.next({ request });
+  // Guests (the "Continue as guest" cookie) also keep their data in the browser.
+  if (envDemo || request.cookies.get(GUEST_COOKIE)?.value === "1") return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });
 

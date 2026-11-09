@@ -2,6 +2,7 @@
 
 import { DAILY_LIMIT, localDate } from "@/lib/yap";
 import { ALL_PROMPTS } from "@/lib/curriculum";
+import { endGuest } from "./mode";
 import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
 // Demo backend: JSON in localStorage, recordings in IndexedDB (too big for localStorage).
@@ -167,6 +168,7 @@ export const demoApi: DataApi = {
     const s = load();
     s.signedIn = false;
     save(s);
+    endGuest();
   },
 };
 
@@ -183,6 +185,7 @@ export async function demoReset() {
     localStorage.removeItem(KEY);
   } catch {}
   await clipStore("readwrite", (st) => st.clear()).catch(() => {});
+  endGuest();
 }
 
 /** Demo-only: pretend you've yapped on the previous N days, to see a streak and a later track day. */

@@ -2,13 +2,12 @@
 
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { YapperCluster } from "@/components/brand/mascot";
 import { YapButton } from "@/components/yap/yap-button";
-import { api, isDemo } from "@/lib/data";
-import { demoSignIn } from "@/lib/data/demo";
+import { demoApi, demoSignIn } from "@/lib/data/demo";
+import { hasSupabase, reloadTo, startGuest } from "@/lib/data/mode";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Login() {
@@ -23,22 +22,31 @@ export default function Login() {
           <h1 className="text-[34px] leading-tight font-extrabold">Let&apos;s get yapping</h1>
           <p className="text-stone mt-2 text-lg">Sign in to start your 30-day track.</p>
         </div>
-        {isDemo ? <DemoLogin /> : <SupabaseLogin />}
+        <div className="flex flex-col gap-3">
+          {hasSupabase && (
+            <>
+              <SupabaseLogin />
+              <div className="text-stone my-1 flex items-center gap-3 text-sm"><span className="bg-line h-px flex-1" />or<span className="bg-line h-px flex-1" /></div>
+            </>
+          )}
+          <GuestLogin primary={!hasSupabase} />
+        </div>
       </div>
     </div>
   );
 }
 
-function DemoLogin() {
-  const router = useRouter();
+function GuestLogin({ primary }: { primary: boolean }) {
   async function enter() {
+    startGuest();
     demoSignIn();
-    const p = await api.getProfile();
-    router.push(p?.onboarded_at ? "/home" : "/onboarding");
+    const p = await demoApi.getProfile();
+    // Full page load so the app switches to the in-browser (guest) data store.
+    reloadTo(p?.onboarded_at ? "/home" : "/onboarding");
   }
   return (
     <div className="flex flex-col gap-3">
-      <YapButton size="xl" block arrow onClick={enter}>Continue as guest</YapButton>
+      <YapButton size="xl" block arrow={primary} variant={primary ? "primary" : "mist"} onClick={enter}>Continue as guest</YapButton>
       <p className="text-stone text-center text-sm">No account needed. Your yaps stay in this browser.</p>
     </div>
   );
