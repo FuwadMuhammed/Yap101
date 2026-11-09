@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, ChevronLeft, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
+import { Camera, ChevronLeft, MessageCircle, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -48,9 +48,12 @@ function unblockHelp(mode: Mode) {
   return `Click the camera icon in the address bar, allow ${what}, then reload.`;
 }
 
-export function Recorder({ prompt, firstToday, level, first }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean }) {
+export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
   const target = TARGET_SECONDS[level ?? "beginner"];
-  const points = visiblePoints(prompt.talking_points, level);
+  // Intro yaps can be read from a ready-made script; beginners get it by default.
+  const [useScript, setUseScript] = useState(Boolean(script) && level !== "pro" && level !== "intermediate");
+  const reading = Boolean(script && useScript);
+  const points = reading ? script! : visiblePoints(prompt.talking_points, level);
   const router = useRouter();
   const previewRef = useRef<HTMLVideoElement>(null);
   const prompterRef = useRef<HTMLDivElement>(null);
@@ -242,16 +245,44 @@ export function Recorder({ prompt, firstToday, level, first }: { prompt: Prompt;
             <p className="mt-1 leading-relaxed">{prompt.skill_tip}</p>
           </section>
 
-          <section className="surface mt-3 rounded-[28px] p-5">
-            <p className="text-stone text-sm font-semibold">{level === "pro" ? "Your opener (improvise the rest)" : "Talking points"}</p>
-            <ol className="mt-2 space-y-2">
-              {points.map((t, i) => (
-                <li key={t} className="flex items-start gap-3">
-                  <span className="bg-mist grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold">{i + 1}</span>
-                  <span className="font-medium">{t}</span>
-                </li>
+          {script && (
+            <div role="radiogroup" aria-label="How do you want to do it?" className="bg-mist mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
+              {([[false, "My own words", MessageCircle], [true, "Read a script", ScrollText]] as const).map(([v, label, Icon]) => (
+                <button
+                  key={label}
+                  role="radio"
+                  aria-checked={useScript === v}
+                  onClick={() => setUseScript(v)}
+                  className={cn("tap flex h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors", useScript === v ? "bg-white shadow-sm" : "text-stone hover:text-ink")}
+                >
+                  <Icon className="size-4" /> {label}
+                </button>
               ))}
-            </ol>
+            </div>
+          )}
+
+          <section className="surface mt-3 rounded-[28px] p-5">
+            {reading ? (
+              <>
+                <p className="text-stone text-sm font-semibold">Your script · it scrolls on the teleprompter</p>
+                <div className="mt-2 space-y-1.5 text-lg leading-snug font-medium">
+                  {points.map((t) => <p key={t}>{t}</p>)}
+                </div>
+                <p className="text-stone mt-3 text-sm">Made from your answers. Change any words you like as you go.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-stone text-sm font-semibold">{level === "pro" ? "Your opener (improvise the rest)" : "Talking points"}</p>
+                <ol className="mt-2 space-y-2">
+                  {points.map((t, i) => (
+                    <li key={t} className="flex items-start gap-3">
+                      <span className="bg-mist grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold">{i + 1}</span>
+                      <span className="font-medium">{t}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
             <p className="text-stone mt-3 flex items-center gap-1.5 text-sm"><Target className="size-4" /> {prompt.focus}</p>
           </section>
 
@@ -345,7 +376,7 @@ export function Recorder({ prompt, firstToday, level, first }: { prompt: Prompt;
                 {points.map((t) => (
                   <li key={t}>{t}</li>
                 ))}
-                {level === "pro" && <li className="text-white/50">Improvise the rest</li>}
+                {level === "pro" && !reading && <li className="text-white/50">Improvise the rest</li>}
                 <li className="text-white/50">{prompt.skill}: {prompt.focus}</li>
               </ul>
             </div>
