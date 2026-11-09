@@ -1,9 +1,9 @@
 "use client";
 
-import { Camera, ChevronLeft, MessageCircle, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
+import { AudioLines, Camera, ChevronLeft, Minus, MessageCircle, Plus, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Mascot, MascotSays, Yapper } from "@/components/brand/mascot";
 import { Slider } from "@/components/ui/slider";
@@ -13,6 +13,8 @@ import { xpForYap } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
 import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
+import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, wordDuration } from "@/lib/prompter";
+import { ScriptPreview, Teleprompter } from "./teleprompter";
 
 type Mode = "video" | "audio";
 type Facing = "user" | "environment";
@@ -49,14 +51,21 @@ function unblockHelp(mode: Mode) {
 }
 
 export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
-  const target = TARGET_SECONDS[level ?? "beginner"];
   // Intro yaps can be read from a ready-made script; beginners get it by default.
   const [useScript, setUseScript] = useState(Boolean(script) && level !== "pro" && level !== "intermediate");
   const reading = Boolean(script && useScript);
   const points = reading ? script! : visiblePoints(prompt.talking_points, level);
+  const model = useMemo(() => (reading && script ? buildScript(script) : null), [reading, script]);
+  // Length is a goal, not a rule: "free" means stop whenever you like (60 s is the cap).
+  const [length, setLength] = useState<"free" | number>(() => (script && level !== "pro" && level !== "intermediate" ? "free" : TARGET_SECONDS[level ?? "beginner"]));
+  const target = length === "free" ? null : length;
+  const [wpm, setWpm] = useState(150);
+  const [pace, setPace] = useState<"auto" | "voice">("auto");
+  const [voiceOk, setVoiceOk] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [cursor, setCursor] = useState(0); // word index (script) or line index (points)
   const router = useRouter();
   const previewRef = useRef<HTMLVideoElement>(null);
-  const prompterRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -70,7 +79,6 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [count, setCount] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [speed, setSpeed] = useState(28); // teleprompter px per second
   const [textSize, setTextSize] = useState<TextSize>("M");
   const [showSettings, setShowSettings] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -109,24 +117,89 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     }
   }, []);
 
-  // Teleprompter scroll (recording or preview) + timer + auto-stop at 60 s.
+  // Timer + auto-stop at the 60 s cap.
   useEffect(() => {
-    if (phase !== "recording" && !previewing) return;
+    if (phase !== "recording") return;
     let frame = 0;
-    let last = performance.now();
     const tick = (now: number) => {
-      if (prompterRef.current) prompterRef.current.scrollTop += (speed * (now - last)) / 1000;
-      last = now;
-      if (phase === "recording") {
-        const secs = (now - startedAtRef.current) / 1000;
-        setElapsed(secs);
-        if (secs >= MAX_SECONDS) return stop();
-      }
+      const secs = (now - startedAtRef.current) / 1000;
+      setElapsed(secs);
+      if (secs >= MAX_SECONDS) return stop();
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [phase, previewing, speed, stop]);
+  }, [phase, stop]);
+
+  // Voice follow needs the browser's speech recognition (Chrome, Edge, Safari).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVoiceOk(Boolean(speechRecognitionCtor()));
+  }, []);
+
+  const total = model ? model.words.length : points.length;
+  const rolling = phase === "recording" || previewing;
+  const following = phase === "recording" && pace === "voice" && Boolean(model);
+
+  // Auto pace: move the highlight word by word at the chosen speed (points: one per few seconds).
+  useEffect(() => {
+    if (!rolling || following || cursor >= total) return;
+    const secs = model ? wordDuration(model.words[cursor], wpm) : Math.max(4, (target ?? 45) / Math.max(1, points.length)) * (150 / wpm);
+    const t = setTimeout(() => setCursor((c) => c + 1), secs * 1000);
+    return () => clearTimeout(t);
+  }, [rolling, following, cursor, total, model, wpm, target, points.length]);
+
+  // Voice follow: listen while recording and jump the highlight to the next unsaid word.
+  useEffect(() => {
+    if (!following || !model) return;
+    const Ctor = speechRecognitionCtor();
+    if (!Ctor) return;
+    let active = true;
+    let rec = new Ctor();
+    const startRec = () => {
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = navigator.language || "en-US";
+      rec.onresult = (e) => {
+        const heard: string[] = [];
+        for (let r = 0; r < e.results.length; r++) heard.push(...e.results[r][0].transcript.split(/\s+/));
+        const pos = followPosition(model.words, [...heardBefore, ...heard]);
+        latest = heard;
+        setCursor((c) => Math.max(c, pos));
+      };
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          active = false;
+          setPace("auto");
+          toast("Voice follow isn't available here, so we switched to auto scroll.");
+        }
+      };
+      // Browsers end a session after a silence; keep listening until the take ends.
+      rec.onend = () => {
+        if (!active) return setListening(false);
+        heardBefore.push(...latest);
+        latest = [];
+        rec = new Ctor();
+        startRec();
+      };
+      try {
+        rec.start();
+        setListening(true);
+      } catch {
+        setListening(false);
+      }
+    };
+    const heardBefore: string[] = [];
+    let latest: string[] = [];
+    startRec();
+    return () => {
+      active = false;
+      setListening(false);
+      try {
+        rec.abort();
+      } catch {}
+    };
+  }, [following, model]);
 
   // Browsers stop recording in background tabs, so end cleanly if the user leaves.
   useEffect(() => {
@@ -139,7 +212,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     if (!streamRef.current) return;
     setShowSettings(false);
     setPreviewing(false);
-    if (prompterRef.current) prompterRef.current.scrollTop = 0;
+    setCursor(0);
     setCount(3);
     setPhase("countdown");
   }
@@ -172,8 +245,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     setPhase("setup");
     requestAnimationFrame(() => {
       if (previewRef.current && streamRef.current) previewRef.current.srcObject = streamRef.current;
-      if (prompterRef.current) prompterRef.current.scrollTop = 0;
     });
+    setCursor(0);
   }
 
   // 3-2-1 countdown, then record.
@@ -216,8 +289,11 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   }
 
   const live = phase === "setup" || phase === "countdown" || phase === "recording";
-  const progress = Math.min(1, elapsed / target);
-  const hitTarget = elapsed >= target;
+  const progress = Math.min(1, elapsed / (target ?? MAX_SECONDS));
+  const hitTarget = target !== null && elapsed >= target;
+  const estimate = model ? estimateSeconds(model, wpm) : null;
+  const lengthLabel = target ? `${target}s goal` : estimate ? `about ${estimate}s` : "no time limit";
+  const cycleLength = () => setLength((l) => (l === "free" ? 30 : l === 30 ? 45 : l === 45 ? 60 : "free"));
   const RING = 2 * Math.PI * 44;
 
   if (phase === "prep") {
@@ -264,11 +340,9 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <section className="surface mt-3 rounded-[28px] p-5">
             {reading ? (
               <>
-                <p className="text-stone text-sm font-semibold">Your script · it scrolls on the teleprompter</p>
-                <div className="mt-2 space-y-1.5 text-lg leading-snug font-medium">
-                  {points.map((t) => <p key={t}>{t}</p>)}
-                </div>
-                <p className="text-stone mt-3 text-sm">Made from your answers. Change any words you like as you go.</p>
+                <p className="text-stone text-sm font-semibold">Your script · made from your answers</p>
+                {model && <ScriptPreview script={model} />}
+                <p className="text-stone mt-3 text-sm">Change any words you like as you go. The teleprompter highlights each word as you say it.</p>
               </>
             ) : (
               <>
@@ -287,8 +361,10 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           </section>
 
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm font-semibold">
-            <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Timer className="size-4" />{target} sec</span>
-            <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target, firstToday)} XP</span>
+            <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`Length: ${target ? `${target} second goal` : "no time limit"}. Tap to change.`}>
+              <Timer className="size-4" />{target ? `${target}s goal` : "No limit"}
+            </button>
+            <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target ?? estimate ?? 0, firstToday)} XP</span>
             <button
               onClick={() => setMode(mode === "video" ? "audio" : "video")}
               className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3"
@@ -363,36 +439,58 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             )}
           >
             {phase === "recording" && <span className="size-2 animate-pulse rounded-full bg-white" />}
-            {phase === "review" || phase === "saving" ? fmt(clip?.seconds ?? 0) : `${fmt(elapsed)} / ${fmt(target)}`}
+            {phase === "review" || phase === "saving" ? fmt(clip?.seconds ?? 0) : target ? `${fmt(elapsed)} / ${fmt(target)}` : fmt(elapsed)}
           </span>
         </div>
 
         {/* ---------- Teleprompter ---------- */}
         {live && (
-          <div className="glass-dark absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] rounded-3xl">
-            <div ref={prompterRef} className="prompter-mask h-44 overflow-hidden px-5 pt-4 sm:h-52">
-              <p className="mb-3 text-sm font-semibold text-white/60">Day {prompt.day_index} · {prompt.title}</p>
-              <ul className={cn("font-display space-y-5 pb-48 leading-tight font-bold", TEXT_SIZES[textSize])}>
-                {points.map((t) => (
-                  <li key={t}>{t}</li>
-                ))}
-                {level === "pro" && !reading && <li className="text-white/50">Improvise the rest</li>}
-                <li className="text-white/50">{prompt.skill}: {prompt.focus}</li>
-              </ul>
-            </div>
+          <div className="glass-dark absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] rounded-3xl px-5 pt-4">
+            <Teleprompter
+              title={`Day ${prompt.day_index} · ${prompt.title}`}
+              script={model}
+              points={points}
+              index={cursor}
+              onJump={setCursor}
+              sizeClass={TEXT_SIZES[textSize]}
+              footer={
+                !model && (
+                  <>
+                    {level === "pro" && <p className="text-white/50">Improvise the rest</p>}
+                    <p className="text-white/50">{prompt.skill}: {prompt.focus}</p>
+                  </>
+                )
+              }
+            />
+            {phase === "recording" && (
+              <div className="-mx-1 flex items-center justify-between gap-2 pb-3 text-xs font-bold">
+                {following ? (
+                  <span className="flex items-center gap-1.5 text-white/80">
+                    <AudioLines className={cn("size-4", listening && "animate-pulse")} /> {listening ? "Following your voice" : "Starting…"}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <button onClick={() => setWpm((v) => Math.max(90, v - 15))} className="grid size-8 place-items-center rounded-full bg-white/15" aria-label="Slower"><Minus className="size-4" /></button>
+                    <span className="w-16 text-center tabular-nums">{wpm} wpm</span>
+                    <button onClick={() => setWpm((v) => Math.min(210, v + 15))} className="grid size-8 place-items-center rounded-full bg-white/15" aria-label="Faster"><Plus className="size-4" /></button>
+                  </span>
+                )}
+                <span className="text-white/50">Tap a word to jump</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* ---------- Pill controls ---------- */}
         {phase === "setup" && (
-          <div className="absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+16.5rem)] sm:top-[calc(max(1rem,env(safe-area-inset-top))+18.5rem)]">
+          <div className="absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+19rem)] sm:top-[calc(max(1rem,env(safe-area-inset-top))+21rem)]">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMode(mode === "video" ? "audio" : "video")}
                 className="glass flex h-11 flex-1 items-center gap-2 rounded-full px-4 text-sm font-bold"
               >
                 {mode === "video" ? <Video className="size-4" /> : <Mic className="size-4" />}
-                {mode === "video" ? `${target}-second video` : `${target}-second audio`}
+                {mode === "video" ? "Video" : "Audio"} · {lengthLabel}
                 <RefreshCw className="ml-auto size-4 opacity-70" />
               </button>
               {mode === "video" && (
@@ -410,11 +508,47 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               </button>
             </div>
             {showSettings && (
-              <div className="glass-dark animate-rise mt-2 flex flex-col gap-4 rounded-3xl p-4">
-                <label className="flex flex-col gap-3 text-sm font-bold">
-                  Scroll speed
-                  <Slider min={0} max={80} value={[speed]} onValueChange={(v) => setSpeed(Array.isArray(v) ? v[0] : v)} />
-                </label>
+              <div className="glass-dark animate-rise mt-2 flex flex-col gap-3.5 rounded-3xl p-4">
+                {model && (
+                  <div className="flex flex-col gap-2 text-sm font-bold">
+                    Teleprompter
+                    <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1">
+                      {([["auto", "Auto scroll"], ["voice", "Follow my voice"]] as const).map(([v, label]) => (
+                        <button
+                          key={v}
+                          onClick={() => setPace(v)}
+                          disabled={v === "voice" && !voiceOk}
+                          className={cn("h-9 rounded-full text-[13px] disabled:opacity-40", pace === v ? "bg-white text-ink" : "text-white/80")}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs font-medium text-white/60">
+                      {!voiceOk
+                        ? "Follow my voice needs Chrome, Edge or Safari."
+                        : pace === "voice"
+                          ? "Moves to the next word as you say it. Uses your browser's speech recognition, which may send audio to Google or Apple."
+                          : "Highlights word by word at your speed."}
+                    </p>
+                  </div>
+                )}
+                {pace === "auto" || !model ? (
+                  <label className="flex flex-col gap-3 text-sm font-bold">
+                    <span className="flex justify-between">Speed <span className="text-white/60 tabular-nums">{wpm} words/min{wpm < 130 ? " · relaxed" : wpm > 170 ? " · fast" : " · natural"}</span></span>
+                    <Slider min={90} max={210} step={5} value={[wpm]} onValueChange={(v) => setWpm(Array.isArray(v) ? v[0] : v)} />
+                  </label>
+                ) : null}
+                <div className="flex items-center justify-between text-sm font-bold">
+                  Length
+                  <div className="flex gap-1">
+                    {(["free", 30, 45, 60] as const).map((l) => (
+                      <button key={l} onClick={() => setLength(l)} className={cn("h-9 rounded-full px-3", length === l ? "bg-white text-ink" : "bg-white/15")}>
+                        {l === "free" ? "No limit" : `${l}s`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex items-center justify-between text-sm font-bold">
                   Text size
                   <div className="flex gap-1">
@@ -453,13 +587,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         {/* ---------- Bottom: record controls ---------- */}
         {live && (
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-4 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
-            {phase === "setup" && !error && (
-              <button onClick={() => setPreviewing((p) => !p)} className="glass flex h-10 items-center gap-2 rounded-full px-5 text-sm font-bold">
-                <Eye className="size-4" /> {previewing ? "Stop preview" : "Preview points"}
+            {phase === "setup" && !error && !showSettings && (
+              <button onClick={() => { setCursor(0); setPreviewing((p) => !p); }} className="glass flex h-10 items-center gap-2 rounded-full px-5 text-sm font-bold">
+                <Eye className="size-4" /> {previewing ? "Stop practice" : "Practice scroll"}
               </button>
             )}
             {phase === "recording" && (
-              <p className="text-sm font-bold text-white/90 drop-shadow">{hitTarget ? `Target hit! Wrap up (max ${MAX_SECONDS}s)` : "Tap to finish"}</p>
+              <p className="text-sm font-bold text-white/90 drop-shadow">{hitTarget ? `Goal hit! Wrap up whenever (max ${MAX_SECONDS}s)` : model && cursor >= total ? "Done! Tap to finish" : "Tap to finish any time"}</p>
             )}
             <button
               onClick={phase === "recording" ? stop : startCountdown}
@@ -470,7 +604,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
                 <circle cx="50" cy="50" r="44" fill="none" stroke="rgb(255 255 255 / 0.9)" strokeWidth="6" />
                 {phase === "recording" && (
-                  <circle cx="50" cy="50" r="44" fill="none" stroke={hitTarget ? "#1fa463" : "#ffd23f"} strokeWidth="6" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - progress)} />
+                  <circle cx="50" cy="50" r="44" fill="none" stroke={hitTarget || (model && cursor >= total) ? "#1fa463" : target ? "#ffd23f" : "rgb(255 255 255 / 0.5)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - progress)} />
                 )}
               </svg>
               <span className={cn("bg-[#ff3b30] transition-all duration-200", phase === "recording" ? "size-9 rounded-xl" : "size-[70px] rounded-full")} />
