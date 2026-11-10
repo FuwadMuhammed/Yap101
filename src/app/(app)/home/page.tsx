@@ -83,26 +83,34 @@ export default function Today() {
             {game.week.map((d, i) => {
               const y = yapperAt(i);
               const yap = d.done ? yaps.find((x) => x.local_date === d.date) : undefined;
+              const waiting = d.isToday && !d.done;
               const tile = (
                 <>
                   <span
                     className={cn(
-                      "grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
-                      !d.done && (d.frozen ? "bg-sky-soft" : d.isFuture ? "bg-[#ecebe7]" : "bg-line"),
+                      "relative grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
+                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#ecebe7]" : "bg-line"),
+                      // Today: a bold ring (dashed until you've yapped) so it stands out at a glance.
+                      d.isToday && (waiting ? "outline-ink outline-dashed outline-2 outline-offset-2" : "outline-ink outline-2 outline-offset-2"),
                     )}
                     style={d.done ? { background: y.color } : undefined}
                   >
                     {d.frozen ? (
                       <Snowflake className="text-sky size-5" />
                     ) : (
-                      <Yapper shape="square" color="transparent" mood={d.done || d.isFuture ? "happy" : "sleepy"} className={cn("size-[92%]", !d.done && "opacity-30")} />
+                      <Yapper
+                        shape="square"
+                        color={waiting ? y.color : "transparent"}
+                        mood={d.done ? "happy" : waiting ? "talk" : d.isFuture ? "happy" : "sleepy"}
+                        className={cn("size-[92%]", !d.done && !waiting && "opacity-30", waiting && "animate-float size-[70%]")}
+                      />
                     )}
                   </span>
-                  <span className="text-[13px] leading-none">{d.label}</span>
-                  <span className="text-lg leading-none font-bold">{d.dayNum}</span>
+                  <span className={cn("mt-1 text-[13px] leading-none", d.isToday && "font-bold")}>{d.isToday ? "Today" : d.label}</span>
+                  <span className={cn("grid h-7 min-w-7 place-items-center rounded-full px-1 text-lg leading-none font-bold", d.isToday && "bg-ink text-white")}>{d.dayNum}</span>
                 </>
               );
-              const cls = cn("flex flex-col items-center gap-1.5 rounded-[18px] py-2", d.isToday && "bg-mist");
+              const cls = "flex flex-col items-center gap-1.5 rounded-[18px] py-2";
               return yap ? (
                 <Link key={d.date} href={`/feedback/${yap.id}`} className={cn(cls, "tap hover:bg-mist")} aria-label={`${d.label} ${d.dayNum}: open your yap`}>
                   {tile}
