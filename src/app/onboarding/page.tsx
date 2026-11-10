@@ -114,7 +114,7 @@ export default function Onboarding() {
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pt-4 pb-6">
+    <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pt-4">
       <div className="flex items-center gap-4">
         <button onClick={() => (step === 0 ? router.push("/") : setStep(step - 1))} className="surface tap grid size-11 shrink-0 place-items-center rounded-full" aria-label="Back">
           <ChevronLeft className="size-5" />
@@ -183,7 +183,7 @@ export default function Onboarding() {
             )}
           </div>
 
-          <div className="mt-auto pt-8">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <YapButton size="xl" block arrow disabled={!a[current.key].trim()} onClick={() => setStep(step + 1)}>
               Continue
             </YapButton>
@@ -214,7 +214,7 @@ export default function Onboarding() {
               );
             })}
           </div>
-          <div className="mt-auto pt-8">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <YapButton size="xl" block arrow onClick={finish} disabled={saving}>{saving ? "Setting up…" : "Do my first yap"}</YapButton>
           </div>
         </div>

@@ -300,7 +300,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     const week = weekFor(prompt.day_index);
     return (
       <div className="bg-grid flex min-h-dvh justify-center">
-        <div className="flex w-full max-w-lg flex-col px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-full max-w-lg flex-col px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="flex items-center justify-between">
             <Link href="/home" className="surface tap grid size-11 place-items-center rounded-full" aria-label="Back to today">
               <ChevronLeft className="size-5" />
@@ -375,7 +375,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             </button>
           </div>
 
-          <div className="mt-auto pt-6">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="text-stone mb-3 flex items-center justify-center gap-1.5 text-center text-sm">
               <Lock className="size-3.5" /> Next, your browser asks for {mode === "video" ? "camera and mic" : "mic"} access. Your yap stays private.
             </p>
