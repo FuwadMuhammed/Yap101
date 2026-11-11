@@ -160,6 +160,7 @@ function FeedbackScreen() {
     );
 
   const f = yap?.feedback;
+  const isVideo = yap?.media === "video";
   // Compare with the most recent earlier yap that has feedback.
   const idx = all.findIndex((y) => y.id === id);
   const prev = idx >= 0 ? all.slice(idx + 1).find((y) => y.filler_count !== null) : undefined;
@@ -190,7 +191,7 @@ function FeedbackScreen() {
     <>
       {celebrate && celebration && <CelebrationScreen c={celebration} onDone={() => router.replace(`/feedback/${id}`)} />}
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 px-4 pt-4 pb-10 sm:px-6">
+      <div className={cn("mx-auto flex w-full flex-1 flex-col gap-5 px-4 pt-4 pb-10 sm:px-6 lg:pt-8", isVideo ? "max-w-5xl" : "max-w-2xl")}>
         <div className="flex items-center gap-3">
           <Link href="/home" className="surface tap grid size-11 shrink-0 place-items-center rounded-full" aria-label="Back to today">
             <ChevronLeft className="size-5" />
@@ -201,15 +202,20 @@ function FeedbackScreen() {
           </div>
         </div>
 
+        {/* Phone: clip on top, report below. Tablet and up (video): clip on the left, stays in view. */}
+        <div className={cn("flex flex-col gap-5", isVideo && "md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:items-start md:gap-8")}>
         {yap?.url &&
           (yap.media === "video" ? (
-            <video src={yap.url} controls playsInline className="aspect-[9/16] max-h-[60dvh] w-full rounded-[28px] bg-ink object-cover sm:mx-auto sm:w-auto" />
+            <div className="md:sticky md:top-6">
+              <video src={yap.url} controls playsInline className="bg-ink mx-auto aspect-[9/16] max-h-[52dvh] w-auto max-w-full rounded-[28px] object-cover md:max-h-[calc(100dvh-8rem)] md:w-full" />
+            </div>
           ) : (
             <div className="surface flex items-center gap-3 rounded-full p-2 pr-4">
               <YapperAvatar index={0} mood="talk" />
               <audio src={yap.url} controls className="h-10 min-w-0 flex-1" />
             </div>
           ))}
+        <div className="flex min-w-0 flex-col gap-5">
 
         {!f ? (
           <div className="surface flex flex-col items-center gap-3 rounded-[28px] px-6 py-10 text-center">
@@ -341,6 +347,8 @@ function FeedbackScreen() {
             <YapLink href="/history" variant="soft" size="lg">All my yaps</YapLink>
           </div>
         </section>
+        </div>
+        </div>
       </div>
     </>
   );
