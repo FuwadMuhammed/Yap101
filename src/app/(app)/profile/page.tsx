@@ -30,7 +30,8 @@ export default function Me() {
   }, []);
   if (loading || !profile) return <PageSkeleton rows={4} />;
 
-  const fillers = [...yaps].reverse().flatMap((y) => (y.filler_count == null ? [] : [y.filler_count]));
+  // Yap score trend (on-device analysis). Filler words join once transcripts arrive.
+  const scores = [...yaps].reverse().flatMap((y) => (y.score == null ? [] : [y.score]));
 
   const chips = [labelFor(NICHES, profile.niche), labelFor(PLATFORMS, profile.platform), labelFor(LEVEL_OPTIONS, profile.level), labelFor(GOAL_OPTIONS, profile.goal), labelFor(YAP_TIMES, profile.yap_time)].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
@@ -78,12 +79,12 @@ export default function Me() {
       {/* Progress + streak protection */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="surface rounded-[28px] p-5">
-          <p className="font-bold">Filler words per yap</p>
-          {fillers.length >= 2 ? (
+          <p className="font-bold">Yap score</p>
+          {scores.length >= 2 ? (
             <>
-              <Sparkline values={fillers} className="mt-3 h-16 w-full" label={`Filler words went from ${fillers[0]} to ${fillers[fillers.length - 1]}`} />
+              <Sparkline values={scores} className="mt-3 h-16 w-full" label={`Yap score went from ${scores[0]} to ${scores[scores.length - 1]}`} />
               <p className="text-stone mt-2 text-sm">
-                {fillers[0]} on your first yap → {fillers[fillers.length - 1]} on your latest
+                {scores[0]} on your first scored yap → {scores[scores.length - 1]} on your latest
               </p>
             </>
           ) : (

@@ -112,23 +112,21 @@ export const demoApi: DataApi = {
     return { streak, usedToday: yaps.filter((y) => y.local_date === today).length };
   },
 
-  async saveYap({ prompt, media, blob, seconds, localDate: day }) {
+  async saveYap({ prompt, media, blob, seconds, localDate: day, analysis }) {
     const s = load();
     if (s.yaps.filter((y) => y.local_date === day).length >= DAILY_LIMIT) throw new DailyLimitError();
     const id = crypto.randomUUID();
     await clipStore("readwrite", (st) => st.put(blob, id));
-    const practiced = s.yaps.length;
-    s.yaps.unshift({ id, prompt_id: prompt.id, title: prompt.title, skill: prompt.skill, media, duration_seconds: seconds, local_date: day, created_at: new Date().toISOString(), feedback: null });
+    // Feedback is the real on-device analysis. Filler words need a transcript, so they stay empty.
+    const feedback: Feedback = {
+      words_per_minute: analysis?.wpm ?? null,
+      filler_count: null,
+      filler_words: {},
+      tips: analysis?.tips ?? ["Watch your clip back once. You'll spot one thing to try next time."],
+      analysis: analysis ?? null,
+    };
+    s.yaps.unshift({ id, prompt_id: prompt.id, title: prompt.title, skill: prompt.skill, media, duration_seconds: seconds, local_date: day, created_at: new Date().toISOString(), feedback });
     save(s);
-    // Simulate the AI taking a moment, so the "preparing" state is visible.
-    setTimeout(() => {
-      const later = load();
-      const yap = later.yaps.find((y) => y.id === id);
-      if (yap) {
-        yap.feedback = fakeFeedback(seconds, practiced, prompt.skill);
-        save(later);
-      }
-    }, 2500);
     return { id };
   },
 
@@ -136,8 +134,8 @@ export const demoApi: DataApi = {
     const s = load();
     const yap = s.yaps.find((y) => y.id === id);
     if (!yap) return null;
-    // If the page was reloaded before the simulated AI finished, finish it now.
-    if (!yap.feedback && Date.now() - Date.parse(yap.created_at) > 2500) {
+    // Older demo yaps (saved before on-device analysis) have no feedback; give them a sample.
+    if (!yap.feedback) {
       yap.feedback = fakeFeedback(yap.duration_seconds, s.yaps.length - 1 - s.yaps.indexOf(yap), yap.skill);
       save(s);
     }
@@ -154,6 +152,7 @@ export const demoApi: DataApi = {
       media,
       filler_count: feedback?.filler_count ?? null,
       words_per_minute: feedback?.words_per_minute ?? null,
+      score: feedback?.analysis?.overall ?? null,
     }));
   },
 

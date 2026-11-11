@@ -10,7 +10,7 @@ import { YapLink } from "@/components/yap/yap-button";
 const STEPS = [
   { title: "Pick your goal", body: "Tell us your niche and level. We build a 30-day yap track just for you.", bg: "bg-sky", y: { shape: "blob" as const, mood: "think" as const } },
   { title: "Yap for 60 seconds", body: "Talking points float over your camera. Hit record and just talk.", bg: "bg-yap", y: { shape: "bubble" as const, mood: "talk" as const } },
-  { title: "Get better daily", body: "Feedback on pace and filler words, XP, streaks, and a clip you can post.", bg: "bg-mint", y: { shape: "bean" as const, mood: "cheer" as const } },
+  { title: "Get better daily", body: "A Yap score for your pace, pauses, energy, eye contact and smile, plus XP, streaks and a clip you can post.", bg: "bg-mint", y: { shape: "bean" as const, mood: "cheer" as const } },
 ];
 
 const NICHES = [
@@ -45,7 +45,7 @@ const FAQ = [
   { q: "How long does it take?", a: "About 2 minutes a day: a quick tip, then 30 to 60 seconds of talking." },
   { q: "Do I have to post my videos?", a: "Never. Your yaps are private. If you love one, you can share or save it in one tap." },
   { q: "Which phones and browsers work?", a: "Chrome, Safari and Edge, on iPhone, Android and laptop. You can also record audio only." },
-  { q: "What does the feedback tell me?", a: "Your pace, your filler words (um, like, you know) and three short tips to try next time." },
+  { q: "What does the feedback tell me?", a: "A Yap score out of 100, broken down into how fast you started, your pace, pauses, voice energy, eye contact and smile, plus three short tips. It's measured on your phone, so your video isn't uploaded for it. Filler-word counts (um, like) are coming next." },
   { q: "Do I need to download an app?", a: "No, it runs in your browser. On iPhone you can add it to your Home Screen so it opens like an app." },
 ];
 

@@ -1,3 +1,4 @@
+import type { Analysis } from "@/lib/analysis/score";
 import type { Goal, Level, Prompt } from "@/lib/yap";
 
 export type Media = "video" | "audio";
@@ -18,10 +19,14 @@ export type Profile = {
 export type Onboarding = Pick<Profile, "display_name" | "niche" | "platform" | "confidence" | "level" | "goal" | "yap_time">;
 
 export type Feedback = {
-  words_per_minute: number;
-  filler_count: number;
+  /** Estimated on the phone today; exact once transcripts arrive. */
+  words_per_minute: number | null;
+  /** Needs a transcript (speech-to-text), so null until that ships. */
+  filler_count: number | null;
   filler_words: Record<string, number>;
   tips: string[];
+  /** On-device measurements: Yap score, sub-scores, raw stats. */
+  analysis?: Analysis | null;
 };
 
 export type YapSummary = {
@@ -33,6 +38,8 @@ export type YapSummary = {
   /** From feedback, when it's ready. Used for progress trends. */
   filler_count: number | null;
   words_per_minute: number | null;
+  /** Yap score (0-100) from on-device analysis. */
+  score: number | null;
 };
 
 export type YapDetail = { url: string | null; media: Media; title: string; local_date: string; feedback: Feedback | null };
@@ -52,7 +59,7 @@ export interface DataApi {
   getPromptById(id: number): Promise<Prompt | null>;
   getTodayStats(today: string): Promise<{ streak: number; usedToday: number }>;
   /** Throws DailyLimitError after 3 yaps on `localDate`. */
-  saveYap(input: { prompt: Prompt; media: Media; blob: Blob; seconds: number; localDate: string }): Promise<{ id: string }>;
+  saveYap(input: { prompt: Prompt; media: Media; blob: Blob; seconds: number; localDate: string; analysis?: Analysis | null }): Promise<{ id: string }>;
   getYap(id: string): Promise<YapDetail | null>;
   listYaps(): Promise<YapSummary[]>;
   deleteYap(id: string): Promise<void>;

@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Mascot, MascotSays, Yapper, YapperAvatar, YapperCluster } from "@/components/brand/mascot";
 import { Confetti } from "@/components/yap/confetti";
-import { Bar, Flame } from "@/components/yap/stats";
+import { Bar, Flame, Ring } from "@/components/yap/stats";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { YapButton, YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
@@ -93,6 +93,9 @@ function CelebrationScreen({ c, onDone }: { c: Celebration; onDone: () => void }
   );
 }
 
+const scoreColor = (n: number) => (n >= 80 ? "#1fa463" : n >= 60 ? "#ffd23f" : "#ff6b2c");
+const scoreBg = (n: number) => (n >= 80 ? "bg-mint" : n >= 60 ? "bg-sun" : "bg-yap");
+
 function pace(wpm: number) {
   if (wpm < 110) return "A bit slow";
   if (wpm <= 170) return "Sweet spot";
@@ -160,7 +163,10 @@ function FeedbackScreen() {
   // Compare with the most recent earlier yap that has feedback.
   const idx = all.findIndex((y) => y.id === id);
   const prev = idx >= 0 ? all.slice(idx + 1).find((y) => y.filler_count !== null) : undefined;
-  const fillerDelta = f && prev?.filler_count != null ? f.filler_count - prev.filler_count : null;
+  const fillerDelta = f?.filler_count != null && prev?.filler_count != null ? f.filler_count - prev.filler_count : null;
+  const a = f?.analysis && f.analysis.parts.length ? f.analysis : null;
+  const prevScored = idx >= 0 ? all.slice(idx + 1).find((y) => y.score !== null) : undefined;
+  const scoreDelta = a && prevScored?.score != null ? a.overall - prevScored.score : null;
   const leftToday = today ? DAILY_LIMIT - all.filter((y) => y.local_date === today).length : 0;
 
   async function share() {
@@ -209,30 +215,73 @@ function FeedbackScreen() {
           <div className="surface flex flex-col items-center gap-3 rounded-[28px] px-6 py-10 text-center">
             <Mascot mood="think" className="animate-wiggle size-16" />
             <p className="text-lg font-semibold">Yappy is listening back…</p>
-            <p className="text-stone text-sm">Counting filler words and checking your pace.</p>
+            <p className="text-stone text-sm">Checking your pace, pauses and energy.</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-sky relative overflow-hidden rounded-[28px] p-5 text-white">
-                <p className="text-sm text-white/75">Pace</p>
-                <p className="font-display mt-1 text-4xl font-bold">{Math.round(f.words_per_minute)}</p>
-                <p className="text-sm text-white/75">words / min</p>
-                <span className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{pace(f.words_per_minute)}</span>
-                <Yapper shape="blob" color="#ffffff" mood="talk" className="absolute -right-3 -bottom-3 size-16 opacity-90" />
-              </div>
-              <div className="bg-berry relative overflow-hidden rounded-[28px] p-5 text-white">
-                <p className="text-sm text-white/75">Filler words</p>
-                <p className="font-display mt-1 text-4xl font-bold">{f.filler_count}</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {Object.entries(f.filler_words)
-                    .filter(([, n]) => n > 0)
-                    .map(([w, n]) => (
-                      <span key={w} className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-semibold">“{w}” ×{n}</span>
-                    ))}
-                  {f.filler_count === 0 && <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-ink">Clean!</span>}
+            {a && (
+              <section className="bg-ink relative overflow-hidden rounded-[32px] p-5 text-white">
+                <div className="flex items-center gap-5">
+                  <Ring value={a.overall / 100} label={<span className="font-display text-3xl">{a.overall}</span>} color={scoreColor(a.overall)} className="size-24 shrink-0 [&_circle:first-child]:stroke-white/15" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-white/60">Yap score</p>
+                    <p className="font-display text-2xl font-bold">{a.verdict}</p>
+                    {scoreDelta !== null && (
+                      <p className={cn("mt-1 inline-flex items-center gap-1 text-sm font-semibold", scoreDelta >= 0 ? "text-mint-soft" : "text-sun")}>
+                        {scoreDelta >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
+                        {scoreDelta === 0 ? "Same as last time" : `${scoreDelta > 0 ? "+" : ""}${scoreDelta} vs last time`}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+                <ul className="mt-5 flex flex-col gap-3.5">
+                  {a.parts.map((p) => (
+                    <li key={p.key}>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="font-semibold">
+                          {p.label}
+                          {p.focus && <span className="bg-grape ml-2 rounded-full px-2 py-0.5 align-middle text-[11px] font-bold text-ink">Today&apos;s skill</span>}
+                        </p>
+                        <span className="font-bold tabular-nums">{p.score}</span>
+                      </div>
+                      <Bar value={p.score / 100} track="bg-white/10" color={scoreBg(p.score)} className="mt-1.5" />
+                      <p className="mt-1 text-sm text-white/60">{p.value}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {f.words_per_minute != null && (
+                <div className="bg-sky relative overflow-hidden rounded-[28px] p-5 text-white">
+                  <p className="text-sm text-white/75">Pace</p>
+                  <p className="font-display mt-1 text-4xl font-bold">{a ? "~" : ""}{Math.round(f.words_per_minute)}</p>
+                  <p className="text-sm text-white/75">words / min</p>
+                  <span className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{pace(f.words_per_minute)}</span>
+                  <Yapper shape="blob" color="#ffffff" mood="talk" className="absolute -right-3 -bottom-3 size-16 opacity-90" />
+                </div>
+              )}
+              {f.filler_count != null ? (
+                <div className="bg-berry relative overflow-hidden rounded-[28px] p-5 text-white">
+                  <p className="text-sm text-white/75">Filler words</p>
+                  <p className="font-display mt-1 text-4xl font-bold">{f.filler_count}</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {Object.entries(f.filler_words)
+                      .filter(([, n]) => n > 0)
+                      .map(([w, n]) => (
+                        <span key={w} className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-semibold">“{w}” ×{n}</span>
+                      ))}
+                    {f.filler_count === 0 && <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-ink">Clean!</span>}
+                  </div>
+                </div>
+              ) : (
+                <div className="surface flex flex-col justify-between rounded-[28px] p-5">
+                  <p className="text-stone text-sm">Filler words</p>
+                  <p className="font-display mt-1 text-xl font-bold">Coming soon</p>
+                  <p className="text-stone mt-1 text-xs">Counting “um” and “like” needs a transcript. That&apos;s the next update.</p>
+                </div>
+              )}
             </div>
 
             {fillerDelta !== null && (
@@ -257,7 +306,13 @@ function FeedbackScreen() {
                 ))}
               </ol>
             </section>
-            {isDemo && <p className="text-stone text-center text-xs">Demo mode: these numbers are made up. Real AI feedback comes in week 2.</p>}
+            <p className="text-stone text-center text-xs">
+              {a
+                ? "Measured on your phone: nothing was uploaded. Pace is an estimate from your voice rhythm."
+                : isDemo
+                  ? "Sample numbers for an earlier demo yap."
+                  : "Detailed feedback is on its way."}
+            </p>
           </>
         )}
 

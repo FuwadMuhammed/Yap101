@@ -15,6 +15,9 @@ import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
 import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, wordDuration } from "@/lib/prompter";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
+import { AudioMeter } from "@/lib/analysis/audio";
+import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
+import { analyse, type Analysis } from "@/lib/analysis/score";
 
 type Mode = "video" | "audio";
 type Facing = "user" | "environment";
@@ -82,7 +85,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [textSize, setTextSize] = useState<TextSize>("M");
   const [showSettings, setShowSettings] = useState(false);
   const [previewing, setPreviewing] = useState(false);
-  const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number } | null>(null);
+  const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number; analysis: Analysis | null } | null>(null);
+  // On-device analysis: voice meter always, face meter for video. Nothing is uploaded.
+  const audioMeterRef = useRef<AudioMeter | null>(null);
+  const faceMeterRef = useRef<FaceMeter | null>(null);
+  const cursorRef = useRef(0);
+  const usedVoiceRef = useRef(false);
 
   // Open the camera (or just the mic) once allowed, and again when mode or facing changes.
   useEffect(() => {
@@ -108,7 +116,23 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     };
   }, [mode, facing, cameraOn]);
 
-  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), []);
+  useEffect(() => {
+    cursorRef.current = cursor;
+  }, [cursor]);
+
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      audioMeterRef.current?.stop();
+      faceMeterRef.current?.stop();
+    },
+    [],
+  );
+
+  // Start downloading the face model while they set up, so it's ready when they record.
+  useEffect(() => {
+    if (cameraOn && mode === "video") void loadFaceModel();
+  }, [cameraOn, mode]);
 
   const stop = useCallback(() => {
     if (recorderRef.current?.state === "recording") {
@@ -170,6 +194,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       rec.onerror = (e) => {
         if (e.error === "not-allowed" || e.error === "service-not-allowed") {
           active = false;
+          usedVoiceRef.current = false;
           setPace("auto");
           toast("Voice follow isn't available here, so we switched to auto scroll.");
         }
@@ -227,13 +252,32 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType });
       const seconds = Math.min(MAX_SECONDS, (performance.now() - startedAtRef.current) / 1000);
-      setClip({ blob, url: URL.createObjectURL(blob), seconds });
+      let analysis: Analysis | null = null;
+      try {
+        analysis = analyse({
+          audio: audioMeterRef.current?.stop() ?? null,
+          face: faceMeterRef.current?.stop() ?? null,
+          scriptDone: usedVoiceRef.current && model ? Math.min(1, cursorRef.current / model.words.length) : null,
+          skill: prompt.skill,
+        });
+      } catch {
+        /* analysis is a bonus; never block saving the clip */
+      }
+      audioMeterRef.current = faceMeterRef.current = null;
+      setClip({ blob, url: URL.createObjectURL(blob), seconds, analysis });
       setPhase("review");
     };
     recorderRef.current = recorder;
     startedAtRef.current = performance.now();
     setElapsed(0);
     recorder.start(1000);
+    usedVoiceRef.current = pace === "voice" && Boolean(model) && voiceOk;
+    audioMeterRef.current = new AudioMeter();
+    audioMeterRef.current.start(stream);
+    if (mode === "video") {
+      faceMeterRef.current = new FaceMeter();
+      void faceMeterRef.current.start(previewRef.current);
+    }
     buzz(30);
     setPhase("recording");
   }
@@ -280,7 +324,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     if (!clip) return;
     setPhase("saving");
     try {
-      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate() });
+      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate(), analysis: clip.analysis });
       router.push(`/feedback/${id}?celebrate=1`);
     } catch (e) {
       toast.error(e instanceof DailyLimitError ? e.message : (e as Error).message || "Couldn't save your yap.");
@@ -620,7 +664,10 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
                 <p className="font-display text-2xl font-bold">Nice yap!</p>
                 <p className="text-stone text-sm font-semibold">{Math.round(clip.seconds)} seconds · {prompt.title}</p>
               </div>
-              <span className="bg-sun rounded-full px-3 py-1.5 text-sm font-bold">+{xpForYap(clip.seconds, firstToday)} XP</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="bg-sun rounded-full px-3 py-1.5 text-sm font-bold">+{xpForYap(clip.seconds, firstToday)} XP</span>
+                {clip.analysis && clip.analysis.parts.length > 0 && <span className="text-stone text-xs font-bold">Yap score {clip.analysis.overall}</span>}
+              </div>
             </div>
             <div className="mt-5 grid grid-cols-[auto_auto_1fr] gap-2">
               <YapButton variant="soft" size="icon" className="size-14" onClick={retake} disabled={phase === "saving"} aria-label="Retake">

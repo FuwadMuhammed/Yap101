@@ -52,7 +52,7 @@ export const supabaseApi: DataApi = {
     return { streak: streak ?? 0, usedToday: count ?? 0 };
   },
 
-  async saveYap({ prompt, media, blob, seconds, localDate }) {
+  async saveYap({ prompt, media, blob, seconds, localDate, analysis }) {
     const sb = createClient();
     const { data: auth } = await sb.auth.getUser();
     if (!auth.user) throw new Error("Not signed in");
@@ -71,7 +71,17 @@ export const supabaseApi: DataApi = {
       await sb.storage.from("yaps").remove([path]);
       throw error.message.includes("daily limit") ? new DailyLimitError() : error;
     }
-    // TODO (week 2): call the feedback API route here (speech-to-text + one LLM call).
+    // On-device analysis is saved straight away. Transcript-based feedback (filler words,
+    // AI tips) will update this row from a server route later.
+    if (analysis)
+      await sb.from("feedback").insert({
+        yap_id: data.id,
+        user_id: auth.user.id,
+        words_per_minute: analysis.wpm,
+        tips: analysis.tips,
+        score: analysis.overall,
+        analysis,
+      });
     return { id: data.id };
   },
 
@@ -90,7 +100,7 @@ export const supabaseApi: DataApi = {
   async listYaps() {
     const { data } = await createClient()
       .from("yaps")
-      .select("id, local_date, duration_seconds, media, title, feedback(filler_count, words_per_minute)")
+      .select("id, local_date, duration_seconds, media, title, feedback(filler_count, words_per_minute, score)")
       .order("created_at", { ascending: false });
     return (data ?? []).map((r) => ({
       id: r.id,
@@ -100,6 +110,7 @@ export const supabaseApi: DataApi = {
       title: r.title ?? "Yap",
       filler_count: (r.feedback as unknown as { filler_count: number } | null)?.filler_count ?? null,
       words_per_minute: (r.feedback as unknown as { words_per_minute: number } | null)?.words_per_minute ?? null,
+      score: (r.feedback as unknown as { score: number | null } | null)?.score ?? null,
     }));
   },
 
