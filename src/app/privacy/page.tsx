@@ -17,7 +17,7 @@ export default function Privacy() {
       <ul>
         <li>Your account: email address, and your name and photo if you sign in with Google.</li>
         <li>Your answers from setup: niche, platform, level, goal and preferred yap time.</li>
-        <li>Your yaps: the video or audio you record, plus the transcript and feedback we generate.</li>
+        <li>Your yaps: the video or audio you record, plus the Yap score and tips worked out on your device, and any scripts you write.</li>
         <li>Usage data: pages visited and features used, collected with privacy-friendly analytics.</li>
       </ul>
 

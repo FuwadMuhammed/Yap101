@@ -45,7 +45,7 @@ const FAQ = [
   { q: "How long does it take?", a: "About 2 minutes a day: a quick tip, then 30 to 60 seconds of talking." },
   { q: "Do I have to post my videos?", a: "Never. Your yaps are private. If you love one, you can share or save it in one tap." },
   { q: "Which phones and browsers work?", a: "Chrome, Safari and Edge, on iPhone, Android and laptop. You can also record audio only." },
-  { q: "What does the feedback tell me?", a: "A Yap score out of 100, broken down into how fast you started, your pace, pauses, voice energy, eye contact and smile, plus three short tips. It's measured on your phone, so your video isn't uploaded for it. Filler-word counts (um, like) are coming next." },
+  { q: "What does the feedback tell me?", a: "A Yap score out of 100, broken down into how fast you started, your pace, pauses, voice energy, eye contact and smile, plus three short tips. It's measured on your phone, so your video isn't uploaded for it. Filler-word counts (um, like) and an AI coach are coming soon." },
   { q: "Do I need to download an app?", a: "No, it runs in your browser. On iPhone you can add it to your Home Screen so it opens like an app." },
 ];
 
@@ -79,7 +79,7 @@ export default function Landing() {
             </span>
             <h1 className="mx-auto mt-6 max-w-3xl text-[46px] leading-[0.98] font-extrabold sm:text-7xl">Get confident on camera in 30 days.</h1>
             <p className="text-stone mx-auto mt-5 max-w-xl text-lg leading-relaxed">
-              One short speaking challenge a day. A prompt picked for your niche, a teleprompter so you never blank, feedback on your ums, and a streak that keeps you coming back.
+              One short speaking challenge a day. A prompt picked for your niche, a teleprompter so you never blank, a Yap score on every take, and a streak that keeps you coming back.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <YapLink href="/login" size="xl" arrow className="w-full max-w-xs sm:w-auto">Start your 30 days</YapLink>
@@ -94,7 +94,7 @@ export default function Landing() {
             <div className="absolute top-40 -right-2 hidden flex-col gap-3 lg:flex">
               <span className="surface flex h-12 items-center gap-2 rounded-full px-4 font-bold"><Flame />7 day streak</span>
               <span className="bg-sun flex h-12 items-center rounded-full px-4 font-bold">+15 XP</span>
-              <span className="surface flex h-12 items-center rounded-full px-4 font-bold">“um” ×2 <span className="text-mint ml-1">↓ 60%</span></span>
+              <span className="surface flex h-12 items-center rounded-full px-4 font-bold">Yap score 82 <span className="text-mint ml-1">↑ 9</span></span>
             </div>
             <AppPreview className="animate-rise [animation-delay:150ms]" />
           </div>

@@ -49,3 +49,43 @@ export function introScript(p: Prompt, profile: Profile | null): string[] | null
     "Stay tuned for more!",
   ];
 }
+
+// --- The user's own scripts -------------------------------------------------------
+// Saved per prompt on this device, so an edited script is there next time they open the day.
+
+const KEY = "yap101-scripts";
+
+function readAll(): Record<string, string[]> {
+  try {
+    return JSON.parse(localStorage.getItem(KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+export function loadScript(promptId: number): string[] | null {
+  const s = readAll()[promptId];
+  return Array.isArray(s) && s.length ? s : null;
+}
+
+export function saveScript(promptId: number, lines: string[] | null) {
+  try {
+    const all = readAll();
+    if (lines?.length) all[promptId] = lines;
+    else delete all[promptId];
+    localStorage.setItem(KEY, JSON.stringify(all));
+  } catch {
+    /* private mode: the script still works for this visit */
+  }
+}
+
+/** Typed or pasted text → teleprompter lines: one per line, long paragraphs split into sentences. */
+export function textToLines(text: string): string[] {
+  return text
+    .split(/\n+/)
+    .flatMap((para) => para.trim().split(/(?<=[.!?])\s+(?=\S)/))
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+export const linesToText = (lines: string[] | null) => (lines ?? []).join("\n");

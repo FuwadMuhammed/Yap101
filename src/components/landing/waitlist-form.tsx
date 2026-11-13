@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Yapper } from "@/components/brand/mascot";
 import { YapButton } from "@/components/yap/yap-button";
-import { isDemo } from "@/lib/data/mode";
+import { hasSupabase } from "@/lib/data/mode";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export function WaitlistForm({ source, dark, className }: { source: string; dark
     }
     setState("saving");
     try {
-      if (isDemo) {
+      if (!hasSupabase) {
         try {
           const list: string[] = JSON.parse(localStorage.getItem("yap101-waitlist") ?? "[]");
           if (!list.includes(value.toLowerCase())) list.push(value.toLowerCase());

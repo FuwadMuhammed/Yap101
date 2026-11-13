@@ -27,7 +27,7 @@ export default function Terms() {
 
       <h2>Feedback is guidance</h2>
       <p>
-        AI feedback is automated and can be wrong. Use it as coaching, not as professional advice.
+        The Yap score and tips are worked out automatically and can be wrong. Use it as coaching, not as professional advice.
       </p>
 
       <h2>No guarantees</h2>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Share, Snowflake } from "lucide-react";
+import { Share, Snowflake, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { YapperAvatar } from "@/components/brand/mascot";
@@ -11,6 +11,7 @@ import { Sparkline } from "@/components/yap/sparkline";
 import { Bar, Flame } from "@/components/yap/stats";
 import { YapButton } from "@/components/yap/yap-button";
 import { api, isDemo } from "@/lib/data";
+import { envDemo } from "@/lib/data/mode";
 import { reloadTo } from "@/lib/data/mode";
 import { demoBackfill, demoReset } from "@/lib/data/demo";
 import { FREEZE, LEVELS } from "@/lib/game";
@@ -158,13 +159,39 @@ export default function Me() {
         </div>
       </section>
 
+      <section className="surface rounded-[28px] p-5">
+        <p className="flex items-center gap-2 font-bold"><Sparkles className="size-4" /> Coming soon</p>
+        <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {[
+            ["Filler words", "Count every um and like in your yap"],
+            ["AI script writer", "A script for any day, in your voice"],
+            ["AI coach", "Personal tips from what you actually said"],
+          ].map(([t, d]) => (
+            <li key={t} className="bg-mist rounded-[20px] p-4">
+              <p className="font-semibold">{t}</p>
+              <p className="text-stone mt-0.5 text-sm leading-snug">{d}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section className="flex flex-wrap gap-2">
         <YapButton variant="soft" onClick={async () => { await api.signOut(); reloadTo("/"); }}>Sign out</YapButton>
+        {envDemo && (
+          <YapButton variant="soft" onClick={async () => { demoBackfill(6); await refresh(); toast.success("Added 6 earlier days of yaps"); }}>Demo: fake a 6-day streak</YapButton>
+        )}
         {isDemo && (
-          <>
-            <YapButton variant="soft" onClick={async () => { demoBackfill(6); await refresh(); toast.success("Added 6 earlier days of yaps"); }}>Demo: fake a 6-day streak</YapButton>
-            <YapButton variant="soft" className="text-cherry" onClick={async () => { await demoReset(); reloadTo("/"); }}>Demo: reset everything</YapButton>
-          </>
+          <YapButton
+            variant="soft"
+            className="text-cherry"
+            onClick={async () => {
+              if (!window.confirm("Delete all your yaps, streaks and settings from this browser? This can't be undone.")) return;
+              await demoReset();
+              reloadTo("/");
+            }}
+          >
+            Delete my guest data
+          </YapButton>
         )}
       </section>
     </div>

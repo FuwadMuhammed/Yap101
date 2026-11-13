@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, Camera, ChevronLeft, Minus, MessageCircle, Plus, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
+import { AudioLines, Camera, PencilLine, ChevronLeft, Minus, MessageCircle, Plus, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
 import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, wordDuration } from "@/lib/prompter";
+import { loadScript, saveScript } from "@/lib/script";
+import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
 import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
@@ -54,13 +56,19 @@ function unblockHelp(mode: Mode) {
 }
 
 export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
-  // Intro yaps can be read from a ready-made script; beginners get it by default.
-  const [useScript, setUseScript] = useState(Boolean(script) && level !== "pro" && level !== "intermediate");
-  const reading = Boolean(script && useScript);
-  const points = reading ? script! : visiblePoints(prompt.talking_points, level);
-  const model = useMemo(() => (reading && script ? buildScript(script) : null), [reading, script]);
+  // Any day can be read from a script: the one they wrote (saved on this device), or the one
+  // we made from their onboarding answers (intro days). Beginners start in script mode when one exists.
+  const [saved] = useState(() => loadScript(prompt.id));
+  const [lines, setLines] = useState<string[] | null>(saved ?? script ?? null);
+  const [useScript, setUseScript] = useState(Boolean(saved) || (Boolean(script) && level !== "pro" && level !== "intermediate"));
+  const [editing, setEditing] = useState(false);
+  const reading = Boolean(lines?.length && useScript);
+  const talkingPoints = visiblePoints(prompt.talking_points, level);
+  const points = reading ? lines! : talkingPoints;
+  const model = useMemo(() => (reading && lines ? buildScript(lines) : null), [reading, lines]);
+  const custom = Boolean(lines && lines !== script);
   // Length is a goal, not a rule: "free" means stop whenever you like (60 s is the cap).
-  const [length, setLength] = useState<"free" | number>(() => (script && level !== "pro" && level !== "intermediate" ? "free" : TARGET_SECONDS[level ?? "beginner"]));
+  const [length, setLength] = useState<"free" | number>(() => (lines && useScript ? "free" : TARGET_SECONDS[level ?? "beginner"]));
   const target = length === "free" ? null : length;
   const [wpm, setWpm] = useState(150);
   const [pace, setPace] = useState<"auto" | "voice">("auto");
@@ -365,28 +373,35 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             <p className="mt-1 leading-relaxed">{prompt.skill_tip}</p>
           </section>
 
-          {script && (
-            <div role="radiogroup" aria-label="How do you want to do it?" className="bg-mist mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
+          <div role="radiogroup" aria-label="How do you want to do it?" className="bg-mist mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
               {([[false, "My own words", MessageCircle], [true, "Read a script", ScrollText]] as const).map(([v, label, Icon]) => (
                 <button
                   key={label}
                   role="radio"
                   aria-checked={useScript === v}
-                  onClick={() => setUseScript(v)}
+                  onClick={() => {
+                    setUseScript(v);
+                    if (v) setLength("free");
+                    if (v && !lines?.length) setEditing(true);
+                  }}
                   className={cn("tap flex h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors", useScript === v ? "bg-white shadow-sm" : "text-stone hover:text-ink")}
                 >
                   <Icon className="size-4" /> {label}
                 </button>
               ))}
             </div>
-          )}
 
           <section className="surface mt-3 rounded-[28px] p-5">
             {reading ? (
               <>
-                <p className="text-stone text-sm font-semibold">Your script · made from your answers</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-stone text-sm font-semibold">{custom ? "Your script" : "Your script · made from your answers"}</p>
+                  <button onClick={() => setEditing(true)} className="bg-mist tap flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
+                    <PencilLine className="size-4" /> Edit
+                  </button>
+                </div>
                 {model && <ScriptPreview script={model} />}
-                <p className="text-stone mt-3 text-sm">Change any words you like as you go. The teleprompter highlights each word as you say it.</p>
+                <p className="text-stone mt-3 text-sm">The teleprompter highlights each word as you say it.</p>
               </>
             ) : (
               <>
@@ -436,6 +451,24 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             </YapButton>
           </div>
         </div>
+        {editing && (
+          <ScriptEditor
+            initial={lines}
+            suggested={script ?? null}
+            points={prompt.talking_points}
+            onSave={(next) => {
+              setLines(next);
+              setUseScript(true);
+              setCursor(0);
+              saveScript(prompt.id, next);
+              setEditing(false);
+            }}
+            onClose={() => {
+              setEditing(false);
+              if (!lines?.length) setUseScript(false);
+            }}
+          />
+        )}
       </div>
     );
   }
