@@ -10,7 +10,7 @@ import { YAP_TIMES, labelFor } from "@/lib/options";
 import { cn } from "@/lib/utils";
 
 /** Adds a repeating daily reminder at the user's yap time to Google, Apple or Outlook calendar. */
-export function ReminderButton({ yapTime, daysLeft = 30, className, variant = "soft" }: { yapTime: string | null; daysLeft?: number; className?: string; variant?: "soft" | "primary" }) {
+export function ReminderButton({ yapTime, daysLeft = 30, className, variant = "soft", compact }: { yapTime: string | null; daysLeft?: number; className?: string; variant?: "soft" | "primary"; compact?: boolean }) {
   const t = labelFor(YAP_TIMES, yapTime) ?? YAP_TIMES[0];
   const days = Math.max(1, daysLeft);
   const [open, setOpen] = useState(false);
@@ -43,9 +43,13 @@ export function ReminderButton({ yapTime, daysLeft = 30, className, variant = "s
 
   return (
     <div className={cn(className)}>
-      <YapButton variant={variant} size="lg" className="w-full" onClick={() => setOpen(true)} aria-haspopup="dialog">
-        <BellRing /> Remind me daily
-      </YapButton>
+      {compact ? (
+        <YapButton variant="mist" size="sm" onClick={() => setOpen(true)} aria-haspopup="dialog">Set up</YapButton>
+      ) : (
+        <YapButton variant={variant} size="lg" className="w-full" onClick={() => setOpen(true)} aria-haspopup="dialog">
+          <BellRing /> Remind me daily
+        </YapButton>
+      )}
       {open &&
         // Portal to <body>: a sheet inside an animated card would sit under the bottom nav.
         createPortal(

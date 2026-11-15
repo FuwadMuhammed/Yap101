@@ -62,9 +62,11 @@ function AppIcon({ app }: { app: App }) {
   );
 }
 
-const APPS: { app: App; label: string; web: (caption: string) => string }[] = [
-  { app: "instagram", label: "Instagram", web: () => "https://www.instagram.com/" },
-  { app: "tiktok", label: "TikTok", web: () => "https://www.tiktok.com/upload" },
+// videoOnly: Instagram and TikTok often hide themselves from the phone's share menu when text
+// is attached to the video, so they get the clip alone (the caption is on the clipboard).
+const APPS: { app: App; label: string; web: (caption: string) => string; videoOnly?: boolean }[] = [
+  { app: "instagram", label: "Instagram", web: () => "https://www.instagram.com/", videoOnly: true },
+  { app: "tiktok", label: "TikTok", web: () => "https://www.tiktok.com/upload", videoOnly: true },
   { app: "whatsapp", label: "WhatsApp", web: (c) => `https://wa.me/?text=${encodeURIComponent(c)}` },
   { app: "x", label: "X", web: (c) => `https://x.com/intent/post?text=${encodeURIComponent(c)}` },
   { app: "facebook", label: "Facebook", web: () => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE)}` },
@@ -142,10 +144,19 @@ export function ShareSheet({
     }
   }
 
+  // Backup for phones: save the clip to the gallery, then open the app itself to post it.
+  async function saveAndOpen(a: (typeof APPS)[number]) {
+    download();
+    await copy(caption, "caption");
+    toast.success(`Clip saved and caption copied. In ${a.label}, tap + and pick the clip from your gallery.`);
+    // Instagram and TikTok web links open the installed app on iPhone and Android.
+    setTimeout(() => window.open(a.app === "tiktok" ? "https://www.tiktok.com/" : a.web(caption), "_blank", "noopener"), 600);
+  }
+
   async function shareTo(a: (typeof APPS)[number]) {
     if (canShareFile) {
-      toast(`Caption copied. Pick ${a.label} in the next menu, then paste it in your post.`);
-      return nativeShare();
+      toast(`Caption copied. Pick ${a.label}${a.app === "instagram" ? " (Reels, Feed or Stories)" : ""} in the menu, then paste the caption.`);
+      return nativeShare(!a.videoOnly);
     }
     // No file sharing here (most desktops): save the clip, copy the caption, open the app.
     download();
@@ -186,9 +197,19 @@ export function ShareSheet({
         </div>
         <p className="text-stone mt-3 text-center text-xs">
           {canShareFile
-            ? "Each app opens your phone's share menu with the clip attached. The caption is copied for you."
+            ? "Opens your phone's share menu with the clip. Pick the app there; the caption is copied for you."
             : "Your clip downloads and the caption is copied, then the app opens so you can upload it."}
         </p>
+        {canShareFile && (
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs">
+            <span className="text-stone">App not in the menu?</span>
+            {APPS.filter((a) => a.videoOnly).map((a) => (
+              <button key={a.app} onClick={() => void saveAndOpen(a)} disabled={!file} className="font-semibold underline underline-offset-2 disabled:opacity-40">
+                Save &amp; open {a.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="bg-mist mt-5 rounded-[20px] p-4">
           <div className="flex items-center justify-between">
