@@ -1,10 +1,11 @@
 import type { AudioStats } from "./audio";
+import type { DeliveryStats } from "./delivery";
 import type { FaceStats } from "./face";
 
 // Turns the raw measurements into a Yap score (0-100), sub-scores and three tips.
 // Rule-based and transparent: every number on the report says what it was based on.
 
-export type PartKey = "hook" | "pace" | "flow" | "energy" | "eyes" | "smile" | "script";
+export type PartKey = "hook" | "pace" | "flow" | "energy" | "eyes" | "smile" | "script" | "delivery";
 export type Part = { key: PartKey; label: string; score: number; value: string; focus: boolean };
 export type Analysis = {
   version: 1;
@@ -17,6 +18,8 @@ export type Analysis = {
   face: FaceStats | null;
   /** Share of the script said, when Follow my voice ran (0-1). */
   scriptDone: number | null;
+  /** Pauses and emphasis on a script read (voice-paced or voice follow). */
+  delivery?: DeliveryStats | null;
 };
 
 const clamp = (n: number, lo = 25, hi = 100) => Math.round(Math.max(lo, Math.min(hi, n)));
@@ -33,7 +36,10 @@ export function skillPart(skill: string | undefined): PartKey | null {
   return null;
 }
 
-const TIPS: Record<PartKey, (p: Part, a: { audio: AudioStats | null; face: FaceStats | null }) => string> = {
+type Ctx = { audio: AudioStats | null; face: FaceStats | null; delivery?: DeliveryStats | null };
+const share = (hit: number, total: number) => (total ? hit / total : 1);
+
+const TIPS: Record<PartKey, (p: Part, a: Ctx) => string> = {
   hook: () => "Start talking the moment you hit record. Have your first line ready before the countdown ends.",
   pace: (_, { audio }) =>
     (audio?.wpm ?? 150) > 165
@@ -49,6 +55,10 @@ const TIPS: Record<PartKey, (p: Part, a: { audio: AudioStats | null; face: FaceS
       ? "You drifted out of frame. Prop your phone at eye level and keep your face in the middle."
       : "Look into the lens, not at yourself on the screen. Pretend your friend lives in the camera.",
   smile: () => "Smile right before you start. It warms up your face and your voice.",
+  delivery: (_, { delivery: d }) =>
+    d && share(d.pausesHit, d.pausesTotal) <= share(d.emphasisHit, d.emphasisTotal)
+      ? "Take a real beat at the / marks in your script. A short pause makes the next line land."
+      : "Lean on the underlined words: a little louder and slower, like you're underlining them with your voice.",
   script: (p) => `You covered ${p.value.match(/\d+%/)?.[0] ?? "part"} of your script. Read a line ahead so the next words are ready.`,
 };
 
@@ -60,10 +70,11 @@ const PRAISE: Record<PartKey, string> = {
   eyes: "Strong eye contact. It felt like you were talking to me.",
   smile: "That smile came through. Warm and confident.",
   script: "You nailed your script.",
+  delivery: "Great delivery: you paused and pushed right where the script asked.",
 };
 
-export function analyse(input: { audio: AudioStats | null; face: FaceStats | null; scriptDone: number | null; skill?: string }): Analysis {
-  const { audio, face, scriptDone } = input;
+export function analyse(input: { audio: AudioStats | null; face: FaceStats | null; scriptDone: number | null; delivery?: DeliveryStats | null; skill?: string }): Analysis {
+  const { audio, face, scriptDone, delivery } = input;
   const focus = skillPart(input.skill);
   const parts: Part[] = [];
   const add = (key: PartKey, label: string, score: number, value: string) => parts.push({ key, label, score: clamp(score), value, focus: key === focus });
@@ -96,6 +107,11 @@ export function analyse(input: { audio: AudioStats | null; face: FaceStats | nul
     add("smile", "Smile", face.smiledAtStart ? Math.max(85, 60 + face.smiling * 60) : 40 + face.smiling * 80, face.smiledAtStart ? "Smiled at the start" : face.smiling > 0.15 ? `Smiled ${Math.round(face.smiling * 100)}% of the time` : "No smile spotted");
   }
   if (scriptDone !== null) add("script", "Script", scriptDone * 100, `Said ${Math.round(scriptDone * 100)}% of your script`);
+  if (delivery) {
+    const { pausesHit: ph, pausesTotal: pt, emphasisHit: eh, emphasisTotal: et } = delivery;
+    const value = [pt && `Paused at ${ph} of ${pt} marks`, et && `pushed ${eh} of ${et} key words`].filter(Boolean).join(" · ");
+    add("delivery", "Delivery", ((ph + eh) / (pt + et)) * 100, value.charAt(0).toUpperCase() + value.slice(1));
+  }
 
   const weight = (p: Part) => (p.focus ? 2 : 1);
   const total = parts.reduce((t, p) => t + weight(p), 0);
@@ -127,5 +143,6 @@ export function analyse(input: { audio: AudioStats | null; face: FaceStats | nul
     audio,
     face,
     scriptDone,
+    delivery: delivery ?? null,
   };
 }

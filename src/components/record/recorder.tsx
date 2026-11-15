@@ -13,7 +13,8 @@ import { xpForYap } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
 import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
-import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, wordDuration } from "@/lib/prompter";
+import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, snapToBreak, syllableOffsets, wordAtSyllable, wordDuration } from "@/lib/prompter";
+import { checkDelivery } from "@/lib/analysis/delivery";
 import { loadScript, saveScript } from "@/lib/script";
 import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
@@ -22,6 +23,7 @@ import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
 import { analyse, type Analysis } from "@/lib/analysis/score";
 
 type Mode = "video" | "audio";
+type Pace = "auto" | "beats" | "voice";
 type Facing = "user" | "environment";
 type Phase = "prep" | "setup" | "countdown" | "recording" | "review" | "saving";
 const TEXT_SIZES = { S: "text-xl", M: "text-[26px]", L: "text-[32px]" } as const;
@@ -35,6 +37,8 @@ function pickMimeType(mode: Mode) {
       : ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
   return candidates.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
 }
+// beginRecording runs from the countdown, never during render; the compiler can't tell.
+const clock = () => performance.now();
 const extFor = (mime: string) => (mime.includes("mp4") ? (mime.startsWith("audio") ? "m4a" : "mp4") : "webm");
 const fmt = (s: number) => {
   const t = Math.max(0, Math.floor(s));
@@ -71,7 +75,9 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [length, setLength] = useState<"free" | number>(() => (lines && useScript ? "free" : TARGET_SECONDS[level ?? "beginner"]));
   const target = length === "free" ? null : length;
   const [wpm, setWpm] = useState(150);
-  const [pace, setPace] = useState<"auto" | "voice">("auto");
+  // auto: timed word by word. beats: moves with the syllable beats in your voice (on-device).
+  // voice: browser speech recognition matches the actual words.
+  const [pace, setPace] = useState<Pace>("auto");
   const [voiceOk, setVoiceOk] = useState(false);
   const [listening, setListening] = useState(false);
   const [cursor, setCursor] = useState(0); // word index (script) or line index (points)
@@ -101,6 +107,15 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const faceMeterRef = useRef<FaceMeter | null>(null);
   const cursorRef = useRef(0);
   const usedVoiceRef = useRef(false);
+  const usedPacedRef = useRef(false);
+  // Voice pacing state, read from the mic callback (refs, so it never re-subscribes).
+  const paceRef = useRef<Pace>("auto");
+  const sylRef = useRef(0); // syllable beats heard so far (voice-paced)
+  const beatsSinceRef = useRef(0); // beats since speech recognition last moved (follow backup)
+  const lastRecogRef = useRef(0);
+  const wordTimesRef = useRef<number[]>([]); // when each word became the current one
+  const jumpedRef = useRef(false); // a tap-jump: don't re-sync until they speak again
+  const offsets = useMemo(() => (model ? syllableOffsets(model.words) : [0]), [model]);
 
   // Open the camera (or just the mic) once allowed, and again when mode or facing changes.
   useEffect(() => {
@@ -128,7 +143,15 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
   useEffect(() => {
     cursorRef.current = cursor;
-  }, [cursor]);
+    // Note when each word comes up, so the delivery check can find its moment in the audio.
+    if (phase === "recording" && paceRef.current !== "auto") {
+      const now = performance.now() / 1000;
+      for (let k = 1; k <= cursor; k++) wordTimesRef.current[k] ??= now;
+    }
+  }, [cursor, phase]);
+  useEffect(() => {
+    paceRef.current = pace;
+  }, [pace]);
 
   useEffect(
     () => () => {
@@ -167,21 +190,25 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
   // Voice follow needs the browser's speech recognition (Chrome, Edge, Safari).
   useEffect(() => {
+    const ok = Boolean(speechRecognitionCtor());
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setVoiceOk(Boolean(speechRecognitionCtor()));
+    setVoiceOk(ok);
+    // No speech recognition (e.g. Firefox): voice-paced still works, all on the phone.
+    if (!ok) setPace("beats");
   }, []);
 
   const total = model ? model.words.length : points.length;
   const rolling = phase === "recording" || previewing;
   const following = phase === "recording" && pace === "voice" && Boolean(model);
+  const beatPaced = phase === "recording" && pace === "beats" && Boolean(model);
 
   // Auto pace: move the highlight word by word at the chosen speed (points: one per few seconds).
   useEffect(() => {
-    if (!rolling || following || cursor >= total) return;
+    if (!rolling || following || beatPaced || cursor >= total) return;
     const secs = model ? wordDuration(model.words[cursor], wpm) : Math.max(4, (target ?? 45) / Math.max(1, points.length)) * (150 / wpm);
     const t = setTimeout(() => setCursor((c) => c + 1), secs * 1000);
     return () => clearTimeout(t);
-  }, [rolling, following, cursor, total, model, wpm, target, points.length]);
+  }, [rolling, following, beatPaced, cursor, total, model, wpm, target, points.length]);
 
   // Voice follow: listen while recording and jump the highlight to the next unsaid word.
   useEffect(() => {
@@ -199,6 +226,10 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         for (let r = 0; r < e.results.length; r++) heard.push(...e.results[r][0].transcript.split(/\s+/));
         const pos = followPosition(model.words, [...heardBefore, ...heard]);
         latest = heard;
+        if (pos > cursorRef.current) {
+          lastRecogRef.current = performance.now();
+          beatsSinceRef.current = 0;
+        }
         setCursor((c) => Math.max(c, pos));
       };
       rec.onerror = (e) => {
@@ -248,6 +279,9 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     setShowSettings(false);
     setPreviewing(false);
     setCursor(0);
+    sylRef.current = 0;
+    beatsSinceRef.current = 0;
+    wordTimesRef.current = [];
     setCount(3);
     setPhase("countdown");
   }
@@ -264,8 +298,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       const seconds = Math.min(MAX_SECONDS, (performance.now() - startedAtRef.current) / 1000);
       let analysis: Analysis | null = null;
       try {
+        const meter = audioMeterRef.current;
+        const audio = meter?.stop() ?? null;
+        const paced = usedPacedRef.current && model && meter ? checkDelivery(model.words, wordTimesRef.current, meter.frames()) : null;
         analysis = analyse({
-          audio: audioMeterRef.current?.stop() ?? null,
+          audio,
+          delivery: paced,
           face: faceMeterRef.current?.stop() ?? null,
           scriptDone: usedVoiceRef.current && model ? Math.min(1, cursorRef.current / model.words.length) : null,
           skill: prompt.skill,
@@ -278,18 +316,64 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       setPhase("review");
     };
     recorderRef.current = recorder;
-    startedAtRef.current = performance.now();
+    startedAtRef.current = clock();
     setElapsed(0);
     recorder.start(1000);
     usedVoiceRef.current = pace === "voice" && Boolean(model) && voiceOk;
-    audioMeterRef.current = new AudioMeter();
-    audioMeterRef.current.start(stream);
+    usedPacedRef.current = pace !== "auto" && Boolean(model);
+    lastRecogRef.current = clock();
+    const meter = new AudioMeter();
+    meter.onBeat = () => onBeat();
+    meter.onPause = () => onPause();
+    audioMeterRef.current = meter;
+    meter.start(stream);
     if (mode === "video") {
       faceMeterRef.current = new FaceMeter();
       void faceMeterRef.current.start(previewRef.current);
     }
     buzz(30);
     setPhase("recording");
+  }
+
+  // One syllable beat heard in the voice.
+  function onBeat() {
+    const m = model;
+    if (!m) return;
+    jumpedRef.current = false;
+    if (paceRef.current === "beats") {
+      sylRef.current++;
+      const i = Math.min(m.words.length, wordAtSyllable(offsets, sylRef.current));
+      setCursor((c) => Math.max(c, i));
+    } else if (paceRef.current === "voice") {
+      // Backup for speech recognition: if it goes quiet while they're clearly still talking,
+      // nudge forward one word so the prompter never stalls.
+      beatsSinceRef.current++;
+      const c = cursorRef.current;
+      const w = m.words[c];
+      if (w && beatsSinceRef.current >= w.syl + 2 && performance.now() - lastRecogRef.current > 1200) {
+        beatsSinceRef.current = 0;
+        lastRecogRef.current = performance.now();
+        setCursor((x) => Math.min(m.words.length, Math.max(x, c + 1)));
+      }
+    }
+  }
+
+  // A pause in the voice means they're at a comma or full stop: re-sync to the nearest one,
+  // so small syllable-count errors never build up.
+  function onPause() {
+    if (paceRef.current !== "beats" || !model || jumpedRef.current) return;
+    const j = snapToBreak(model.words, cursorRef.current);
+    if (j === null || j === cursorRef.current) return;
+    sylRef.current = offsets[j];
+    setCursor(j);
+  }
+
+  // Tapping a word moves the voice-paced count there too.
+  function jump(i: number) {
+    setCursor(i);
+    sylRef.current = offsets[i] ?? 0;
+    beatsSinceRef.current = 0;
+    jumpedRef.current = true;
   }
 
   function retake() {
@@ -490,7 +574,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             />
           ) : (
             <div className="bg-sky absolute inset-0 flex items-end justify-center">
-              <Yapper shape="blob" color="#ffffff" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48", phase === "recording" && "animate-wiggle")} />
+              <Yapper shape="blob" color="#ffffff" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
             </div>
           ))}
         {clip && !live &&
@@ -538,7 +622,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               script={model}
               points={points}
               index={cursor}
-              onJump={setCursor}
+              onJump={jump}
               sizeClass={TEXT_SIZES[textSize]}
               footer={
                 !model && (
@@ -551,9 +635,9 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             />
             {phase === "recording" && (
               <div className="-mx-1 flex items-center justify-between gap-2 pb-3 text-xs font-bold">
-                {following ? (
+                {following || beatPaced ? (
                   <span className="flex items-center gap-1.5 text-white/80">
-                    <AudioLines className={cn("size-4", listening && "animate-pulse")} /> {listening ? "Following your voice" : "Starting…"}
+                    <AudioLines className={cn("size-4", (listening || beatPaced) && "animate-pulse")} /> {beatPaced ? "Pacing to your voice" : listening ? "Following your voice" : "Starting…"}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1">
@@ -570,7 +654,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
         {/* ---------- Pill controls ---------- */}
         {phase === "setup" && (
-          <div className="absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+19rem)] sm:top-[calc(max(1rem,env(safe-area-inset-top))+21rem)]">
+          <div className="absolute inset-x-4 z-10 top-[calc(max(1rem,env(safe-area-inset-top))+19rem)] sm:top-[calc(max(1rem,env(safe-area-inset-top))+21rem)]">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMode(mode === "video" ? "audio" : "video")}
@@ -599,24 +683,26 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
                 {model && (
                   <div className="flex flex-col gap-2 text-sm font-bold">
                     Teleprompter
-                    <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1">
-                      {([["auto", "Auto scroll"], ["voice", "Follow my voice"]] as const).map(([v, label]) => (
+                    <div className="grid grid-cols-3 gap-1 rounded-full bg-white/10 p-1">
+                      {([["auto", "Auto scroll"], ["beats", "Voice-paced"], ["voice", "Follow voice"]] as const).map(([v, label]) => (
                         <button
                           key={v}
                           onClick={() => setPace(v)}
                           disabled={v === "voice" && !voiceOk}
-                          className={cn("h-9 rounded-full text-[13px] disabled:opacity-40", pace === v ? "bg-white text-ink" : "text-white/80")}
+                          aria-pressed={pace === v}
+                          className={cn("h-9 rounded-full text-[12px] disabled:opacity-40", pace === v ? "bg-white text-ink" : "text-white/80")}
                         >
                           {label}
                         </button>
                       ))}
                     </div>
                     <p className="text-xs font-medium text-white/60">
-                      {!voiceOk
-                        ? "Follow my voice needs Chrome, Edge or Safari."
+                      {pace === "beats"
+                        ? "Moves as you talk and waits when you pause. It counts the beats in your voice on this phone, so nothing is sent anywhere. Best in a quiet room."
                         : pace === "voice"
                           ? "Moves to the next word as you say it. Uses your browser's speech recognition, which may send audio to Google or Apple."
                           : "Highlights word by word at your speed."}
+                      {!voiceOk && " Follow voice needs Chrome, Edge or Safari."}
                     </p>
                   </div>
                 )}

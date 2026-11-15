@@ -9,6 +9,8 @@ export type Word = {
   norm: string; // lowercase letters/digits, for voice matching
   emphasis: boolean;
   pause: "none" | "short" | "long";
+  /** Estimated syllables, for voice-paced scrolling (counts beats in the voice). */
+  syl: number;
 };
 export type Line = { words: Word[]; cue: Cue };
 export type Script = { lines: Line[]; words: Word[] };
@@ -60,11 +62,64 @@ export function buildScript(lines: string[]): Script {
       text: w,
       norm: normWord(w),
       emphasis: emph.has(wi),
+      syl: syllables(w),
       pause: /[.!?]$/.test(w) ? "long" : /[,;:—–-]$/.test(w) ? "short" : "none",
     }));
     return { words, cue: cueFor(text, li, lines.length) };
   });
   return { lines: out, words: out.flatMap((l) => l.words) };
+}
+
+/**
+ * Rough syllable count for one word, good enough to pace a teleprompter: vowel groups,
+ * minus a silent final "e" and a silent "-ed". Numbers count about one per digit ("30" = thir-ty).
+ */
+export function syllables(word: string) {
+  const w = word.toLowerCase().replace(/[’']/g, "");
+  const digits = (w.match(/\d/g) ?? []).length;
+  const letters = w.replace(/[^a-z]+/g, " ").trim();
+  let n = Math.min(digits, 5);
+  for (const part of letters.split(" ").filter(Boolean)) {
+    let p = part;
+    if (p.length > 3 && /[^aeiouy]ed$/.test(p) && !/[td]ed$/.test(p)) p = p.slice(0, -2);
+    else if (p.length > 2 && /e$/.test(p) && !/[^aeiouy]le$/.test(p)) p = p.slice(0, -1); // "smile" 1, "little" 2
+    n += Math.max(1, (p.match(/[aeiouy]+/g) ?? []).length);
+  }
+  return Math.max(1, n);
+}
+
+/** sylBefore[i] = syllables in all words before word i (length = words + 1). */
+export function syllableOffsets(words: Word[]) {
+  const out = [0];
+  for (const w of words) out.push(out[out.length - 1] + w.syl);
+  return out;
+}
+
+/** Index of the word to say next after `count` syllables have been heard. */
+export function wordAtSyllable(offsets: number[], count: number) {
+  let i = 0;
+  while (i < offsets.length - 1 && offsets[i + 1] <= count) i++;
+  return i;
+}
+
+/**
+ * When the speaker pauses they're almost always at a comma or full stop. Returns the start of
+ * the nearest sentence/clause break around `cursor` (up to 2 words back, 5 ahead), or null.
+ */
+export function snapToBreak(words: Word[], cursor: number) {
+  let best: number | null = null;
+  let bestCost = Infinity;
+  for (let j = Math.max(1, cursor - 2); j <= Math.min(words.length, cursor + 5); j++) {
+    const p = words[j - 1].pause;
+    if (p === "none") continue;
+    // Prefer full stops, and moving forward (beats tend to undercount).
+    const cost = Math.abs(j - cursor) * (j < cursor ? 1.5 : 1) - (p === "long" ? 0.5 : 0);
+    if (cost < bestCost) {
+      bestCost = cost;
+      best = j;
+    }
+  }
+  return best;
 }
 
 /** Seconds to hold a word at a given words-per-minute, with breathing room at punctuation. */

@@ -26,7 +26,73 @@ export type AudioStats = {
 const FRAME_MS = 25;
 const SYLLABLES_PER_WORD = 1.45;
 
+/**
+ * Live syllable beats from the loudness envelope, for the voice-paced teleprompter.
+ * Adapts to the room: the noise floor and the speaker's loudness are tracked as it goes.
+ */
+export class BeatDetector {
+  private noise = 0.01;
+  private loud = 0.02;
+  private smooth = 0;
+  private prev = 0;
+  private rising = false;
+  private trough = Infinity;
+  private lastBeat = -Infinity;
+  private lastVoice = -Infinity;
+  private spoke = false;
+  private pauseSent = true;
+  /** Seconds of quiet that count as a pause (and fire `pause` once). */
+  pauseAfter = 0.3;
+  /** Set by push(): true on the frame where a pause of `pauseAfter` seconds is reached. */
+  pause = false;
+
+  /** Feed one frame (RMS level, time in seconds). Returns true when a syllable beat ends here. */
+  push(rms: number, t: number): boolean {
+    // Noise floor follows the quiet frames fast and the loud ones very slowly.
+    this.noise = rms < this.noise ? this.noise * 0.9 + rms * 0.1 : this.noise * 0.999 + rms * 0.001;
+    this.loud = Math.max(rms, this.loud * 0.997);
+    const s = (this.smooth = this.smooth * 0.5 + rms * 0.5);
+    const thresh = Math.max(this.noise * 3, this.loud * 0.18, 0.004);
+    this.pause = false;
+    if (s > thresh) {
+      this.lastVoice = t;
+      this.spoke = true;
+      this.pauseSent = false;
+    } else if (this.spoke && !this.pauseSent && t - this.lastVoice >= this.pauseAfter) {
+      this.pause = true;
+      this.pauseSent = true;
+    }
+    let beat = false;
+    if (s > this.prev) this.rising = true;
+    else if (this.rising && s < this.prev) {
+      // The previous frame was a peak.
+      const peak = this.prev;
+      if (peak > thresh && peak - this.trough > peak * 0.25 && t - this.lastBeat >= 0.12) {
+        beat = true;
+        this.lastBeat = t;
+        this.trough = peak;
+      }
+      this.rising = false;
+    }
+    this.trough = Math.min(this.trough, s);
+    this.prev = s;
+    return beat;
+  }
+
+  /** Voice heard within the last `within` seconds. */
+  talking(t: number, within = 0.35) {
+    return t - this.lastVoice <= within;
+  }
+}
+
+export type AudioFrames = { rms: number[]; times: number[] };
+
 export class AudioMeter {
+  /** Called on every syllable beat while recording (voice-paced teleprompter). */
+  onBeat: (() => void) | null = null;
+  /** Called once each time they go quiet for a moment (to re-sync at commas and full stops). */
+  onPause: (() => void) | null = null;
+  private beats = new BeatDetector();
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -61,10 +127,18 @@ export class AudioMeter {
     let sum = 0;
     for (let i = 0; i < this.buf.length; i++) sum += this.buf[i] * this.buf[i];
     const rms = Math.sqrt(sum / this.buf.length);
+    const t = performance.now() / 1000;
     this.rms.push(rms);
-    this.times.push(performance.now() / 1000);
+    this.times.push(t);
+    if (this.beats.push(rms, t)) this.onBeat?.();
+    if (this.beats.pause) this.onPause?.();
     // Pitch every 4th frame (100 ms) keeps the CPU cost low on phones.
     this.pitch.push(this.frame++ % 4 === 0 && rms > 0.01 ? detectPitch(this.buf, this.ctx.sampleRate) : null);
+  }
+
+  /** Raw loudness frames of the take (for the delivery check). */
+  frames(): AudioFrames {
+    return { rms: this.rms, times: this.times };
   }
 
   stop(): AudioStats | null {

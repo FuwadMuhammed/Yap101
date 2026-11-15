@@ -33,6 +33,10 @@ export default function Privacy() {
         device. Only the resulting scores are saved with your yap.
       </p>
       <p>
+        <strong>Voice-paced teleprompter.</strong> Moves the script along by counting the beats in your voice
+        while you record. This happens entirely on your device and no audio is sent anywhere.
+      </p>
+      <p>
         <strong>Follow my voice (optional).</strong> If you turn this teleprompter mode on, your browser&apos;s own speech
         recognition is used, which may send audio to Google (Chrome) or Apple (Safari).
       </p>
