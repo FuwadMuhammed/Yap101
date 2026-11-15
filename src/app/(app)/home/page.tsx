@@ -84,7 +84,7 @@ export default function Today() {
             <p className="text-sm font-semibold">Week {weekFor(day).n} · {weekFor(day).theme}</p>
             <p className="text-stone text-sm">Day {day} of 30</p>
           </div>
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5">
             {game.week.map((d, i) => {
               const y = yapperAt(i);
               const yap = d.done ? yaps.find((x) => x.local_date === d.date) : undefined;
@@ -93,10 +93,11 @@ export default function Today() {
                 <>
                   <span
                     className={cn(
-                      "relative grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
-                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "border-line border-2 border-dashed" : "bg-line"),
+                      "relative grid aspect-square w-[86%] max-w-13 place-items-center rounded-[14px] transition-colors",
+                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-mist" : "bg-line"),
                       // Today: a bold ring (dashed until you've yapped) so it stands out at a glance.
-                      d.isToday && (waiting ? "outline-ink outline-dashed outline-2 outline-offset-2" : "outline-ink outline-2 outline-offset-2"),
+                      // Today: a ring drawn inside the tile, so it never touches the neighbours.
+                      d.isToday && (waiting ? "ring-ink ring-2 ring-inset" : "ring-ink ring-2"),
                     )}
                     style={d.done ? { background: y.color } : undefined}
                   >
@@ -104,7 +105,7 @@ export default function Today() {
                       <Snowflake className="text-sky size-5" />
                     ) : d.isFuture ? (
                       // Coming up: just the challenge day, no face yet.
-                      <span className="text-stone text-xs font-semibold">{d.trackDay ? `D${d.trackDay}` : ""}</span>
+                      <span className="text-stone/70 text-[11px] font-semibold">{d.trackDay ? `D${d.trackDay}` : ""}</span>
                     ) : (
                       <Yapper
                         shape="square"
