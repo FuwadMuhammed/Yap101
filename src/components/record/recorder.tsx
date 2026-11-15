@@ -547,10 +547,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <h1 className="mt-6 text-[34px] leading-[1.08]">{prompt.title}</h1>
           {prompt.milestone && <p className="bg-sun mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"><Star className="size-4 fill-current" /> Milestone yap: worth posting</p>}
 
-          <section className="bg-grape mt-5 rounded-[28px] p-5">
-            <p className="flex items-center gap-2 text-sm font-semibold"><Lightbulb className="size-4" /> Today&apos;s skill</p>
-            <p className="font-display mt-1 text-[26px]">{prompt.skill}</p>
-            <p className="mt-1 leading-relaxed">{prompt.skill_tip}</p>
+          {/* Today's skill: a quiet tip, not a headline (the prompt above is the headline). */}
+          <section className="bg-grape-soft mt-4 flex items-start gap-3 rounded-[20px] px-4 py-3">
+            <span className="bg-grape mt-0.5 grid size-7 shrink-0 place-items-center rounded-full"><Lightbulb className="size-3.5" /></span>
+            <div className="min-w-0">
+              <p className="text-sm"><span className="text-stone">Today&apos;s skill · </span><span className="font-semibold">{prompt.skill}</span></p>
+              <p className="text-stone mt-0.5 text-sm leading-snug">{prompt.skill_tip}</p>
+            </div>
           </section>
 
           <div role="radiogroup" aria-label="How do you want to do it?" className="bg-mist mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
