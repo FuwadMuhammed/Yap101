@@ -1,5 +1,6 @@
 "use client";
 
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { ChevronLeft, Share2, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -42,9 +43,10 @@ function CelebrationScreen({ c, onDone }: { c: Celebration; onDone: () => void }
     return () => clearTimeout(t);
   }, [c]);
 
+  useScrollLock();
   const row = "animate-rise flex items-center gap-3 rounded-full bg-white p-1.5 pr-5 text-ink";
   return (
-    <div className="bg-mint fixed inset-0 z-40 overflow-y-auto px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink">
+    <div className="bg-mint fixed inset-0 z-40 overflow-y-auto overscroll-contain px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink">
       <Confetti />
       <div className="mx-auto flex min-h-full w-full max-w-md flex-col">
         <YapperCluster mood="cheer" className="animate-pop mt-4" />

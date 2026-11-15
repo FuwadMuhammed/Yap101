@@ -15,6 +15,7 @@ import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
 import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, snapToBreak, syllableOffsets, wordAtSyllable, wordDuration } from "@/lib/prompter";
 import { checkDelivery } from "@/lib/analysis/delivery";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { loadScript, saveScript } from "@/lib/script";
 import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
@@ -195,6 +196,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const wordTimesRef = useRef<number[]>([]); // when each word became the current one
   const jumpedRef = useRef(false); // a tap-jump: don't re-sync until they speak again
   const offsets = useMemo(() => (model ? syllableOffsets(model.words) : [0]), [model]);
+  // The camera screen is a full-screen layer; keep the page behind it still.
+  useScrollLock(phase !== "prep");
 
   // Open the camera (or just the mic) once allowed, and again when mode or facing changes.
   useEffect(() => {
@@ -529,7 +532,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   if (phase === "prep") {
     const week = weekFor(prompt.day_index);
     return (
-      <div className="bg-grid flex min-h-dvh justify-center">
+      <div className="bg-grid flex min-h-[calc(100dvh-var(--banner-h,0px))] justify-center">
         <div className="flex w-full max-w-lg flex-col px-5 pt-[max(1rem,env(safe-area-inset-top))]">
           <div className="flex items-center justify-between">
             <Link href="/home" className="surface tap grid size-11 place-items-center rounded-full" aria-label="Back to today">
@@ -646,10 +649,10 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   }
 
   return (
-    <div className="bg-ink flex min-h-dvh items-center justify-center">
+    <div className="bg-ink fixed inset-0 z-40 flex items-center justify-center overscroll-none">
       <div
         className={cn(
-          "relative h-dvh w-full overflow-hidden bg-black text-white md:rounded-[36px] md:border-[6px] md:border-white/10",
+          "relative h-full w-full overflow-hidden bg-black text-white md:rounded-[36px] md:border-[6px] md:border-white/10",
           // On a laptop the webcam is landscape, so the stage is too; phones stay portrait.
           mode === "video" && landscape ? "md:aspect-[4/3] md:h-[min(90dvh,760px)] md:w-auto" : "md:aspect-[9/16] md:h-[min(94dvh,880px)] md:w-auto",
         )}

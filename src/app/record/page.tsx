@@ -62,7 +62,7 @@ function BlockedScreen({ state }: { state: Blocked }) {
         ? { mood: "cheer" as const, title: "That's 3 yaps today!", body: `You've used all ${DAILY_LIMIT} of today's yaps. Rest that voice and come back tomorrow.` }
         : { mood: "think" as const, title: "We couldn't find that yap", body: "The link may be old or mistyped. Today's prompt is waiting for you." };
   return (
-    <div className="bg-grid flex min-h-dvh items-center justify-center px-5">
+    <div className="bg-grid flex min-h-[calc(100dvh-var(--banner-h,0px))] items-center justify-center px-5">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
         <Mascot mood={copy.mood} className="animate-float size-24" />
         <h1 className="flex items-center gap-2 text-[31px]">
@@ -81,7 +81,7 @@ function BlockedScreen({ state }: { state: Blocked }) {
 
 function Loading() {
   return (
-    <div className="bg-ink grid min-h-dvh place-items-center">
+    <div className="bg-ink grid min-h-[calc(100dvh-var(--banner-h,0px))] place-items-center">
       <Mascot mood="think" className="animate-float size-20" />
     </div>
   );

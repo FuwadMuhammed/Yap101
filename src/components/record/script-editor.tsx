@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { YapButton } from "@/components/yap/yap-button";
 import { buildScript, estimateSeconds } from "@/lib/prompter";
 import { linesToText, textToLines } from "@/lib/script";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { MAX_SECONDS } from "@/lib/yap";
 
 /**
@@ -33,13 +34,11 @@ export function ScriptEditor({
   const seconds = lines.length ? estimateSeconds(buildScript(lines), 150) : 0;
   const tooLong = seconds > MAX_SECONDS;
 
+  useScrollLock();
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener("keydown", esc);
     };
   }, [onClose]);
@@ -54,7 +53,7 @@ export function ScriptEditor({
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Edit your script" className="bg-paper fixed inset-0 z-50 flex justify-center overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-label="Edit your script" className="bg-paper fixed inset-0 z-50 flex justify-center overflow-y-auto overscroll-contain">
       <div className="flex min-h-full w-full max-w-lg flex-col px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-3">
           <button onClick={onClose} className="surface tap grid size-11 place-items-center rounded-full" aria-label="Close without saving">

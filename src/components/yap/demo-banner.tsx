@@ -9,7 +9,9 @@ export function DemoBanner() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setShow(isDemo);
+    // Full-height screens subtract the banner, so they fit the phone instead of scrolling by 24px.
+    if (isDemo) document.documentElement.style.setProperty("--banner-h", "24px");
   }, []);
   if (!show) return null;
-  return <div className="bg-ink py-1 text-center text-[11px] font-medium tracking-wide text-white/75">{envDemo ? "Demo mode · data stays in this browser" : "Guest mode · your yaps are saved in this browser only"}</div>;
+  return <div className="bg-ink h-6 truncate px-3 py-1 text-center text-[11px] leading-4 font-medium tracking-wide text-white/75">{envDemo ? "Demo mode · data stays in this browser" : "Guest mode · your yaps are saved in this browser only"}</div>;
 }
