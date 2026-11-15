@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "tap flex h-12 items-center gap-2 rounded-full font-semibold transition-all",
-                  active ? "bg-yap px-5 text-white" : "text-ink w-12 justify-center hover:bg-mist",
+                  active ? "bg-ink px-5 text-white" : "text-ink w-12 justify-center hover:bg-mist",
                 )}
               >
                 <Icon className="size-5" strokeWidth={2.2} />
@@ -52,7 +52,7 @@ export function TopBar({ title, sub, right }: { title: React.ReactNode; sub?: Re
   return (
     <header className="mb-6 flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[24px] leading-tight font-extrabold sm:text-4xl">{title}</h1>
+        <h1 className="text-[32px] leading-tight sm:text-5xl">{title}</h1>
         {sub && <p className="text-stone mt-0.5">{sub}</p>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}

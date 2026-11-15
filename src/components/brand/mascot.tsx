@@ -25,7 +25,7 @@ const BODY: Record<YapperShape, { d: string; face: [number, number] }> = {
 /** One member of the Yapper family: a flat, colourful character with a simple face. */
 export function Yapper({
   shape = "bubble",
-  color = "#ff6b2c",
+  color = "#f08a5d",
   mood = "happy",
   className,
   label,
@@ -82,18 +82,18 @@ export function Yapper({
 
 /** The cast. Index by number to get a stable character per item (day, badge, etc). */
 export const YAPPERS: { shape: YapperShape; color: string; soft: string }[] = [
-  { shape: "bubble", color: "#ff6b2c", soft: "#ffe4d6" },
-  { shape: "blob", color: "#2f7bf6", soft: "#dceaff" },
-  { shape: "scallop", color: "#ff5fa8", soft: "#ffe0ef" },
-  { shape: "square", color: "#ffc21a", soft: "#fff4c7" },
-  { shape: "bean", color: "#1fa463", soft: "#d5f3e3" },
-  { shape: "blob", color: "#a98bff", soft: "#ece5ff" },
+  { shape: "bubble", color: "#f08a5d", soft: "#ffe4d6" },
+  { shape: "blob", color: "#6fb3ec", soft: "#dceaff" },
+  { shape: "scallop", color: "#ee8fb4", soft: "#ffe0ef" },
+  { shape: "square", color: "#f5b740", soft: "#fff4c7" },
+  { shape: "bean", color: "#74c08d", soft: "#d5f3e3" },
+  { shape: "blob", color: "#a993f2", soft: "#ece5ff" },
 ];
 export const yapperAt = (i: number) => YAPPERS[((i % YAPPERS.length) + YAPPERS.length) % YAPPERS.length];
 
 /** Yappy, our lead character: the orange speech bubble. */
 export function Mascot({ mood = "happy", className, color }: { mood?: MascotMood; className?: string; color?: string }) {
-  return <Yapper shape="bubble" color={color ?? "#ff6b2c"} mood={mood} className={className} label="Yappy, the Yap101 mascot" />;
+  return <Yapper shape="bubble" color={color ?? "#f08a5d"} mood={mood} className={className} label="Yappy, the Yap101 mascot" />;
 }
 
 /** A Yapper sitting in a soft tinted circle, like an avatar. */

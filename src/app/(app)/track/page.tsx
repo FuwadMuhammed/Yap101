@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { DAILY_LIMIT, type Prompt } from "@/lib/yap";
 
 // Purple and yellow need dark text for contrast; the others take white.
-const WEEK_BG = ["bg-sky text-white", "bg-yap text-white", "bg-grape text-ink", "bg-mint text-white", "bg-ink text-white"];
+const WEEK_BG = ["bg-sky text-ink", "bg-yap text-ink", "bg-grape text-ink", "bg-mint text-ink", "bg-ink text-white"];
 
 export default function Track() {
   const { profile, track, yaps, day, game, loading } = useGame();
@@ -45,7 +45,7 @@ export default function Track() {
             <section key={w.n} className={cn(WEEK_BG[wi], "rounded-[32px] p-2.5")}>
               <div className="px-3 pt-2 pb-3">
                 <p className="text-sm font-semibold opacity-75">{w.n < 5 ? `Week ${w.n}` : "Finale"}</p>
-                <p className="font-display text-2xl font-bold">{w.theme}</p>
+                <p className="font-display text-[30px]">{w.theme}</p>
                 <p className="text-sm opacity-85">{w.blurb}</p>
               </div>
               <ol className="flex flex-col gap-2">
@@ -61,8 +61,8 @@ export default function Track() {
                       <span
                         className={cn(
                           "grid size-11 shrink-0 place-items-center rounded-full text-sm font-bold",
-                          status === "done" && "bg-mint text-white",
-                          status === "today" && "bg-yap text-white",
+                          status === "done" && "bg-mint text-ink",
+                          status === "today" && "bg-yap text-ink",
                           status === "frozen" && "bg-sky-soft text-sky",
                           status === "missed" && "bg-mist text-stone",
                           locked && "bg-mist text-stone",
@@ -81,7 +81,7 @@ export default function Track() {
                         {locked && <span className="sr-only">Locked until day {p.day_index}</span>}
                       </div>
                       {p.milestone && <Star className={cn("size-4 shrink-0", status === "done" ? "fill-sun text-sun" : "text-stone")} />}
-                      {status === "today" && <span className="bg-yap shrink-0 rounded-full px-3 py-1 text-xs font-bold text-white">{canYap ? "Start" : "Done"}</span>}
+                      {status === "today" && <span className="bg-ink shrink-0 rounded-full px-3 py-1 text-xs font-bold text-white">{canYap ? "Start" : "Done"}</span>}
                     </div>
                   );
                   return <li key={p.id}>{href ? <Link href={href} className="tap block rounded-full">{row}</Link> : row}</li>;

@@ -12,26 +12,26 @@
   --font-heading: var(--font-display);
   --font-display: var(--font-display);
 
-  /* Yap101 palette: minimal paper + flat, vivid solids */
-  --color-ink: #161514;
-  --color-paper: #f6f4ef;
-  --color-card: #ffffff;
-  --color-mist: #efede8;
-  --color-line: #e7e4de;
+  /* Yap101 palette: warm cream paper, soft pastel tiles, ink text everywhere */
+  --color-ink: #1a1816;
+  --color-paper: #fbf7ef;
+  --color-card: #fffdf9;
+  --color-mist: #f3eee4;
+  --color-line: #ebe4d7;
   --color-stone: #67625a; /* 4.5:1+ on paper, mist and white (WCAG AA) */
-  --color-yap: #ff5a14; /* 3:1+ with white for large text */
-  --color-yap-soft: #ffe4d6;
-  --color-sky: #2f7bf6;
-  --color-sky-soft: #dceaff;
-  --color-mint: #1fa463;
-  --color-mint-soft: #d5f3e3;
-  --color-sun: #ffd23f;
-  --color-sun-soft: #fff4c7;
-  --color-berry: #ff4a9d;
-  --color-berry-soft: #ffe0ef;
-  --color-grape: #a98bff;
-  --color-grape-soft: #ece5ff;
-  --color-cherry: #ef4365;
+  --color-yap: #f6a77f; /* soft coral: tiles and accents, always with ink text */
+  --color-yap-soft: #fde9de;
+  --color-sky: #acd8f8;
+  --color-sky-soft: #e4f2fd;
+  --color-mint: #bfe4c8;
+  --color-mint-soft: #e6f4ea;
+  --color-sun: #fbc95e;
+  --color-sun-soft: #fdf1d3;
+  --color-berry: #f6c2d5;
+  --color-berry-soft: #fbe8ef;
+  --color-grape: #d7ccfb;
+  --color-grape-soft: #efebfd;
+  --color-cherry: #d93f4c;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -71,9 +71,9 @@
 }
 
 :root {
-  --background: #f6f4ef;
-  --foreground: #161514;
-  --card: #ffffff;
+  --background: #fbf7ef;
+  --foreground: #1a1816;
+  --card: #fffdf9;
   --card-foreground: #161514;
   --popover: #ffffff;
   --popover-foreground: #161514;
@@ -86,8 +86,8 @@
   --accent: #efede8;
   --accent-foreground: #161514;
   --destructive: #ef4365;
-  --border: #e7e4de;
-  --input: #e7e4de;
+  --border: #ebe4d7;
+  --input: #ebe4d7;
   --ring: #161514;
   --chart-1: #ff6b2c;
   --chart-2: #2f7bf6;
@@ -121,16 +121,12 @@
 
 /* ---------- Yap101: minimal & playful ---------- */
 
-/* Paper with a faint grid, like a notebook. */
+/* Plain warm paper. (Was a notebook grid; the cleaner look drops it.) */
 @utility bg-grid {
   background-color: var(--color-paper);
-  background-image:
-    linear-gradient(to right, rgb(22 21 20 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(22 21 20 / 0.045) 1px, transparent 1px);
-  background-size: 22px 22px;
 }
 
-/* Soft white surface with a hairline border. The default container. */
+/* Quiet card: a shade lighter than the paper, hairline edge, no shadow. */
 @utility surface {
   background: var(--color-card);
   border: 1px solid var(--color-line);
@@ -190,8 +186,15 @@
 @layer base {
   h1, h2, h3 {
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.01em;
   }
+}
+
+/* Editorial serif headings: the display face has one weight, so never fake-bold it.
+   Unlayered on purpose, so it wins over font-bold/font-extrabold utilities on headings. */
+:where(h1, h2, h3, .font-display) {
+  font-weight: 400 !important;
+  line-height: 1.05;
 }
 
 /* Confetti pieces: each sets --x, --r, --d (drift, rotation, delay) inline. */

@@ -17,10 +17,10 @@ import { DAILY_LIMIT, pickPrompt, unlockedPrompts, type Prompt } from "@/lib/yap
 const MILESTONES = new Set([7, 14, 21, 30]);
 // Prompt card colour rotates by day; each pairs with a Yapper that reads on it.
 const CARD = [
-  { bg: "bg-sky", y: { shape: "blob" as const, color: "#ffffff" } },
-  { bg: "bg-yap", y: { shape: "bubble" as const, color: "#ffffff" } },
-  { bg: "bg-grape", y: { shape: "scallop" as const, color: "#ffffff" } },
-  { bg: "bg-mint", y: { shape: "bean" as const, color: "#ffffff" } },
+  { bg: "bg-sky", text: "text-ink", y: { shape: "blob" as const, color: "#ffffff" } },
+  { bg: "bg-yap", text: "text-ink", y: { shape: "bubble" as const, color: "#ffffff" } },
+  { bg: "bg-grape", text: "text-ink", y: { shape: "scallop" as const, color: "#ffffff" } },
+  { bg: "bg-mint", text: "text-ink", y: { shape: "bean" as const, color: "#ffffff" } },
 ];
 
 function greeting() {
@@ -50,7 +50,7 @@ export default function Today() {
   const prompt = pickPrompt(prompts, day, skip);
   const left = DAILY_LIMIT - game.todayCount;
   const href = prompt && left > 0 ? `/record?prompt=${prompt.id}` : null;
-  const card = game.dailyGoalMet ? { bg: "bg-ink", y: { shape: "bubble" as const, color: "#ff6b2c" } } : CARD[(day - 1) % CARD.length];
+  const card = game.dailyGoalMet ? { bg: "bg-ink", text: "text-white", y: { shape: "bubble" as const, color: "#f08a5d" } } : CARD[(day - 1) % CARD.length];
   const earned = game.badges.filter((b) => b.earned).length;
   const doneDays = track.filter((s) => s === "done").length;
   const nextMilestone = [7, 14, 21, 30].find((m) => m >= day);
@@ -89,7 +89,7 @@ export default function Today() {
                   <span
                     className={cn(
                       "relative grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
-                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#ecebe7]" : "bg-line"),
+                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#efe9de]" : "bg-line"),
                       // Today: a bold ring (dashed until you've yapped) so it stands out at a glance.
                       d.isToday && (waiting ? "outline-ink outline-dashed outline-2 outline-offset-2" : "outline-ink outline-2 outline-offset-2"),
                     )}
@@ -125,23 +125,23 @@ export default function Today() {
 
           {/* Today's yap */}
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-extrabold">Today&apos;s yap</h2>
+            <h2 className="text-[30px]">Today&apos;s yap</h2>
             <Ring value={game.todayCount / DAILY_LIMIT} label={game.todayCount} />
             <span className="text-stone ml-auto text-sm">{left > 0 ? `${left} of ${DAILY_LIMIT} left` : "All done"}</span>
           </div>
 
-          <section className={cn(card.bg, "relative min-h-[260px] overflow-hidden rounded-[32px] p-6 text-white sm:p-7")}>
-            <p className="text-sm font-semibold text-white/70">
+          <section className={cn(card.bg, card.text, "relative min-h-[260px] overflow-hidden rounded-[32px] p-6 sm:p-7")}>
+            <p className="text-sm font-semibold opacity-70">
               {game.dailyGoalMet ? "✓ Daily goal done" : `Day ${day} of 30 · ${weekFor(day).theme}`}
             </p>
-            <h3 key={prompt?.id} className="animate-rise mt-2 max-w-[72%] text-[30px] leading-[1.08] font-bold sm:text-4xl">
+            <h3 key={prompt?.id} className="animate-rise mt-2 max-w-[72%] text-[36px] leading-[1.08] sm:text-5xl">
               {prompt?.title ?? "No prompt yet"}
             </h3>
-            <ul className="mt-3 max-w-[62%] space-y-1 text-[15px] text-white/80">
+            <ul className="mt-3 max-w-[62%] space-y-1 text-[15px] opacity-80">
               {prompt && visiblePoints(prompt.talking_points, profile?.level).map((t) => <li key={t}>{t}</li>)}
             </ul>
             {prompt && (
-              <p className="mt-4 inline-flex max-w-[80%] items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-sm font-semibold">
+              <p className="mt-4 inline-flex max-w-[80%] items-center gap-1.5 rounded-full bg-current/10 px-3 py-1.5 text-sm font-semibold">
                 {prompt.milestone ? <Star className="size-4 shrink-0 fill-current" /> : <Lightbulb className="size-4 shrink-0" />}
                 <span className="truncate">{prompt.milestone ? "Milestone · " : "Skill · "}{prompt.skill}</span>
               </p>
@@ -152,10 +152,10 @@ export default function Today() {
                   <Play className="size-4 fill-current" /> {game.dailyGoalMet ? "Yap again" : "Start yapping"}
                 </Link>
               ) : (
-                <span className="flex h-13 items-center rounded-full bg-white/15 px-6 font-semibold">See you tomorrow</span>
+                <span className="flex h-13 items-center rounded-full bg-current/10 px-6 font-semibold">See you tomorrow</span>
               )}
               {unlockedPrompts(prompts, day).length > 1 && (
-                <button onClick={() => setSkip((s) => s + 1)} className="tap grid size-13 place-items-center rounded-full bg-white/20 hover:bg-white/30" aria-label="Shuffle: try an earlier day's prompt" title="Try an earlier day's prompt">
+                <button onClick={() => setSkip((s) => s + 1)} className="tap grid size-13 place-items-center rounded-full bg-current/10 hover:bg-current/15" aria-label="Shuffle: try an earlier day's prompt" title="Try an earlier day's prompt">
                   <Dices className="size-5" />
                 </button>
               )}
@@ -174,10 +174,10 @@ export default function Today() {
 
         <div className="flex flex-col gap-5">
           {/* 30-day track */}
-          <Link href="/track" className="bg-mint tap block rounded-[32px] p-6 text-white" aria-label="Open your 30-day track">
+          <Link href="/track" className="bg-mint tap text-ink block rounded-[32px] p-6" aria-label="Open your 30-day track">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">30-day track</h2>
-              <span className="flex items-center gap-1 font-semibold text-white/85">{doneDays}/30 <ChevronRight className="size-5" /></span>
+              <h2 className="text-[30px]">30-day track</h2>
+              <span className="flex items-center gap-1 font-semibold opacity-80">{doneDays}/30 <ChevronRight className="size-5" /></span>
             </div>
             <div className="mt-4 grid grid-cols-10 gap-1.5">
               {track.map((s, i) => {
@@ -188,21 +188,21 @@ export default function Today() {
                     title={`Day ${n}`}
                     className={cn(
                       "grid aspect-square place-items-center rounded-full",
-                      s === "done" && "bg-white",
-                      s === "today" && "bg-white/35 ring-2 ring-white",
-                      s === "missed" && "bg-black/15",
+                      s === "done" && "bg-ink",
+                      s === "today" && "ring-ink bg-white ring-2",
+                      s === "missed" && "bg-ink/15",
                       s === "frozen" && "bg-sky-soft",
-                      s === "locked" && "bg-white/20",
+                      s === "locked" && "bg-white/55",
                     )}
                   >
-                    {MILESTONES.has(n) && s !== "done" && <Star className="size-2.5 fill-white text-white" />}
-                    {MILESTONES.has(n) && s === "done" && <Star className="text-mint size-2.5 fill-current" />}
+                    {MILESTONES.has(n) && s !== "done" && <Star className="text-ink/50 size-2.5 fill-current" />}
+                    {MILESTONES.has(n) && s === "done" && <Star className="size-2.5 fill-current text-white" />}
                   </span>
                 );
               })}
             </div>
             {nextMilestone && (
-              <p className="mt-4 text-sm text-white/85">
+              <p className="mt-4 text-sm opacity-80">
                 ⭐ Reward on day {nextMilestone} · {nextMilestone === day ? "that's today!" : `${nextMilestone - day} day${nextMilestone - day === 1 ? "" : "s"} away`}
               </p>
             )}
@@ -213,7 +213,7 @@ export default function Today() {
             <YapperAvatar index={game.level} className="size-14" />
             <div className="min-w-0 flex-1">
               <p className="text-stone text-sm">Level {game.level}</p>
-              <p className="font-display text-xl font-bold">{game.levelTitle}</p>
+              <p className="font-display text-[26px]">{game.levelTitle}</p>
               <Bar value={game.levelProgress} className="mt-2" />
             </div>
             <div className="text-right">

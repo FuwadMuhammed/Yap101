@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from "next/font/google";
+import { DM_Sans, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { DemoBanner } from "@/components/yap/demo-banner";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-// Display: Bricolage Grotesque (characterful, tight headlines). Body: DM Sans (friendly, readable).
-const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"], weight: ["600", "700", "800"] });
+// Display: Instrument Serif (calm, editorial headlines). Body: DM Sans (friendly, readable).
+const display = Instrument_Serif({ variable: "--font-display", subsets: ["latin"], weight: "400" });
 const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
@@ -19,7 +19,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f6f4ef",
+  themeColor: "#fbf7ef",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

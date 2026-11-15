@@ -159,7 +159,7 @@ export default function Onboarding() {
 
       {!done ? (
         <div key={step} className="animate-rise flex flex-1 flex-col">
-          <h1 className="mt-8 text-[34px] leading-[1.08] font-extrabold">{current.title}</h1>
+          <h1 className="mt-8 text-[42px] leading-[1.08]">{current.title}</h1>
           <p className="text-stone mt-2">{current.sub}</p>
 
           <div className="mt-8">
@@ -222,7 +222,7 @@ export default function Onboarding() {
         </div>
       ) : (
         <div className="animate-rise flex flex-1 flex-col">
-          <h1 className="mt-8 text-center text-[34px] leading-[1.08] font-extrabold">{a.name.trim() ? `${a.name.trim()}, your` : "Your"} 30-day track is ready</h1>
+          <h1 className="mt-8 text-center text-[42px] leading-[1.08]">{a.name.trim() ? `${a.name.trim()}, your` : "Your"} 30-day track is ready</h1>
           <p className="text-stone mt-2 text-center">Day 1: “{firstPrompt?.title ?? "…"}” · {a.level ? TARGET_SECONDS[a.level] : 60} seconds</p>
           <div className="surface mt-6 rounded-[28px] py-6">
             <YapperCluster mood="cheer" />

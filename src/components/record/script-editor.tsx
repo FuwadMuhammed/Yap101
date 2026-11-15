@@ -60,7 +60,7 @@ export function ScriptEditor({
           <button onClick={onClose} className="surface tap grid size-11 place-items-center rounded-full" aria-label="Close without saving">
             <X className="size-5" />
           </button>
-          <p className="font-display text-lg font-bold">Your script</p>
+          <p className="font-display text-[22px]">Your script</p>
           <span className="size-11" />
         </div>
 

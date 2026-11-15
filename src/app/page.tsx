@@ -58,13 +58,13 @@ const FAQ = [
   { q: "Do I need to download an app?", a: "No, it runs in your browser. On iPhone you can add it to your Home Screen so it opens like an app." },
 ];
 
-const TINTS = ["hover:bg-sky hover:text-white", "hover:bg-yap hover:text-white", "hover:bg-sun", "hover:bg-grape", "hover:bg-mint hover:text-white", "hover:bg-berry hover:text-white"];
+const TINTS = ["hover:bg-sky", "hover:bg-yap", "hover:bg-sun", "hover:bg-grape", "hover:bg-mint", "hover:bg-berry"];
 
 export default function Landing() {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-30 px-4 pt-3 sm:px-6">
-        <nav className="surface mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full pr-2 pl-4 shadow-[0_8px_30px_-12px_rgb(22_21_20/0.15)]">
+      <header className="bg-paper/85 sticky top-0 z-30 px-4 backdrop-blur-md sm:px-6">
+        <nav className="border-line mx-auto flex h-16 max-w-5xl items-center justify-between border-b">
           <Logo />
           <div className="text-stone hidden items-center gap-7 text-[15px] font-medium md:flex">
             {SECTIONS.map((l) => (
@@ -86,7 +86,7 @@ export default function Landing() {
             <span className="surface inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
               <Flame className="size-4" /> 60 seconds a day · 30 days
             </span>
-            <h1 className="mx-auto mt-6 max-w-3xl text-[46px] leading-[0.98] font-extrabold sm:text-7xl">Get confident on camera in 30 days.</h1>
+            <h1 className="mx-auto mt-6 max-w-3xl text-[54px] leading-[0.98] sm:text-[84px]">Get confident on camera in 30 days.</h1>
             <p className="text-stone mx-auto mt-5 max-w-xl text-lg leading-relaxed">
               One short speaking challenge a day. A prompt picked for your niche, a teleprompter so you never blank, a Yap score on every take, and a streak that keeps you coming back.
             </p>
@@ -111,12 +111,12 @@ export default function Landing() {
 
         {/* How it works */}
         <section id="how" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-20 sm:px-6">
-          <h2 className="text-4xl font-extrabold sm:text-5xl">Three steps, every day.</h2>
+          <h2 className="text-[44px] sm:text-6xl">Three steps, every day.</h2>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <article key={s.title} className={`${s.bg} relative flex min-h-[230px] flex-col overflow-hidden rounded-[28px] p-6 text-ink`}>
                 <span className="text-sm font-bold">0{i + 1}</span>
-                <h3 className="mt-2 text-2xl font-bold">{s.title}</h3>
+                <h3 className="mt-2 text-[32px]">{s.title}</h3>
                 <p className="mt-2 max-w-[75%] leading-relaxed">{s.body}</p>
                 <Yapper shape={s.y.shape} mood={s.y.mood} color="#ffffff" className="absolute -right-3 -bottom-3 size-28 opacity-95" />
               </article>
@@ -126,13 +126,13 @@ export default function Landing() {
 
         {/* 30-day arc */}
         <section id="arc" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-10 sm:px-6">
-          <h2 className="text-4xl font-extrabold sm:text-5xl">A real 30-day plan.</h2>
+          <h2 className="text-[44px] sm:text-6xl">A real 30-day plan.</h2>
           <p className="text-stone mt-3 max-w-xl text-lg">Each week builds one skill, and each day teaches one small thing before you record.</p>
           <ol className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {WEEKS.slice(0, 4).map((w, i) => (
               <li key={w.n} className={`${ARC[i].bg} flex min-h-[180px] flex-col rounded-[28px] p-5`}>
                 <span className="text-sm font-semibold">Week {w.n}</span>
-                <span className="font-display mt-1 text-2xl font-bold">{w.theme}</span>
+                <span className="font-display mt-1 text-[32px]">{w.theme}</span>
                 <span className="mt-1">{w.blurb}</span>
                 <span className="mt-auto pt-4 text-sm font-semibold">{ARC[i].skill}</span>
               </li>
@@ -143,18 +143,18 @@ export default function Landing() {
 
         {/* Who it's for */}
         <section id="who" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-20 sm:px-6">
-          <h2 className="text-4xl font-extrabold sm:text-5xl">Made for people who&apos;d rather not be on camera (yet).</h2>
+          <h2 className="text-[44px] sm:text-6xl">Made for people who&apos;d rather not be on camera (yet).</h2>
           <div className="mt-10 grid grid-cols-1 gap-3 md:grid-cols-3">
             {WHO.map((w) => (
               <article key={w.title} className="surface rounded-[28px] p-6">
                 <YapperAvatar index={w.i} className="size-14" />
-                <h3 className="mt-4 text-xl font-bold">{w.title}</h3>
+                <h3 className="mt-4 text-[26px]">{w.title}</h3>
                 <p className="text-stone mt-2 leading-relaxed">{w.body}</p>
               </article>
             ))}
           </div>
           <div className="bg-mint-soft mt-4 flex flex-col gap-3 rounded-[28px] p-5 sm:flex-row sm:items-center">
-            <span className="bg-mint grid size-11 shrink-0 place-items-center rounded-full text-white"><Lock className="size-5" /></span>
+            <span className="bg-mint text-ink grid size-11 shrink-0 place-items-center rounded-full"><Lock className="size-5" /></span>
             <p className="font-semibold leading-relaxed">
               Your recordings are private. Posting is always your choice. Delete anything, any time.
             </p>
@@ -164,7 +164,7 @@ export default function Landing() {
         {/* Game */}
         <section id="game" className="mx-auto grid max-w-5xl scroll-mt-24 grid-cols-1 items-center gap-10 px-4 py-20 sm:px-6 md:grid-cols-2">
           <div>
-            <h2 className="text-4xl leading-[1.02] font-extrabold sm:text-5xl">Practice that feels like a game.</h2>
+            <h2 className="text-[44px] leading-[1.02] sm:text-6xl">Practice that feels like a game.</h2>
             <p className="text-stone mt-4 text-lg leading-relaxed">
               Every yap earns XP. Show up daily to grow your streak, collect badges, and climb from Mumbler to Yap Legend.
             </p>
@@ -186,10 +186,10 @@ export default function Landing() {
                   <span className="font-bold">{r.right}</span>
                 </li>
               ))}
-              <li className="bg-yap flex items-center gap-3 rounded-full p-1.5 pr-5 text-white">
+              <li className="bg-yap text-ink flex items-center gap-3 rounded-full p-1.5 pr-5">
                 <YapperAvatar index={0} mood="cheer" className="size-11 bg-white!" />
                 <div className="flex-1">
-                  <p className="text-xs text-white/75">You · 7 day streak</p>
+                  <p className="text-ink/70 text-xs">You · 7 day streak</p>
                   <p className="font-semibold">Mumbler → Chatter</p>
                 </div>
                 <span className="font-bold">+15 XP</span>
@@ -200,7 +200,7 @@ export default function Landing() {
 
         {/* Niches */}
         <section id="niches" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-20 sm:px-6">
-          <h2 className="text-4xl font-extrabold sm:text-5xl">Made for every niche.</h2>
+          <h2 className="text-[44px] sm:text-6xl">Made for every niche.</h2>
           <p className="text-stone mt-3 text-lg">Prompts tuned to what you talk about.</p>
           <div className="mt-10 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
             {NICHES.map(({ icon: Icon, label }, i) => (
@@ -214,7 +214,7 @@ export default function Landing() {
 
         {/* FAQ */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-24 px-4 py-20 sm:px-6">
-          <h2 className="text-4xl font-extrabold sm:text-5xl">Questions</h2>
+          <h2 className="text-[44px] sm:text-6xl">Questions</h2>
           <div className="surface divide-line mt-8 divide-y overflow-hidden rounded-[28px]">
             {FAQ.map((f) => (
               <details key={f.q} className="group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
@@ -232,7 +232,7 @@ export default function Landing() {
         <section className="px-4 pb-16 sm:px-6">
           <div className="bg-ink mx-auto max-w-5xl rounded-[40px] px-6 py-16 text-center text-white sm:py-20">
             <YapperCluster mood="cheer" className="mb-8" />
-            <h2 className="text-4xl font-extrabold sm:text-6xl">What are you yapping about today?</h2>
+            <h2 className="text-[44px] sm:text-7xl">What are you yapping about today?</h2>
             <p className="mx-auto mt-4 max-w-md text-lg text-white/70">Your first prompt is waiting. Day 1 takes about two minutes.</p>
             <div className="mt-8 flex justify-center">
               <YapLink href="/login" variant="white" size="xl" arrow>Start yapping</YapLink>

@@ -41,9 +41,9 @@ export default function Me() {
   );
 
   const stats = [
-    { value: game.streak, label: "Day streak", bg: "bg-yap text-white" },
+    { value: game.streak, label: "Day streak", bg: "bg-yap text-ink" },
     { value: game.bestStreak, label: "Best streak", bg: "bg-sun" },
-    { value: game.totalYaps, label: "Total yaps", bg: "bg-sky text-white" },
+    { value: game.totalYaps, label: "Total yaps", bg: "bg-sky text-ink" },
     { value: `${game.activeDays}/30`, label: "Days yapped", bg: "bg-grape" },
   ];
 
@@ -55,7 +55,7 @@ export default function Me() {
       <section className="surface flex items-center gap-4 rounded-[28px] p-4 sm:p-5">
         <YapperAvatar index={0} mood="cheer" className="size-20" />
         <div className="min-w-0 flex-1">
-          <p className="font-display text-2xl font-bold">{profile.display_name ?? "Yapper"}</p>
+          <p className="font-display text-[30px]">{profile.display_name ?? "Yapper"}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {chips.map((c) => {
               const Icon = c.icon;
@@ -73,7 +73,7 @@ export default function Me() {
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className={cn("rounded-[24px] p-4", s.bg)}>
-            <p className="font-display text-3xl font-bold">{s.value}</p>
+            <p className="font-display text-[38px]">{s.value}</p>
             <p className="text-sm font-medium opacity-80">{s.label}</p>
           </div>
         ))}
@@ -122,7 +122,7 @@ export default function Me() {
       {/* Level ladder */}
       <section>
         <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-2xl font-extrabold">Level ladder</h2>
+          <h2 className="text-[30px]">Level ladder</h2>
           <p className="font-bold">⭐ {game.xp} XP</p>
         </div>
         <div className="bg-sky rounded-[32px] p-2.5">
@@ -132,10 +132,10 @@ export default function Me() {
               const you = n === game.level;
               const locked = n > game.level;
               return (
-                <li key={l.title} className={cn("flex items-center gap-3 rounded-full p-1.5 pr-5", you ? "bg-yap text-white" : "bg-white", locked && "opacity-70")}>
+                <li key={l.title} className={cn("flex items-center gap-3 rounded-full p-1.5 pr-5", you ? "bg-yap text-ink" : "surface", locked && "opacity-70")}>
                   <YapperAvatar index={n} mood={you ? "cheer" : locked ? "sleepy" : "happy"} className={cn("size-11", you && "bg-white!")} />
                   <div className="min-w-0 flex-1">
-                    <p className={cn("text-xs", you ? "text-white/80" : "text-stone")}>{you ? "You're here" : `Level ${n}`}</p>
+                    <p className={cn("text-xs", you ? "text-ink/70" : "text-stone")}>{you ? "You're here" : `Level ${n}`}</p>
                     <p className="font-semibold">{l.title}</p>
                     {you && game.nextLevelAt && <Bar value={game.levelProgress} className="mt-1.5 max-w-48" color="bg-white" track="bg-white/30" />}
                   </div>
@@ -149,10 +149,10 @@ export default function Me() {
 
       {/* Badges */}
       <section>
-        <h2 className="mb-3 text-2xl font-extrabold">Badges</h2>
+        <h2 className="mb-3 text-[30px]">Badges</h2>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
           {game.badges.map((b) => (
-            <div key={b.id} className={cn("flex aspect-square flex-col items-center justify-center rounded-[24px] p-3 text-center", b.earned ? cn(b.color, b.color !== "bg-sun" && "text-white") : "surface")}>
+            <div key={b.id} className={cn("flex aspect-square flex-col items-center justify-center rounded-[24px] p-3 text-center", b.earned ? cn(b.color, b.color === "bg-ink" && "text-white") : "surface")}>
               <span className={cn("text-3xl", !b.earned && "opacity-40 grayscale")}>{b.emoji}</span>
               <p className="mt-2 text-sm font-bold">{b.name}</p>
               <p className={cn("mt-0.5 text-xs leading-snug", b.earned ? "opacity-80" : "text-stone")}>{b.hint}</p>
