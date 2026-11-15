@@ -11,7 +11,7 @@ import { YapLink } from "@/components/yap/yap-button";
 
 const STEPS = [
   { title: "Pick your goal", body: "Tell us your niche and level. We build a 30-day yap track just for you.", bg: "bg-sky", y: { shape: "blob" as const, mood: "think" as const } },
-  { title: "Yap for 60 seconds", body: "Talking points float over your camera. Hit record and just talk.", bg: "bg-yap", y: { shape: "bubble" as const, mood: "talk" as const } },
+  { title: "Yap for 60 seconds", body: "Talking points float over your camera. Hit record and just talk.", bg: "bg-yap", y: { shape: "puff" as const, mood: "talk" as const } },
   { title: "Get better daily", body: "A Yap score for your pace, pauses, energy, eye contact and smile, plus XP, streaks and a clip you can post.", bg: "bg-mint", y: { shape: "bean" as const, mood: "cheer" as const } },
 ];
 

@@ -18,7 +18,7 @@ const MILESTONES = new Set([7, 14, 21, 30]);
 // Prompt card colour rotates by day; each pairs with a Yapper that reads on it.
 const CARD = [
   { bg: "bg-sky", text: "text-ink", y: { shape: "blob" as const, color: "#ffffff" } },
-  { bg: "bg-yap", text: "text-ink", y: { shape: "bubble" as const, color: "#ffffff" } },
+  { bg: "bg-yap", text: "text-ink", y: { shape: "puff" as const, color: "#ffffff" } },
   { bg: "bg-grape", text: "text-ink", y: { shape: "scallop" as const, color: "#ffffff" } },
   { bg: "bg-mint", text: "text-ink", y: { shape: "bean" as const, color: "#ffffff" } },
 ];
@@ -50,7 +50,7 @@ export default function Today() {
   const prompt = pickPrompt(prompts, day, skip);
   const left = DAILY_LIMIT - game.todayCount;
   const href = prompt && left > 0 ? `/record?prompt=${prompt.id}` : null;
-  const card = game.dailyGoalMet ? { bg: "bg-ink", text: "text-white", y: { shape: "bubble" as const, color: "#f08a5d" } } : CARD[(day - 1) % CARD.length];
+  const card = game.dailyGoalMet ? { bg: "bg-ink", text: "text-white", y: { shape: "puff" as const, color: "#6fb3ec" } } : CARD[(day - 1) % CARD.length];
   const earned = game.badges.filter((b) => b.earned).length;
   const doneDays = track.filter((s) => s === "done").length;
   const nextMilestone = [7, 14, 21, 30].find((m) => m >= day);

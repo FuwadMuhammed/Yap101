@@ -46,7 +46,7 @@ export function WaitlistForm({ source, dark, className }: { source: string; dark
   if (state === "done")
     return (
       <div className={cn("flex items-center justify-center gap-3", className)} role="status">
-        <Yapper shape="bubble" mood="cheer" className="size-12" />
+        <Yapper shape="puff" color="#6fb3ec" mood="cheer" className="size-12" />
         <p className="text-left font-semibold">You&apos;re on the list! We&apos;ll email you at launch.</p>
       </div>
     );

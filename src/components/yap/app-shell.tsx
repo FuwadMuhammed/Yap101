@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]" aria-label="Main">
         <div className="surface flex items-center gap-1 rounded-full p-1.5 shadow-[0_12px_40px_-12px_rgb(22_21_20/0.25)]">
           <Link href="/home" className="hidden px-2 sm:block" aria-label="Yap101 home">
-            <Yapper shape="bubble" className="size-8" />
+            <Yapper shape="puff" color="#6fb3ec" mood="calm" className="size-8" />
           </Link>
           {NAV.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href) || (href === "/home" && pathname.startsWith("/track"));
