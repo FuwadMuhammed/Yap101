@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-const COLORS = ["#ff5a1f", "#ffb224", "#ff4d8d", "#12b76a", "#3d7bff", "#17120e"];
+const COLORS = ["#f08a5d", "#f5b740", "#ee8fb4", "#74c08d", "#6fb3ec", "#17120e"];
 
 /** A one-shot burst of confetti. Re-mount (change `key`) to fire again. */
 export function Confetti({ count = 60 }: { count?: number }) {

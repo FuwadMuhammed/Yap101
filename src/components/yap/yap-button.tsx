@@ -9,10 +9,10 @@ export const yapButton = cva(
   {
     variants: {
       variant: {
-        primary: "bg-ink text-white hover:bg-[#2b2927]",
-        accent: "bg-yap text-white hover:bg-[#ff7a40]",
+        primary: "bg-ink text-white hover:bg-[#2b2e35]",
+        accent: "bg-yap text-ink hover:bg-[#f29a70]",
         soft: "surface text-ink hover:bg-mist",
-        mist: "bg-mist text-ink hover:bg-[#e6e3dd]",
+        mist: "bg-mist text-ink hover:bg-[#e2e6eb]",
         white: "bg-white text-ink hover:bg-white/90",
         ghost: "text-ink hover:bg-mist",
       },

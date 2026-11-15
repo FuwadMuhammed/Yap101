@@ -44,11 +44,11 @@ function CelebrationScreen({ c, onDone }: { c: Celebration; onDone: () => void }
 
   const row = "animate-rise flex items-center gap-3 rounded-full bg-white p-1.5 pr-5 text-ink";
   return (
-    <div className="bg-mint fixed inset-0 z-40 overflow-y-auto px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white">
+    <div className="bg-mint fixed inset-0 z-40 overflow-y-auto px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink">
       <Confetti />
       <div className="mx-auto flex min-h-full w-full max-w-md flex-col">
         <YapperCluster mood="cheer" className="animate-pop mt-4" />
-        <h1 className="animate-rise mt-6 text-center text-5xl font-extrabold [animation-delay:120ms]">Yap complete!</h1>
+        <h1 className="animate-rise mt-6 text-center text-5xl [animation-delay:120ms]">Yap complete!</h1>
         <p className="animate-pop mx-auto mt-4 rounded-full bg-white px-6 py-2 text-4xl font-extrabold text-ink [animation-delay:250ms]">+{xp} XP</p>
 
         <ul className="mt-8 flex flex-col gap-2">
@@ -93,7 +93,7 @@ function CelebrationScreen({ c, onDone }: { c: Celebration; onDone: () => void }
   );
 }
 
-const scoreColor = (n: number) => (n >= 80 ? "#1fa463" : n >= 60 ? "#ffd23f" : "#ff6b2c");
+const scoreColor = (n: number) => (n >= 80 ? "#74c08d" : n >= 60 ? "#f7c04a" : "#f08a5d");
 const scoreBg = (n: number) => (n >= 80 ? "bg-mint" : n >= 60 ? "bg-sun" : "bg-yap");
 
 function pace(wpm: number) {
@@ -201,7 +201,7 @@ function FeedbackScreen() {
           </Link>
           <div className="min-w-0">
             <p className="text-stone text-sm">Yap report</p>
-            <h1 className="truncate text-2xl font-extrabold">{yap?.title ?? "…"}</h1>
+            <h1 className="truncate text-[26px]">{yap?.title ?? "…"}</h1>
           </div>
         </div>
 
@@ -231,10 +231,10 @@ function FeedbackScreen() {
             {a && (
               <section className="bg-ink relative overflow-hidden rounded-[32px] p-5 text-white">
                 <div className="flex items-center gap-5">
-                  <Ring value={a.overall / 100} label={<span className="font-display text-3xl">{a.overall}</span>} color={scoreColor(a.overall)} className="size-24 shrink-0 [&_circle:first-child]:stroke-white/15" />
+                  <Ring value={a.overall / 100} label={<span className="font-display text-[32px]">{a.overall}</span>} color={scoreColor(a.overall)} className="size-24 shrink-0 [&_circle:first-child]:stroke-white/15" />
                   <div className="min-w-0">
                     <p className="text-sm text-white/60">Yap score</p>
-                    <p className="font-display text-2xl font-bold">{a.verdict}</p>
+                    <p className="font-display text-[26px]">{a.verdict}</p>
                     {scoreDelta !== null && (
                       <p className={cn("mt-1 inline-flex items-center gap-1 text-sm font-semibold", scoreDelta >= 0 ? "text-mint-soft" : "text-sun")}>
                         {scoreDelta >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
@@ -263,18 +263,18 @@ function FeedbackScreen() {
 
             <div className="grid grid-cols-2 gap-3">
               {f.words_per_minute != null && (
-                <div className="bg-sky relative overflow-hidden rounded-[28px] p-5 text-white">
-                  <p className="text-sm text-white/75">Pace</p>
-                  <p className="font-display mt-1 text-4xl font-bold">{a ? "~" : ""}{Math.round(f.words_per_minute)}</p>
-                  <p className="text-sm text-white/75">words / min</p>
+                <div className="bg-sky text-ink relative overflow-hidden rounded-[28px] p-5">
+                  <p className="text-ink/70 text-sm">Pace</p>
+                  <p className="font-display mt-1 text-[40px]">{a ? "~" : ""}{Math.round(f.words_per_minute)}</p>
+                  <p className="text-ink/70 text-sm">words / min</p>
                   <span className="mt-3 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-ink">{pace(f.words_per_minute)}</span>
                   <Yapper shape="blob" color="#ffffff" mood="talk" className="absolute -right-3 -bottom-3 size-16 opacity-90" />
                 </div>
               )}
               {f.filler_count != null ? (
-                <div className="bg-berry relative overflow-hidden rounded-[28px] p-5 text-white">
-                  <p className="text-sm text-white/75">Filler words</p>
-                  <p className="font-display mt-1 text-4xl font-bold">{f.filler_count}</p>
+                <div className="bg-berry text-ink relative overflow-hidden rounded-[28px] p-5">
+                  <p className="text-ink/70 text-sm">Filler words</p>
+                  <p className="font-display mt-1 text-[40px]">{f.filler_count}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {Object.entries(f.filler_words)
                       .filter(([, n]) => n > 0)
@@ -287,7 +287,7 @@ function FeedbackScreen() {
               ) : (
                 <div className="surface flex flex-col justify-between rounded-[28px] p-5">
                   <p className="text-stone text-sm">Filler words</p>
-                  <p className="font-display mt-1 text-xl font-bold">Coming soon</p>
+                  <p className="font-display mt-1 text-[22px]">Coming soon</p>
                   <p className="text-stone mt-1 text-xs">Counting “um” and “like” needs a transcript. That&apos;s the next update.</p>
                 </div>
               )}
@@ -305,7 +305,7 @@ function FeedbackScreen() {
             )}
 
             <section className="bg-grape rounded-[32px] p-2.5">
-              <p className="px-3 pt-2 pb-3 font-display text-xl font-bold">Yappy&apos;s tips</p>
+              <p className="px-3 pt-2 pb-3 font-display text-[22px]">Yappy&apos;s tips</p>
               <ol className="flex flex-col gap-2">
                 {f.tips.map((t, i) => (
                   <li key={t} className="animate-rise flex items-center gap-3 rounded-[22px] bg-white p-2 pr-4" style={{ animationDelay: `${i * 80}ms` }}>
@@ -327,7 +327,7 @@ function FeedbackScreen() {
 
         {/* What next */}
         <section className="mt-2 flex flex-col gap-2">
-          <h2 className="text-xl font-extrabold">What&apos;s next</h2>
+          <h2 className="text-[22px]">What&apos;s next</h2>
           {tomorrow && (
             <div className="surface flex items-center gap-3 rounded-full p-1.5 pr-5">
               <YapperAvatar index={3} mood="happy" className="size-11" />

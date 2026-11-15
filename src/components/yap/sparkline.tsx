@@ -1,5 +1,5 @@
 /** Tiny inline line chart. `values` oldest → newest. */
-export function Sparkline({ values, className, color = "#ff6b2c", label }: { values: number[]; className?: string; color?: string; label: string }) {
+export function Sparkline({ values, className, color = "#f08a5d", label }: { values: number[]; className?: string; color?: string; label: string }) {
   if (values.length < 2) return null;
   const w = 240;
   const h = 60;

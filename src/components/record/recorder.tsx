@@ -450,12 +450,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
           {first && <MascotSays mood="cheer" className="mt-6">Your first yap! Don&apos;t aim for perfect. Just talk.</MascotSays>}
 
-          <h1 className="mt-6 text-[32px] leading-[1.08] font-extrabold">{prompt.title}</h1>
+          <h1 className="mt-6 text-[34px] leading-[1.08]">{prompt.title}</h1>
           {prompt.milestone && <p className="bg-sun mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"><Star className="size-4 fill-current" /> Milestone yap: worth posting</p>}
 
           <section className="bg-grape mt-5 rounded-[28px] p-5">
             <p className="flex items-center gap-2 text-sm font-semibold"><Lightbulb className="size-4" /> Today&apos;s skill</p>
-            <p className="font-display mt-1 text-2xl font-bold">{prompt.skill}</p>
+            <p className="font-display mt-1 text-[26px]">{prompt.skill}</p>
             <p className="mt-1 leading-relaxed">{prompt.skill_tip}</p>
           </section>
 
@@ -573,16 +573,16 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               className={cn("absolute inset-0 h-full w-full object-cover", facing === "user" && "-scale-x-100")}
             />
           ) : (
-            <div className="bg-sky absolute inset-0 flex items-end justify-center">
-              <Yapper shape="blob" color="#ffffff" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
+            <div className="bg-[#1f2229] absolute inset-0 flex items-end justify-center">
+              <Yapper shape="blob" color="#f6a77f" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
             </div>
           ))}
         {clip && !live &&
           (mode === "video" ? (
             <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-cover" />
           ) : (
-            <div className="bg-sky absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
-              <Yapper shape="blob" color="#ffffff" mood="cheer" className="size-40" />
+            <div className="bg-[#1f2229] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
+              <Yapper shape="blob" color="#f6a77f" mood="cheer" className="size-40" />
               <audio src={clip.url} controls className="w-full" />
             </div>
           ))}
@@ -598,7 +598,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <span
             className={cn(
               "glass flex h-10 items-center gap-2 rounded-full px-4 font-mono text-sm font-bold tabular-nums",
-              phase === "recording" && (hitTarget ? "bg-mint/90" : "bg-[#ff3b30]/80"),
+              phase === "recording" && (hitTarget ? "bg-mint text-ink" : "bg-[#ff3b30]/80"),
             )}
           >
             {phase === "recording" && <span className="size-2 animate-pulse rounded-full bg-white" />}
@@ -767,7 +767,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         {/* ---------- Countdown ---------- */}
         {phase === "countdown" && (
           <div className="absolute inset-0 grid place-items-center bg-black/30">
-            <span key={count} className="font-display animate-pop text-[140px] leading-none font-extrabold drop-shadow-lg">{count}</span>
+            <span key={count} className="font-display animate-pop text-[140px] leading-none drop-shadow-lg">{count}</span>
           </div>
         )}
 
@@ -791,7 +791,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
                 <circle cx="50" cy="50" r="44" fill="none" stroke="rgb(255 255 255 / 0.9)" strokeWidth="6" />
                 {phase === "recording" && (
-                  <circle cx="50" cy="50" r="44" fill="none" stroke={hitTarget || (model && cursor >= total) ? "#1fa463" : target ? "#ffd23f" : "rgb(255 255 255 / 0.5)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - progress)} />
+                  <circle cx="50" cy="50" r="44" fill="none" stroke={hitTarget || (model && cursor >= total) ? "#74c08d" : target ? "#f7c04a" : "rgb(255 255 255 / 0.5)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={RING} strokeDashoffset={RING * (1 - progress)} />
                 )}
               </svg>
               <span className={cn("bg-[#ff3b30] transition-all duration-200", phase === "recording" ? "size-9 rounded-xl" : "size-[70px] rounded-full")} />
@@ -804,7 +804,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <div className="animate-rise absolute inset-x-0 bottom-0 rounded-t-[36px] bg-white px-5 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-display text-2xl font-bold">Nice yap!</p>
+                <p className="font-display text-[26px]">Nice yap!</p>
                 <p className="text-stone text-sm font-semibold">{Math.round(clip.seconds)} seconds · {prompt.title}</p>
               </div>
               <div className="flex flex-col items-end gap-1">

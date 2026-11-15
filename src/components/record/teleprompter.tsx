@@ -72,7 +72,7 @@ export function Teleprompter({
                         className={cn(
                           "rounded-md px-0.5 transition-colors duration-150",
                           w.i < index && "text-white",
-                          w.i === index && "bg-yap text-white",
+                          w.i === index && "bg-yap text-ink",
                           w.i > index && "text-white/40",
                           w.emphasis && "decoration-yap underline decoration-[3px] underline-offset-[6px]",
                           w.emphasis && w.i === index && "decoration-white",
