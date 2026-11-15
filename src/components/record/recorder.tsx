@@ -450,12 +450,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
           {first && <MascotSays mood="cheer" className="mt-6">Your first yap! Don&apos;t aim for perfect. Just talk.</MascotSays>}
 
-          <h1 className="mt-6 text-[40px] leading-[1.08]">{prompt.title}</h1>
+          <h1 className="mt-6 text-[34px] leading-[1.08]">{prompt.title}</h1>
           {prompt.milestone && <p className="bg-sun mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"><Star className="size-4 fill-current" /> Milestone yap: worth posting</p>}
 
           <section className="bg-grape mt-5 rounded-[28px] p-5">
             <p className="flex items-center gap-2 text-sm font-semibold"><Lightbulb className="size-4" /> Today&apos;s skill</p>
-            <p className="font-display mt-1 text-[30px]">{prompt.skill}</p>
+            <p className="font-display mt-1 text-[26px]">{prompt.skill}</p>
             <p className="mt-1 leading-relaxed">{prompt.skill_tip}</p>
           </section>
 
@@ -573,7 +573,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               className={cn("absolute inset-0 h-full w-full object-cover", facing === "user" && "-scale-x-100")}
             />
           ) : (
-            <div className="bg-[#2a2622] absolute inset-0 flex items-end justify-center">
+            <div className="bg-[#1f2229] absolute inset-0 flex items-end justify-center">
               <Yapper shape="blob" color="#f6a77f" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
             </div>
           ))}
@@ -581,7 +581,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           (mode === "video" ? (
             <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-cover" />
           ) : (
-            <div className="bg-[#2a2622] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
+            <div className="bg-[#1f2229] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
               <Yapper shape="blob" color="#f6a77f" mood="cheer" className="size-40" />
               <audio src={clip.url} controls className="w-full" />
             </div>
@@ -804,7 +804,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <div className="animate-rise absolute inset-x-0 bottom-0 rounded-t-[36px] bg-white px-5 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-ink">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-display text-[30px]">Nice yap!</p>
+                <p className="font-display text-[26px]">Nice yap!</p>
                 <p className="text-stone text-sm font-semibold">{Math.round(clip.seconds)} seconds · {prompt.title}</p>
               </div>
               <div className="flex flex-col items-end gap-1">

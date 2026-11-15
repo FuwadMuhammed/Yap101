@@ -30,7 +30,7 @@ export function Ring({ value, label, className, color = "#f08a5d" }: { value: nu
   return (
     <span className={cn("relative grid size-9 place-items-center", className)}>
       <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90">
-        <circle cx="20" cy="20" r="16" fill="none" stroke="#ebe4d7" strokeWidth="5" />
+        <circle cx="20" cy="20" r="16" fill="none" stroke="#e2e6eb" strokeWidth="5" />
         <circle cx="20" cy="20" r="16" fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, value))} className="transition-[stroke-dashoffset] duration-700" />
       </svg>
       <span className="text-xs font-bold">{label}</span>
@@ -42,8 +42,8 @@ export function Ring({ value, label, className, color = "#f08a5d" }: { value: nu
 export function Flame({ className, lit = true }: { className?: string; lit?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className={cn("size-5", className)} aria-hidden>
-      <path d="M12 2c1 3.5 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.6 1.3-4.2 2.5-5.4.2 1.6.9 2.6 1.9 3.1C10.6 7.8 11 4.7 12 2Z" fill={lit ? "#f08a5d" : "#d6d2cb"} />
-      <path d="M12 12.5c.7 1.4 2.5 2.3 2.5 4.4a2.5 2.5 0 0 1-5 0c0-1.3.7-2.2 1.4-2.8.1.6.4 1 .8 1.2-.1-1.1 0-2 .3-2.8Z" fill={lit ? "#f7c04a" : "#ebe8e3"} />
+      <path d="M12 2c1 3.5 5.5 5.6 5.5 11a5.5 5.5 0 0 1-11 0c0-2.6 1.3-4.2 2.5-5.4.2 1.6.9 2.6 1.9 3.1C10.6 7.8 11 4.7 12 2Z" fill={lit ? "#f08a5d" : "#cfd4db"} />
+      <path d="M12 12.5c.7 1.4 2.5 2.3 2.5 4.4a2.5 2.5 0 0 1-5 0c0-1.3.7-2.2 1.4-2.8.1.6.4 1 .8 1.2-.1-1.1 0-2 .3-2.8Z" fill={lit ? "#f7c04a" : "#e8ebef"} />
     </svg>
   );
 }

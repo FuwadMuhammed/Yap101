@@ -45,7 +45,7 @@ export default function Track() {
             <section key={w.n} className={cn(WEEK_BG[wi], "rounded-[32px] p-2.5")}>
               <div className="px-3 pt-2 pb-3">
                 <p className="text-sm font-semibold opacity-75">{w.n < 5 ? `Week ${w.n}` : "Finale"}</p>
-                <p className="font-display text-[30px]">{w.theme}</p>
+                <p className="font-display text-[26px]">{w.theme}</p>
                 <p className="text-sm opacity-85">{w.blurb}</p>
               </div>
               <ol className="flex flex-col gap-2">

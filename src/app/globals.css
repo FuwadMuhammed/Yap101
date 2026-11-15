@@ -12,13 +12,13 @@
   --font-heading: var(--font-display);
   --font-display: var(--font-display);
 
-  /* Yap101 palette: warm cream paper, soft pastel tiles, ink text everywhere */
-  --color-ink: #1a1816;
-  --color-paper: #fbf7ef;
-  --color-card: #fffdf9;
-  --color-mist: #f3eee4;
-  --color-line: #ebe4d7;
-  --color-stone: #67625a; /* 4.5:1+ on paper, mist and white (WCAG AA) */
+  /* Yap101 palette: cool off-white paper, soft pastel tiles, ink text everywhere */
+  --color-ink: #15171c;
+  --color-paper: #f4f6f8;
+  --color-card: #ffffff;
+  --color-mist: #eceff3;
+  --color-line: #e2e6eb;
+  --color-stone: #5d6470; /* 4.7:1+ on paper, mist, line and white (WCAG AA) */
   --color-yap: #f6a77f; /* soft coral: tiles and accents, always with ink text */
   --color-yap-soft: #fde9de;
   --color-sky: #acd8f8;
@@ -71,24 +71,24 @@
 }
 
 :root {
-  --background: #fbf7ef;
-  --foreground: #1a1816;
-  --card: #fffdf9;
-  --card-foreground: #161514;
+  --background: #f4f6f8;
+  --foreground: #15171c;
+  --card: #ffffff;
+  --card-foreground: #15171c;
   --popover: #ffffff;
-  --popover-foreground: #161514;
-  --primary: #161514;
+  --popover-foreground: #15171c;
+  --primary: #15171c;
   --primary-foreground: #ffffff;
-  --secondary: #efede8;
-  --secondary-foreground: #161514;
-  --muted: #efede8;
-  --muted-foreground: #8a857d;
-  --accent: #efede8;
-  --accent-foreground: #161514;
+  --secondary: #eceff3;
+  --secondary-foreground: #15171c;
+  --muted: #eceff3;
+  --muted-foreground: #5d6470;
+  --accent: #eceff3;
+  --accent-foreground: #15171c;
   --destructive: #ef4365;
-  --border: #ebe4d7;
-  --input: #ebe4d7;
-  --ring: #161514;
+  --border: #e2e6eb;
+  --input: #e2e6eb;
+  --ring: #15171c;
   --chart-1: #ff6b2c;
   --chart-2: #2f7bf6;
   --chart-3: #1fa463;
@@ -96,13 +96,13 @@
   --chart-5: #a98bff;
   --radius: 1rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #161514;
-  --sidebar-primary: #161514;
+  --sidebar-foreground: #15171c;
+  --sidebar-primary: #15171c;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #efede8;
-  --sidebar-accent-foreground: #161514;
-  --sidebar-border: #e7e4de;
-  --sidebar-ring: #161514;
+  --sidebar-accent: #eceff3;
+  --sidebar-accent-foreground: #15171c;
+  --sidebar-border: #e2e6eb;
+  --sidebar-ring: #15171c;
 }
 
 /* Phase 1 is light-only; the dark theme comes with the full brand system in Phase 2. */
@@ -121,7 +121,7 @@
 
 /* ---------- Yap101: minimal & playful ---------- */
 
-/* Plain warm paper. (Was a notebook grid; the cleaner look drops it.) */
+/* Plain cool paper. (Was a notebook grid; the cleaner look drops it.) */
 @utility bg-grid {
   background-color: var(--color-paper);
 }
@@ -190,10 +190,12 @@
   }
 }
 
-/* Editorial serif headings: the display face has one weight, so never fake-bold it.
+/* Soft serif headings at one calm weight, with Fraunces' rounded "SOFT" axis turned up.
    Unlayered on purpose, so it wins over font-bold/font-extrabold utilities on headings. */
 :where(h1, h2, h3, .font-display) {
-  font-weight: 400 !important;
+  font-weight: 500 !important;
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.02em;
   line-height: 1.05;
 }
 

@@ -24,7 +24,7 @@ export default function Login() {
       <div className="flex flex-1 flex-col justify-center gap-8 py-8">
         <div className="text-center">
           <YapperCluster className="animate-pop mb-8" />
-          <h1 className="text-[42px] leading-tight">Let&apos;s get yapping</h1>
+          <h1 className="text-[36px] leading-tight">Let&apos;s get yapping</h1>
           <p className="text-stone mt-2 text-lg">Sign in to start your 30-day track.</p>
         </div>
         <div className="flex flex-col gap-3">
@@ -81,7 +81,7 @@ function SupabaseLogin() {
   if (sent)
     return (
       <div className="bg-mint text-ink rounded-[28px] p-6 text-center">
-        <p className="font-display text-[30px]">Check your inbox</p>
+        <p className="font-display text-[26px]">Check your inbox</p>
         <p className="text-ink/75 mt-1">We sent a sign-in link to {email}.</p>
       </div>
     );

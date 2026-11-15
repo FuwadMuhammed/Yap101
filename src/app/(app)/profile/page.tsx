@@ -55,7 +55,7 @@ export default function Me() {
       <section className="surface flex items-center gap-4 rounded-[28px] p-4 sm:p-5">
         <YapperAvatar index={0} mood="cheer" className="size-20" />
         <div className="min-w-0 flex-1">
-          <p className="font-display text-[30px]">{profile.display_name ?? "Yapper"}</p>
+          <p className="font-display text-[26px]">{profile.display_name ?? "Yapper"}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {chips.map((c) => {
               const Icon = c.icon;
@@ -73,7 +73,7 @@ export default function Me() {
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className={cn("rounded-[24px] p-4", s.bg)}>
-            <p className="font-display text-[38px]">{s.value}</p>
+            <p className="font-display text-[32px]">{s.value}</p>
             <p className="text-sm font-medium opacity-80">{s.label}</p>
           </div>
         ))}
@@ -122,7 +122,7 @@ export default function Me() {
       {/* Level ladder */}
       <section>
         <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-[30px]">Level ladder</h2>
+          <h2 className="text-[26px]">Level ladder</h2>
           <p className="font-bold">⭐ {game.xp} XP</p>
         </div>
         <div className="bg-sky rounded-[32px] p-2.5">
@@ -149,7 +149,7 @@ export default function Me() {
 
       {/* Badges */}
       <section>
-        <h2 className="mb-3 text-[30px]">Badges</h2>
+        <h2 className="mb-3 text-[26px]">Badges</h2>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
           {game.badges.map((b) => (
             <div key={b.id} className={cn("flex aspect-square flex-col items-center justify-center rounded-[24px] p-3 text-center", b.earned ? cn(b.color, b.color === "bg-ink" && "text-white") : "surface")}>

@@ -9,9 +9,9 @@ export function LegalPage({ title, updated, children }: { title: string; updated
         <YapLink href="/" variant="soft" size="sm">Home</YapLink>
       </div>
       <p className="bg-sun-soft mt-8 rounded-[20px] px-4 py-3 text-sm font-semibold">Draft: needs legal review before launch.</p>
-      <h1 className="mt-6 text-[44px]">{title}</h1>
+      <h1 className="mt-6 text-[38px]">{title}</h1>
       <p className="text-stone mt-1 text-sm">Last updated {updated}</p>
-      <div className="surface mt-6 rounded-[28px] p-6 leading-relaxed [&_h2]:font-display [&_h2]:mt-6 [&_h2]:text-[26px] [&_h2:first-child]:mt-0 [&_li]:mt-1 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
+      <div className="surface mt-6 rounded-[28px] p-6 leading-relaxed [&_h2]:font-display [&_h2]:mt-6 [&_h2]:text-[22px] [&_h2:first-child]:mt-0 [&_li]:mt-1 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
         {children}
       </div>
     </div>

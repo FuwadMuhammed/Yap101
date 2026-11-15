@@ -52,7 +52,7 @@ export function TopBar({ title, sub, right }: { title: React.ReactNode; sub?: Re
   return (
     <header className="mb-6 flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[32px] leading-tight sm:text-5xl">{title}</h1>
+        <h1 className="text-[28px] leading-tight sm:text-[44px]">{title}</h1>
         {sub && <p className="text-stone mt-0.5">{sub}</p>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}

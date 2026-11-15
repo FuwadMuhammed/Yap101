@@ -89,7 +89,7 @@ export default function Today() {
                   <span
                     className={cn(
                       "relative grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
-                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#efe9de]" : "bg-line"),
+                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#e8ebef]" : "bg-line"),
                       // Today: a bold ring (dashed until you've yapped) so it stands out at a glance.
                       d.isToday && (waiting ? "outline-ink outline-dashed outline-2 outline-offset-2" : "outline-ink outline-2 outline-offset-2"),
                     )}
@@ -125,7 +125,7 @@ export default function Today() {
 
           {/* Today's yap */}
           <div className="flex items-center gap-3">
-            <h2 className="text-[30px]">Today&apos;s yap</h2>
+            <h2 className="text-[26px]">Today&apos;s yap</h2>
             <Ring value={game.todayCount / DAILY_LIMIT} label={game.todayCount} />
             <span className="text-stone ml-auto text-sm">{left > 0 ? `${left} of ${DAILY_LIMIT} left` : "All done"}</span>
           </div>
@@ -134,7 +134,7 @@ export default function Today() {
             <p className="text-sm font-semibold opacity-70">
               {game.dailyGoalMet ? "✓ Daily goal done" : `Day ${day} of 30 · ${weekFor(day).theme}`}
             </p>
-            <h3 key={prompt?.id} className="animate-rise mt-2 max-w-[72%] text-[36px] leading-[1.08] sm:text-5xl">
+            <h3 key={prompt?.id} className="animate-rise mt-2 max-w-[72%] text-[31px] leading-[1.08] sm:text-[44px]">
               {prompt?.title ?? "No prompt yet"}
             </h3>
             <ul className="mt-3 max-w-[62%] space-y-1 text-[15px] opacity-80">
@@ -176,7 +176,7 @@ export default function Today() {
           {/* 30-day track */}
           <Link href="/track" className="bg-mint tap text-ink block rounded-[32px] p-6" aria-label="Open your 30-day track">
             <div className="flex items-center justify-between">
-              <h2 className="text-[30px]">30-day track</h2>
+              <h2 className="text-[26px]">30-day track</h2>
               <span className="flex items-center gap-1 font-semibold opacity-80">{doneDays}/30 <ChevronRight className="size-5" /></span>
             </div>
             <div className="mt-4 grid grid-cols-10 gap-1.5">
@@ -213,7 +213,7 @@ export default function Today() {
             <YapperAvatar index={game.level} className="size-14" />
             <div className="min-w-0 flex-1">
               <p className="text-stone text-sm">Level {game.level}</p>
-              <p className="font-display text-[26px]">{game.levelTitle}</p>
+              <p className="font-display text-[22px]">{game.levelTitle}</p>
               <Bar value={game.levelProgress} className="mt-2" />
             </div>
             <div className="text-right">

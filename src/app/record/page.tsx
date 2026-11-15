@@ -65,7 +65,7 @@ function BlockedScreen({ state }: { state: Blocked }) {
     <div className="bg-grid flex min-h-dvh items-center justify-center px-5">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
         <Mascot mood={copy.mood} className="animate-float size-24" />
-        <h1 className="flex items-center gap-2 text-[36px]">
+        <h1 className="flex items-center gap-2 text-[31px]">
           {state.kind === "locked" && <Lock className="size-6" />}
           {copy.title}
         </h1>
