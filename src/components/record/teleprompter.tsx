@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { ArrowDownToLine } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Script } from "@/lib/prompter";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,8 @@ import { cn } from "@/lib/utils";
  * Script mode: every word is a span. Said words stay bright, the current word is highlighted,
  * emphasis words are underlined and pauses are marked. Points mode: one line lit at a time.
  * The view keeps the current line near the top third, so the reader's eyes stay near the lens.
+ * Drag or scroll to look back or ahead; it stops following until you tap "Back to current"
+ * (or after a few seconds of not touching it).
  */
 export function Teleprompter({
   title,
@@ -30,12 +33,30 @@ export function Teleprompter({
   const currentLine = script ? script.lines.findIndex((l) => l.words.some((w) => w.i === index)) : index;
   const line = script ? script.lines[currentLine === -1 ? script.lines.length - 1 : currentLine] : null;
 
+  const lastTop = useRef(-1); // offsetTop of the row we last scrolled to (-2 = force)
+  // While the reader scrolls by hand, don't yank the view back to the current word.
+  const [browsing, setBrowsing] = useState(false);
+  const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userScrolled = useCallback(() => {
+    setBrowsing(true);
+    if (idleRef.current) clearTimeout(idleRef.current);
+    idleRef.current = setTimeout(() => {
+      lastTop.current = -2;
+      setBrowsing(false);
+    }, 5000);
+  }, []);
+  const backToCurrent = () => {
+    if (idleRef.current) clearTimeout(idleRef.current);
+    lastTop.current = -2; // force a scroll on the next pass
+    setBrowsing(false);
+  };
+  useEffect(() => () => void (idleRef.current && clearTimeout(idleRef.current)), []);
+
   // Keep the current word's row about a third of the way down. Only scrolls when the
   // highlight moves to a new row, so the text doesn't jitter on every word.
-  const lastTop = useRef(-1);
   useEffect(() => {
     const box = boxRef.current;
-    if (!box) return;
+    if (!box || browsing) return;
     const last = script ? script.words.length - 1 : points.length - 1;
     const at = Math.min(index, last);
     const el = box.querySelector<HTMLElement>(script ? `[data-w="${at}"]` : `[data-line="${at}"]`);
@@ -48,7 +69,7 @@ export function Teleprompter({
     if (el.offsetTop === lastTop.current) return;
     lastTop.current = el.offsetTop;
     box.scrollTo({ top: Math.max(0, el.offsetTop - box.clientHeight * 0.3), behavior: "smooth" });
-  }, [index, script, points.length]);
+  }, [index, script, points.length, browsing]);
 
   return (
     <div>
@@ -57,7 +78,14 @@ export function Teleprompter({
           <span aria-hidden>{line.cue.emoji}</span> {line.cue.label}
         </p>
       )}
-      <div ref={boxRef} className="prompter-mask relative h-44 overflow-hidden sm:h-52">
+      <div
+        ref={boxRef}
+        onWheel={userScrolled}
+        onTouchMove={userScrolled}
+        onPointerDown={(e) => e.pointerType === "mouse" && e.buttons === 1 && e.target === e.currentTarget && userScrolled()}
+        className="prompter-mask relative h-44 touch-pan-y overflow-y-auto overscroll-contain [scrollbar-width:none] sm:h-52 [&::-webkit-scrollbar]:hidden"
+        aria-label="Script. Scroll to read back or ahead."
+      >
         <p className="mb-3 text-sm font-semibold text-white/60">{title}</p>
         <div className={cn("font-display space-y-4 pb-40 leading-snug font-bold", sizeClass)}>
           {script
@@ -99,6 +127,15 @@ export function Teleprompter({
           {footer}
         </div>
       </div>
+      {browsing && (
+        <button
+          type="button"
+          onClick={backToCurrent}
+          className="glass -mt-10 relative z-10 mx-auto mb-2 flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-bold"
+        >
+          <ArrowDownToLine className="size-4" /> Back to current
+        </button>
+      )}
     </div>
   );
 }

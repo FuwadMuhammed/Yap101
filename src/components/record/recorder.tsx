@@ -1,11 +1,11 @@
 "use client";
 
-import { AudioLines, Camera, PencilLine, ChevronLeft, Minus, MessageCircle, Plus, ScrollText, Eye, Lightbulb, Lock, Mic, RefreshCw, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
+import { AudioLines, Camera, PencilLine, ChevronLeft, Minus, MessageCircle, Plus, ScrollText, Eye, Lightbulb, Lock, Mic, RotateCcw, Share2, SlidersHorizontal, Star, SwitchCamera, Target, Timer, Video, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Mascot, MascotSays, Yapper } from "@/components/brand/mascot";
+import { Mascot, MascotSays, Yapper, YAPPY_BLUE } from "@/components/brand/mascot";
 import { Slider } from "@/components/ui/slider";
 import { YapButton } from "@/components/yap/yap-button";
 import { api, DailyLimitError } from "@/lib/data";
@@ -59,6 +59,83 @@ function unblockHelp(mode: Mode) {
   return `Click the camera icon in the address bar, allow ${what}, then reload.`;
 }
 
+/** Front cameras on some phones start slightly zoomed; ask for the widest view they allow. */
+async function widestZoom(stream: MediaStream) {
+  const track = stream.getVideoTracks()[0];
+  try {
+    const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number } }) | undefined;
+    if (caps?.zoom) await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] });
+  } catch {
+    /* not supported: keep the default */
+  }
+}
+
+/**
+ * A light voice chain for the recording: cut low rumble (traffic, AC, desk bumps), lift
+ * speech presence a touch, and gently even out loud and quiet words. Falls back to the raw
+ * mic if the browser can't do it. Video tracks pass straight through.
+ */
+function voiceChain(stream: MediaStream): { stream: MediaStream; close: () => void } | null {
+  const mic = stream.getAudioTracks()[0];
+  if (!mic) return null;
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    const src = ctx.createMediaStreamSource(new MediaStream([mic]));
+    const highpass = Object.assign(ctx.createBiquadFilter(), { type: "highpass" });
+    highpass.frequency.value = 85;
+    const mud = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
+    mud.frequency.value = 300;
+    mud.gain.value = -2;
+    mud.Q.value = 1;
+    const presence = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
+    presence.frequency.value = 3200;
+    presence.gain.value = 2.5;
+    presence.Q.value = 0.9;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -26;
+    comp.knee.value = 12;
+    comp.ratio.value = 3;
+    comp.attack.value = 0.006;
+    comp.release.value = 0.2;
+    const out = ctx.createMediaStreamDestination();
+    src.connect(highpass).connect(mud).connect(presence).connect(comp).connect(out);
+    void ctx.resume();
+    const track = out.stream.getAudioTracks()[0];
+    if (!track) throw new Error("no processed track");
+    return {
+      stream: new MediaStream([...stream.getVideoTracks(), track]),
+      close: () => void ctx.close().catch(() => {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Video or audio only, as one clear switch. */
+function ModeToggle({ mode, onChange, glass, className }: { mode: Mode; onChange: (m: Mode) => void; glass?: boolean; className?: string }) {
+  return (
+    <div role="radiogroup" aria-label="Record as" className={cn("grid grid-cols-2 gap-1 rounded-full p-1", glass ? "glass" : "bg-mist", className)}>
+      {([["video", "Video", Video], ["audio", "Audio only", Mic]] as const).map(([v, label, Icon]) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={mode === v}
+          onClick={() => onChange(v)}
+          className={cn(
+            "tap flex items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors",
+            glass ? "h-9" : "h-11",
+            mode === v ? (glass ? "bg-white text-ink" : "bg-white shadow-sm") : glass ? "text-white/80" : "text-stone hover:text-ink",
+          )}
+        >
+          <Icon className="size-4" /> {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
   // Any day can be read from a script: the one they wrote (saved on this device), or the one
   // we made from their onboarding answers (intro days). Beginners start in script mode when one exists.
@@ -99,11 +176,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [textSize, setTextSize] = useState<TextSize>("M");
   // Some people want a clean frame: the teleprompter can be hidden and brought back any time.
   const [prompterOn, setPrompterOn] = useState(true);
+  const [landscape, setLandscape] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number; analysis: Analysis | null } | null>(null);
   // On-device analysis: voice meter always, face meter for video. Nothing is uploaded.
   const audioMeterRef = useRef<AudioMeter | null>(null);
+  const voiceRef = useRef<{ stream: MediaStream; close: () => void } | null>(null);
   const faceMeterRef = useRef<FaceMeter | null>(null);
   const cursorRef = useRef(0);
   const usedVoiceRef = useRef(false);
@@ -125,10 +204,14 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       streamRef.current?.getTracks().forEach((t) => t.stop());
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: mode === "video" ? { facingMode: facing, width: { ideal: 720 }, height: { ideal: 1280 } } : false,
+          // Ask for clean speech: the browser's own noise suppression and echo cancellation.
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 },
+          // The camera's natural frame. Asking for a tall 9:16 picture made phones crop the
+          // sensor, which looked zoomed in; 4:3 is the full sensor on most phone cameras.
+          video: mode === "video" ? { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 960 }, frameRate: { ideal: 30 } } : false,
         });
         if (cancelled) return stream.getTracks().forEach((t) => t.stop());
+        await widestZoom(stream);
         streamRef.current = stream;
         if (previewRef.current) previewRef.current.srcObject = stream;
         setError(null);
@@ -158,6 +241,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       streamRef.current?.getTracks().forEach((t) => t.stop());
       audioMeterRef.current?.stop();
       faceMeterRef.current?.stop();
+      voiceRef.current?.close();
     },
     [],
   );
@@ -290,10 +374,19 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     const stream = streamRef.current;
     if (!stream) return setPhase("setup");
     const mimeType = pickMimeType(mode);
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    // Record through a light voice filter, at a bitrate high enough for clear speech.
+    const voice = voiceChain(stream);
+    voiceRef.current = voice;
+    const recorder = new MediaRecorder(voice?.stream ?? stream, {
+      ...(mimeType ? { mimeType } : {}),
+      audioBitsPerSecond: 128_000,
+      ...(mode === "video" ? { videoBitsPerSecond: 2_500_000 } : {}),
+    });
     chunksRef.current = [];
     recorder.ondataavailable = (e) => e.data.size && chunksRef.current.push(e.data);
     recorder.onstop = () => {
+      voiceRef.current?.close();
+      voiceRef.current = null;
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType });
       const seconds = Math.min(MAX_SECONDS, (performance.now() - startedAtRef.current) / 1000);
       let analysis: Analysis | null = null;
@@ -430,7 +523,6 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const progress = Math.min(1, elapsed / (target ?? MAX_SECONDS));
   const hitTarget = target !== null && elapsed >= target;
   const estimate = model ? estimateSeconds(model, wpm) : null;
-  const lengthLabel = target ? `${target}s goal` : estimate ? `about ${estimate}s` : "no time limit";
   const cycleLength = () => setLength((l) => (l === "free" ? 30 : l === 30 ? 45 : l === 45 ? 60 : "free"));
   const RING = 2 * Math.PI * 44;
 
@@ -505,19 +597,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             <p className="text-stone mt-3 flex items-center gap-1.5 text-sm"><Target className="size-4" /> {prompt.focus}</p>
           </section>
 
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm font-semibold">
+          <ModeToggle mode={mode} onChange={setMode} className="mt-3" />
+
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm font-semibold">
             <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`Length: ${target ? `${target} second goal` : "no time limit"}. Tap to change.`}>
               <Timer className="size-4" />{target ? `${target}s goal` : "No limit"}
             </button>
             <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target ?? estimate ?? 0, firstToday)} XP</span>
-            <button
-              onClick={() => setMode(mode === "video" ? "audio" : "video")}
-              className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3"
-              aria-label={`Recording ${mode}. Tap to switch.`}
-            >
-              {mode === "video" ? <Video className="size-4" /> : <Mic className="size-4" />}
-              {mode === "video" ? "Video" : "Audio only"}
-            </button>
           </div>
 
           <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -561,7 +647,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
   return (
     <div className="bg-ink flex min-h-dvh items-center justify-center">
-      <div className="relative h-dvh w-full overflow-hidden bg-black text-white md:aspect-[9/16] md:h-[min(94dvh,880px)] md:w-auto md:rounded-[36px] md:border-[6px] md:border-white/10">
+      <div
+        className={cn(
+          "relative h-dvh w-full overflow-hidden bg-black text-white md:rounded-[36px] md:border-[6px] md:border-white/10",
+          // On a laptop the webcam is landscape, so the stage is too; phones stay portrait.
+          mode === "video" && landscape ? "md:aspect-[4/3] md:h-[min(90dvh,760px)] md:w-auto" : "md:aspect-[9/16] md:h-[min(94dvh,880px)] md:w-auto",
+        )}
+      >
         {/* ---------- Stage ---------- */}
         {live &&
           (mode === "video" ? (
@@ -570,19 +662,21 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               autoPlay
               muted
               playsInline
-              className={cn("absolute inset-0 h-full w-full object-cover", facing === "user" && "-scale-x-100")}
+              onLoadedMetadata={(e) => setLandscape(e.currentTarget.videoWidth > e.currentTarget.videoHeight)}
+              // Show the whole frame (what gets recorded), never a cropped, zoomed-in slice.
+              className={cn("absolute inset-0 h-full w-full object-contain", facing === "user" && "-scale-x-100")}
             />
           ) : (
             <div className="bg-[#1f2229] absolute inset-0 flex items-end justify-center">
-              <Yapper shape="blob" color="#f6a77f" mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
+              <Yapper shape="puff" color={YAPPY_BLUE} mood={phase === "recording" ? "talk" : "happy"} className={cn("mb-44 size-48 transition-opacity", phase === "recording" && "animate-wiggle", showSettings && phase === "setup" && "opacity-0")} />
             </div>
           ))}
         {clip && !live &&
           (mode === "video" ? (
-            <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-cover" />
+            <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-contain" />
           ) : (
             <div className="bg-[#1f2229] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
-              <Yapper shape="blob" color="#f6a77f" mood="cheer" className="size-40" />
+              <Yapper shape="puff" color={YAPPY_BLUE} mood="cheer" className="size-40" />
               <audio src={clip.url} controls className="w-full" />
             </div>
           ))}
@@ -656,14 +750,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         {phase === "setup" && (
           <div className="absolute inset-x-4 z-10 top-[calc(max(1rem,env(safe-area-inset-top))+19rem)] sm:top-[calc(max(1rem,env(safe-area-inset-top))+21rem)]">
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setMode(mode === "video" ? "audio" : "video")}
-                className="glass flex h-11 flex-1 items-center gap-2 rounded-full px-4 text-sm font-bold"
-              >
-                {mode === "video" ? <Video className="size-4" /> : <Mic className="size-4" />}
-                {mode === "video" ? "Video" : "Audio"} · {lengthLabel}
-                <RefreshCw className="ml-auto size-4 opacity-70" />
-              </button>
+              <ModeToggle mode={mode} onChange={setMode} glass className="flex-1" />
               {mode === "video" && (
                 <button onClick={() => setFacing(facing === "user" ? "environment" : "user")} className="glass grid size-11 place-items-center rounded-full" aria-label="Flip camera">
                   <SwitchCamera className="size-5" />
