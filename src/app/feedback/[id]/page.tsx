@@ -4,9 +4,10 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { ChevronLeft, Share2, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Mascot, MascotSays, Yapper, YapperAvatar, YapperCluster } from "@/components/brand/mascot";
 import { Confetti } from "@/components/yap/confetti";
+import { ShareSheet } from "@/components/yap/share-sheet";
 import { Bar, Flame, Ring } from "@/components/yap/stats";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { YapButton, YapLink } from "@/components/yap/yap-button";
@@ -116,6 +117,7 @@ function FeedbackScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tomorrow, setTomorrow] = useState<string | null>(null);
   const [today, setToday] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     // Deleted yaps still count for XP and today's limit, so load them too.
@@ -156,6 +158,13 @@ function FeedbackScreen() {
     return () => clearTimeout(timer);
   }, [id]);
 
+  const shareFile = useCallback(async () => {
+    if (!yap?.url) return null;
+    const blob = await fetch(yap.url).then((r) => r.blob());
+    const ext = blob.type.includes("mp4") ? (yap.media === "audio" ? "m4a" : "mp4") : "webm";
+    return new File([blob], `yap101-${yap.local_date}.${ext}`, { type: blob.type.split(";")[0] });
+  }, [yap]);
+
   if (missing)
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
@@ -175,25 +184,11 @@ function FeedbackScreen() {
   const scoreDelta = a && prevScored?.score != null ? a.overall - prevScored.score : null;
   const leftToday = today ? DAILY_LIMIT - usedToday : 0;
 
-  async function share() {
-    if (!yap?.url) return;
-    const blob = await fetch(yap.url).then((r) => r.blob());
-    const ext = blob.type.includes("mp4") ? (yap.media === "audio" ? "m4a" : "mp4") : "webm";
-    const file = new File([blob], `yap101-${yap.local_date}.${ext}`, { type: blob.type });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: yap.title });
-      } catch {}
-      return;
-    }
-    const a = document.createElement("a");
-    a.href = yap.url;
-    a.download = file.name;
-    a.click();
-  }
+  const shareDay = yap && profile?.track_start_date ? trackDay(profile.track_start_date, yap.local_date) : 1;
 
   return (
     <>
+      {sharing && yap && <ShareSheet getFile={shareFile} day={shareDay} title={yap.title} media={yap.media} onClose={() => setSharing(false)} />}
       {celebrate && celebration && <CelebrationScreen c={celebration} onDone={() => router.replace(`/feedback/${id}`)} />}
 
       <div className={cn("mx-auto flex w-full flex-1 flex-col gap-5 px-4 pt-4 pb-10 sm:px-6 lg:pt-8", isVideo ? "max-w-5xl" : "max-w-2xl")}>
@@ -346,7 +341,7 @@ function FeedbackScreen() {
               <YapLink href="/home" size="lg" arrow>Back to today</YapLink>
             )}
             {yap?.url && (
-              <YapButton variant="soft" size="lg" onClick={share}><Share2 /> Share or save clip</YapButton>
+              <YapButton variant="soft" size="lg" onClick={() => setSharing(true)}><Share2 /> Share or save clip</YapButton>
             )}
             <ReminderButton yapTime={profile?.yap_time ?? null} daysLeft={profile?.track_start_date && today ? 31 - trackDay(profile.track_start_date, today) : 30} />
             <YapLink href="/history" variant="soft" size="lg">All my yaps</YapLink>

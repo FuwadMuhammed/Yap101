@@ -17,6 +17,7 @@ import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, sn
 import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { loadScript, saveScript } from "@/lib/script";
+import { ShareSheet } from "@/components/yap/share-sheet";
 import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
@@ -491,24 +492,22 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, count]);
 
-  // Share sheet: Instagram, TikTok, "Save Video" to Photos on iOS. Falls back to a download.
-  async function share() {
-    if (!clip) return;
-    const file = new File([clip.blob], `yap-day-${prompt.day_index}.${extFor(clip.blob.type)}`, { type: clip.blob.type });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: prompt.title });
-      } catch {
-        /* closed the sheet */
-      }
-      return;
-    }
-    const a = document.createElement("a");
-    a.href = clip.url;
-    a.download = file.name;
-    a.click();
-    toast.success("Saved to your downloads");
+  // Leave the camera and go back to the prep card (script, mode, length). The camera turns off.
+  function backToPrep() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setShowSettings(false);
+    setPreviewing(false);
+    setCursor(0);
+    setCameraOn(false);
+    setPhase("prep");
   }
+
+  const [sharing, setSharing] = useState(false);
+  const shareFile = useCallback(
+    async () => (clip ? new File([clip.blob], `yap101-day-${prompt.day_index}.${extFor(clip.blob.type)}`, { type: clip.blob.type.split(";")[0] }) : null), // plain type: share targets reject codec params
+    [clip, prompt.day_index],
+  );
 
   async function save() {
     if (!clip) return;
@@ -689,9 +688,16 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
         {/* ---------- Top: close + timer ---------- */}
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))]">
-          <Link href="/home" className="glass grid size-10 place-items-center rounded-full" aria-label="Close">
-            <X className="size-5" />
-          </Link>
+          {phase === "setup" ? (
+            // Back to the prep card: change the script, mode or length before recording.
+            <button onClick={backToPrep} className="glass flex h-10 items-center gap-1 rounded-full pr-4 pl-2.5 text-sm font-bold" aria-label="Back to your script">
+              <ChevronLeft className="size-5" /> Script
+            </button>
+          ) : (
+            <Link href="/home" className="glass grid size-10 place-items-center rounded-full" aria-label="Close">
+              <X className="size-5" />
+            </Link>
+          )}
           <span
             className={cn(
               "glass flex h-10 items-center gap-2 rounded-full px-4 font-mono text-sm font-bold tabular-nums",
@@ -906,7 +912,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               <YapButton variant="soft" size="icon" className="size-14" onClick={retake} disabled={phase === "saving"} aria-label="Retake">
                 <RotateCcw />
               </YapButton>
-              <YapButton variant="soft" size="icon" className="size-14" onClick={share} disabled={phase === "saving"} aria-label="Share or save">
+              <YapButton variant="soft" size="icon" className="size-14" onClick={() => setSharing(true)} disabled={phase === "saving"} aria-label="Share or save">
                 <Share2 />
               </YapButton>
               <YapButton size="lg" className="h-14" arrow onClick={save} disabled={phase === "saving"}>
@@ -916,6 +922,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           </div>
         )}
       </div>
+      {sharing && <ShareSheet getFile={shareFile} day={prompt.day_index} title={prompt.title} media={mode} onClose={() => setSharing(false)} />}
     </div>
   );
 }
