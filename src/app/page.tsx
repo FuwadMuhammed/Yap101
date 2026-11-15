@@ -2,8 +2,10 @@ import { ChevronDown, Lock, Bike, Briefcase, ChefHat, Coins, Dumbbell, Gamepad2,
 import { Logo } from "@/components/brand/logo";
 import { Yapper, YapperAvatar, YapperCluster } from "@/components/brand/mascot";
 import { AppPreview } from "@/components/landing/app-preview";
+import { MobileMenu } from "@/components/landing/mobile-menu";
 import { WaitlistForm } from "@/components/landing/waitlist-form";
 import { WEEKS } from "@/lib/curriculum";
+import { LEVELS } from "@/lib/game";
 import { Flame } from "@/components/yap/stats";
 import { YapLink } from "@/components/yap/yap-button";
 
@@ -27,11 +29,18 @@ const NICHES = [
   { icon: Bike, label: "Sports" },
   { icon: Sprout, label: "Lifestyle" },
 ];
+const SECTIONS = [
+  { href: "#how", label: "How it works" },
+  { href: "#game", label: "Streaks & XP" },
+  { href: "#who", label: "Who it's for" },
+  { href: "#faq", label: "FAQ" },
+];
+
 const ARC = [
-  { bg: "bg-sky text-white", skill: "Smile, slow down, eyes on the lens" },
-  { bg: "bg-yap text-white", skill: "Hook in 3 seconds, number your points" },
+  { bg: "bg-sky text-ink", skill: "Smile, slow down, eyes on the lens" },
+  { bg: "bg-yap text-ink", skill: "Hook in 3 seconds, number your points" },
   { bg: "bg-grape text-ink", skill: "Setup, tension, payoff" },
-  { bg: "bg-mint text-white", skill: "Hot takes and post-ready clips" },
+  { bg: "bg-mint text-ink", skill: "Hot takes and post-ready clips" },
 ];
 
 const WHO = [
@@ -58,12 +67,12 @@ export default function Landing() {
         <nav className="surface mx-auto flex h-14 max-w-5xl items-center justify-between rounded-full pr-2 pl-4 shadow-[0_8px_30px_-12px_rgb(22_21_20/0.15)]">
           <Logo />
           <div className="text-stone hidden items-center gap-7 text-[15px] font-medium md:flex">
-            <a href="#how" className="hover:text-ink">How it works</a>
-            <a href="#game" className="hover:text-ink">Streaks & XP</a>
-            <a href="#who" className="hover:text-ink">Who it&apos;s for</a>
-            <a href="#faq" className="hover:text-ink">FAQ</a>
+            {SECTIONS.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-ink">{l.label}</a>
+            ))}
           </div>
           <div className="flex items-center gap-1">
+            <MobileMenu links={SECTIONS} />
             <YapLink href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">Sign in</YapLink>
             <YapLink href="/login" size="sm">Get started</YapLink>
           </div>
@@ -86,7 +95,7 @@ export default function Landing() {
               <YapLink href="#how" variant="soft" size="xl" className="w-full max-w-xs sm:w-auto">How it works</YapLink>
             </div>
             <p className="text-stone mt-4 text-sm">
-              Free in beta · works in your browser · <a href="#waitlist" className="text-ink font-semibold underline underline-offset-4">join the waitlist</a>
+              Free in beta · works in your browser · <a href="#waitlist" className="text-ink inline-block py-1.5 font-semibold underline underline-offset-4">join the waitlist</a>
             </p>
           </div>
           <div className="relative mt-14">
@@ -105,10 +114,10 @@ export default function Landing() {
           <h2 className="text-4xl font-extrabold sm:text-5xl">Three steps, every day.</h2>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
-              <article key={s.title} className={`${s.bg} relative flex min-h-[230px] flex-col overflow-hidden rounded-[28px] p-6 text-white`}>
-                <span className="text-sm font-bold text-white/70">0{i + 1}</span>
+              <article key={s.title} className={`${s.bg} relative flex min-h-[230px] flex-col overflow-hidden rounded-[28px] p-6 text-ink`}>
+                <span className="text-sm font-bold">0{i + 1}</span>
                 <h3 className="mt-2 text-2xl font-bold">{s.title}</h3>
-                <p className="mt-2 max-w-[75%] leading-relaxed text-white/85">{s.body}</p>
+                <p className="mt-2 max-w-[75%] leading-relaxed">{s.body}</p>
                 <Yapper shape={s.y.shape} mood={s.y.mood} color="#ffffff" className="absolute -right-3 -bottom-3 size-28 opacity-95" />
               </article>
             ))}
@@ -122,10 +131,10 @@ export default function Landing() {
           <ol className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {WEEKS.slice(0, 4).map((w, i) => (
               <li key={w.n} className={`${ARC[i].bg} flex min-h-[180px] flex-col rounded-[28px] p-5`}>
-                <span className="text-sm font-semibold opacity-75">Week {w.n}</span>
+                <span className="text-sm font-semibold">Week {w.n}</span>
                 <span className="font-display mt-1 text-2xl font-bold">{w.theme}</span>
-                <span className="mt-1 opacity-90">{w.blurb}</span>
-                <span className="mt-auto pt-4 text-sm font-semibold opacity-80">{ARC[i].skill}</span>
+                <span className="mt-1">{w.blurb}</span>
+                <span className="mt-auto pt-4 text-sm font-semibold">{ARC[i].skill}</span>
               </li>
             ))}
           </ol>
@@ -163,10 +172,11 @@ export default function Landing() {
           <div className="bg-grape rounded-[32px] p-3">
             <ul className="flex flex-col gap-2">
               {[
-                { i: 1, top: "Level 4", name: "Storyteller", right: "350 XP" },
-                { i: 2, top: "Level 3", name: "Talker", right: "220 XP" },
-                { i: 4, top: "Level 2", name: "Chatter", right: "120 XP" },
-              ].map((r) => (
+                // Thresholds come from the game rules, so the landing page can't drift from the app.
+                { i: 1, n: 3 },
+                { i: 2, n: 2 },
+                { i: 4, n: 1 },
+              ].map(({ i, n }) => ({ i, top: `Level ${n + 1}`, name: LEVELS[n].title, right: `${LEVELS[n].at} XP` })).map((r) => (
                 <li key={r.name} className="flex items-center gap-3 rounded-full bg-white p-1.5 pr-5">
                   <YapperAvatar index={r.i} className="size-11" />
                   <div className="flex-1">
@@ -237,9 +247,9 @@ export default function Landing() {
 
       <footer className="text-stone mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm sm:flex-row sm:px-6">
         <Logo className="text-lg text-ink" />
-        <div className="flex gap-6">
-          <a href="/privacy" className="hover:text-ink">Privacy</a>
-          <a href="/terms" className="hover:text-ink">Terms</a>
+        <div className="flex gap-2">
+          <a href="/privacy" className="hover:text-ink inline-flex min-h-11 items-center px-2">Privacy</a>
+          <a href="/terms" className="hover:text-ink inline-flex min-h-11 items-center px-2">Terms</a>
         </div>
         <p>© 2026 Yap101</p>
       </footer>

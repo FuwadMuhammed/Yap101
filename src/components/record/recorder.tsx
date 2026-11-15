@@ -91,6 +91,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [textSize, setTextSize] = useState<TextSize>("M");
+  // Some people want a clean frame: the teleprompter can be hidden and brought back any time.
+  const [prompterOn, setPrompterOn] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number; analysis: Analysis | null } | null>(null);
@@ -521,7 +523,15 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         </div>
 
         {/* ---------- Teleprompter ---------- */}
-        {live && (
+        {live && !prompterOn && (
+          <button
+            onClick={() => setPrompterOn(true)}
+            className="glass absolute top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] left-4 flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold"
+          >
+            <Eye className="size-4" /> Show teleprompter
+          </button>
+        )}
+        {live && prompterOn && (
           <div className="glass-dark absolute inset-x-4 top-[calc(max(1rem,env(safe-area-inset-top))+3.5rem)] rounded-3xl px-5 pt-4">
             <Teleprompter
               title={`Day ${prompt.day_index} · ${prompt.title}`}
@@ -627,6 +637,16 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm font-bold">
+                  Show teleprompter
+                  <div className="flex gap-1">
+                    {([[true, "On"], [false, "Off"]] as const).map(([v, label]) => (
+                      <button key={label} onClick={() => setPrompterOn(v)} aria-pressed={prompterOn === v} className={cn("h-9 rounded-full px-3", prompterOn === v ? "bg-white text-ink" : "bg-white/15")}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm font-bold">
                   Text size
                   <div className="flex gap-1">
                     {(Object.keys(TEXT_SIZES) as TextSize[]).map((s) => (
@@ -646,9 +666,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             <Mascot mood="think" className="mx-auto size-16" />
             <p className="mt-2 font-bold">{mode === "video" ? "Camera is blocked" : "Microphone is blocked"}</p>
             <p className="text-stone mt-1 text-sm">{error}</p>
-            {mode === "video" && (
+            {mode === "video" ? (
               <YapButton size="sm" variant="soft" className="mt-4" onClick={() => setMode("audio")}>
                 <Mic /> Switch to audio only
+              </YapButton>
+            ) : (
+              <YapButton size="sm" variant="soft" className="mt-4" onClick={() => setMode("video")}>
+                <Video /> Back to video
               </YapButton>
             )}
           </div>

@@ -20,7 +20,7 @@ export function WaitlistForm({ source, dark, className }: { source: string; dark
     const value = email.trim();
     if (!EMAIL.test(value)) {
       setState("error");
-      setMessage("That email doesn't look right.");
+      setMessage(value ? "That email doesn't look right." : "Enter your email first.");
       return;
     }
     setState("saving");

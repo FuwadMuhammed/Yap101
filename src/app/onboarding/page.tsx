@@ -14,6 +14,7 @@ import { localDate, pickPrompt, type Goal, type Level, type Prompt } from "@/lib
 
 type Answers = { name: string; niche: string; platform: string; confidence: string; level: Level | ""; goal: Goal | ""; time: string };
 type Key = keyof Answers;
+const DRAFT_KEY = "yap101-onboarding";
 
 const STEPS: { key: Key; title: string; sub: string }[] = [
   { key: "name", title: "Hey, I'm Yappy! What should we call you?", sub: "Just a first name or nickname." },
@@ -68,10 +69,36 @@ export default function Onboarding() {
   const [a, setA] = useState<Answers>({ name: "", niche: "", platform: "", confidence: "", level: "", goal: "", time: "" });
   const [firstPrompt, setFirstPrompt] = useState<Prompt | null>(null);
   const [saving, setSaving] = useState(false);
+  // Set when they tap Edit on the summary, so Continue goes straight back to it.
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     api.getProfile().then((p) => !p && router.replace("/login"));
   }, [router]);
+
+  // Keep answers through a refresh (this tab only). Restored after mount to avoid a hydration mismatch.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? "null");
+      if (saved?.a) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setA((prev) => ({ ...prev, ...saved.a }));
+        setStep(Math.min(STEPS.length, Number(saved.step) || 0));
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step, a }));
+    } catch {}
+  }, [step, a]);
+
+  const next = () => {
+    if (editing) {
+      setEditing(false);
+      setStep(STEPS.length);
+    } else setStep(step + 1);
+  };
 
   const done = step >= STEPS.length;
   const current = STEPS[step];
@@ -97,6 +124,9 @@ export default function Onboarding() {
         },
         localDate(),
       );
+      try {
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {}
       // Straight into the first yap: the fastest route to a first win.
       router.push(firstPrompt ? `/record?prompt=${firstPrompt.id}&first=1` : "/home");
     } catch (e) {
@@ -105,6 +135,7 @@ export default function Onboarding() {
     }
   }
 
+  const feel = CONFIDENCE.find((c) => c.value === a.confidence);
   const summary = [
     { step: 1, label: "Niche", o: labelFor(NICHES, a.niche) },
     { step: 2, label: "Platform", o: labelFor(PLATFORMS, a.platform) },
@@ -116,7 +147,7 @@ export default function Onboarding() {
   return (
     <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pt-4">
       <div className="flex items-center gap-4">
-        <button onClick={() => (step === 0 ? router.push("/") : setStep(step - 1))} className="surface tap grid size-11 shrink-0 place-items-center rounded-full" aria-label="Back">
+        <button onClick={() => (editing ? next() : step === 0 ? router.push("/") : setStep(step - 1))} className="surface tap grid size-11 shrink-0 place-items-center rounded-full" aria-label="Back">
           <ChevronLeft className="size-5" />
         </button>
         <div className="flex flex-1 gap-1.5" aria-label={`Step ${Math.min(step + 1, STEPS.length)} of ${STEPS.length}`}>
@@ -133,7 +164,7 @@ export default function Onboarding() {
 
           <div className="mt-8">
             {current.key === "name" && (
-              <form onSubmit={(e) => { e.preventDefault(); if (a.name.trim()) setStep(step + 1); }}>
+              <form onSubmit={(e) => { e.preventDefault(); if (a.name.trim()) next(); }}>
                 <input
                   autoFocus
                   aria-label="Your name"
@@ -184,8 +215,8 @@ export default function Onboarding() {
           </div>
 
           <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-            <YapButton size="xl" block arrow disabled={!a[current.key].trim()} onClick={() => setStep(step + 1)}>
-              Continue
+            <YapButton size="xl" block arrow disabled={!a[current.key].trim()} onClick={next}>
+              {editing ? "Save" : "Continue"}
             </YapButton>
           </div>
         </div>
@@ -209,10 +240,20 @@ export default function Onboarding() {
                     <p className="font-semibold">{o?.label}</p>
                     <p className="text-stone text-sm">{label}</p>
                   </div>
-                  <YapButton variant="mist" size="sm" className="h-9" onClick={() => setStep(s)}>Edit</YapButton>
+                  <YapButton variant="mist" size="sm" className="h-9" onClick={() => { setEditing(true); setStep(s); }} aria-label={`Edit ${label.toLowerCase()}`}>Edit</YapButton>
                 </div>
               );
             })}
+            {feel && (
+              <div className="flex items-center gap-4 px-4 py-3">
+                <Yapper shape="square" color={feel.color} mood={feel.mood} className="size-11" />
+                <div className="flex-1">
+                  <p className="font-semibold">{feel.label}</p>
+                  <p className="text-stone text-sm">On camera</p>
+                </div>
+                <YapButton variant="mist" size="sm" className="h-9" onClick={() => { setEditing(true); setStep(3); }} aria-label="Edit how you feel on camera">Edit</YapButton>
+              </div>
+            )}
           </div>
           <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <YapButton size="xl" block arrow onClick={finish} disabled={saving}>{saving ? "Setting up…" : "Do my first yap"}</YapButton>

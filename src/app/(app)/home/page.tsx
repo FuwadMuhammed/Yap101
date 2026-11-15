@@ -12,7 +12,7 @@ import { labelFor, NICHES } from "@/lib/options";
 import { LEVELS, XP } from "@/lib/game";
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
-import { DAILY_LIMIT, pickPrompt, type Prompt } from "@/lib/yap";
+import { DAILY_LIMIT, pickPrompt, unlockedPrompts, type Prompt } from "@/lib/yap";
 
 const MILESTONES = new Set([7, 14, 21, 30]);
 // Prompt card colour rotates by day; each pairs with a Yapper that reads on it.
@@ -154,9 +154,11 @@ export default function Today() {
               ) : (
                 <span className="flex h-13 items-center rounded-full bg-white/15 px-6 font-semibold">See you tomorrow</span>
               )}
-              <button onClick={() => setSkip((s) => s + 1)} className="tap grid size-13 place-items-center rounded-full bg-white/20 hover:bg-white/30" aria-label="Shuffle prompt" disabled={!prompt}>
-                <Dices className="size-5" />
-              </button>
+              {unlockedPrompts(prompts, day).length > 1 && (
+                <button onClick={() => setSkip((s) => s + 1)} className="tap grid size-13 place-items-center rounded-full bg-white/20 hover:bg-white/30" aria-label="Shuffle: try an earlier day's prompt" title="Try an earlier day's prompt">
+                  <Dices className="size-5" />
+                </button>
+              )}
             </div>
             <Yapper
               shape={card.y.shape}

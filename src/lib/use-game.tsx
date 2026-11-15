@@ -30,7 +30,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [today, setToday] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [p, list] = await Promise.all([api.getProfile(), api.listYaps()]);
+    const [p, list] = await Promise.all([api.getProfile(), api.listYaps({ includeDeleted: true })]);
     if (!p) return router.replace("/login");
     if (!p.onboarded_at || !p.track_start_date) return router.replace("/onboarding");
     setProfile(p);
@@ -40,7 +40,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.getProfile(), api.listYaps()]).then(([p, list]) => {
+    Promise.all([api.getProfile(), api.listYaps({ includeDeleted: true })]).then(([p, list]) => {
       if (!active) return;
       if (!p) return router.replace("/login");
       if (!p.onboarded_at || !p.track_start_date) return router.replace("/onboarding");
@@ -57,11 +57,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameCtx>(() => {
     const t = today ?? "1970-01-01";
     const start = profile?.track_start_date ?? t;
+    // XP, streaks and the daily limit count every yap ever recorded, deleted or not.
     const game = computeGame(yaps, t);
     return {
       loading,
       profile,
-      yaps,
+      yaps: yaps.filter((y) => !y.deleted),
       game,
       today: t,
       day: trackDay(start, t),

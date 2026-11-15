@@ -110,14 +110,17 @@ function FeedbackScreen() {
   const [missing, setMissing] = useState(false);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [all, setAll] = useState<YapSummary[]>([]);
+  const [usedToday, setUsedToday] = useState(0);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tomorrow, setTomorrow] = useState<string | null>(null);
   const [today, setToday] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.listYaps(), api.getProfile()]).then(async ([list, p]) => {
+    // Deleted yaps still count for XP and today's limit, so load them too.
+    Promise.all([api.listYaps({ includeDeleted: true }), api.getProfile()]).then(async ([list, p]) => {
       const t = localDate();
-      setAll(list);
+      setAll(list.filter((y) => !y.deleted));
+      setUsedToday(list.filter((y) => y.local_date === t).length);
       setProfile(p);
       setToday(t);
       if (celebrate) {
@@ -168,7 +171,7 @@ function FeedbackScreen() {
   const a = f?.analysis && f.analysis.parts.length ? f.analysis : null;
   const prevScored = idx >= 0 ? all.slice(idx + 1).find((y) => y.score !== null) : undefined;
   const scoreDelta = a && prevScored?.score != null ? a.overall - prevScored.score : null;
-  const leftToday = today ? DAILY_LIMIT - all.filter((y) => y.local_date === today).length : 0;
+  const leftToday = today ? DAILY_LIMIT - usedToday : 0;
 
   async function share() {
     if (!yap?.url) return;

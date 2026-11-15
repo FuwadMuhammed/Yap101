@@ -2,14 +2,14 @@
 
 import { DAILY_LIMIT, localDate } from "@/lib/yap";
 import { ALL_PROMPTS } from "@/lib/curriculum";
-import { endGuest } from "./mode";
+import { endGuest, envDemo } from "./mode";
 import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
 // Demo backend: JSON in localStorage, recordings in IndexedDB (too big for localStorage).
 // Nothing leaves the browser.
 
 const KEY = "yap101-demo";
-type StoredYap = { id: string; prompt_id: number; title: string; skill?: string; media: Media; duration_seconds: number; local_date: string; created_at: string; feedback: Feedback | null };
+type StoredYap = { id: string; prompt_id: number; title: string; skill?: string; media: Media; duration_seconds: number; local_date: string; created_at: string; feedback: Feedback | null; deleted?: boolean };
 type State = { signedIn: boolean; profile: Profile; yaps: StoredYap[] };
 
 const emptyProfile: Profile = {
@@ -133,9 +133,9 @@ export const demoApi: DataApi = {
   async getYap(id) {
     const s = load();
     const yap = s.yaps.find((y) => y.id === id);
-    if (!yap) return null;
-    // Older demo yaps (saved before on-device analysis) have no feedback; give them a sample.
-    if (!yap.feedback) {
+    if (!yap || yap.deleted) return null;
+    // Sample yaps from the demo backfill have no feedback; give them sample numbers (demo only).
+    if (!yap.feedback && envDemo) {
       yap.feedback = fakeFeedback(yap.duration_seconds, s.yaps.length - 1 - s.yaps.indexOf(yap), yap.skill);
       save(s);
     }
@@ -143,8 +143,10 @@ export const demoApi: DataApi = {
     return { url: blob ? URL.createObjectURL(blob) : null, media: yap.media, title: yap.title, local_date: yap.local_date, feedback: yap.feedback };
   },
 
-  async listYaps() {
-    return load().yaps.map(({ id, title, local_date, duration_seconds, media, feedback }) => ({
+  async listYaps(opts) {
+    return load()
+      .yaps.filter((y) => opts?.includeDeleted || !y.deleted)
+      .map(({ id, title, local_date, duration_seconds, media, feedback, deleted }) => ({
       id,
       title,
       local_date,
@@ -153,12 +155,14 @@ export const demoApi: DataApi = {
       filler_count: feedback?.filler_count ?? null,
       words_per_minute: feedback?.words_per_minute ?? null,
       score: feedback?.analysis?.overall ?? null,
+      deleted: Boolean(deleted),
     }));
   },
 
   async deleteYap(id) {
     const s = load();
-    s.yaps = s.yaps.filter((y) => y.id !== id);
+    // Keep a record so the daily limit, XP and badges don't change; drop the clip and report.
+    s.yaps = s.yaps.map((y) => (y.id === id ? { ...y, deleted: true, feedback: null } : y));
     save(s);
     await clipStore("readwrite", (st) => st.delete(id)).catch(() => {});
   },

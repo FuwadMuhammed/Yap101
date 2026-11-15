@@ -27,7 +27,7 @@ const BASE: Day[] = [
   { title: "Who you are and what you share", points: ["Your name and your niche", "The one thing you talk about", "Why people should follow"], skill: "Put it together", tip: "Milestone yap! Smile, slow down, eyes on the lens. Post it if you like it." },
   // Week 2: Structure
   { title: "One {niche} mistake everyone makes", points: ["Name the mistake first", "Why it happens", "What to do instead"], skill: "Hook in 3 seconds", tip: "Say the most surprising part first. No 'hey guys, so today…'." },
-  { title: "Three tools you use for {niche}", points: ["Tool one and why", "Tool two and why", "Tool three and why"], skill: "Number your points", tip: "Say 'three things' up front. People stay to hear all three." },
+  { title: "Three things you use for your {niche} content", points: ["Tool one and why", "Tool two and why", "Tool three and why"], skill: "Number your points", tip: "Say 'three things' up front. People stay to hear all three." },
   { title: "Explain a {niche} idea in plain words", points: ["The idea in one line", "A simple example", "Why it matters"], skill: "One idea per sentence", tip: "Short sentences. If you need 'and' twice, split it." },
   { title: "A {niche} myth, busted", points: ["The myth", "Why people believe it", "The truth"], skill: "Hook, point, close", tip: "Hook with the myth, make your point, close with one line to remember." },
   { title: "Before and after: something you changed", points: ["How it was", "What you changed", "How it is now"], skill: "Signpost", tip: "Say 'first', 'then', 'now' so people never get lost." },
@@ -43,11 +43,11 @@ const BASE: Day[] = [
   { title: "Your origin story", points: ["Setup: who you were", "Tension: what got hard", "Payoff: who you are now"], skill: "Setup, tension, payoff", tip: "Milestone yap! The full story arc in 60 seconds." },
   // Week 4: Post-ready
   { title: "Your hot take about {niche}", points: ["Say the take in one line", "Two reasons why", "Invite people to disagree"], skill: "Take a side", tip: "Don't hedge. A clear opinion gets comments." },
-  { title: "Convince me to try something in {niche}", points: ["What it is", "The best reason", "Answer the doubt"], skill: "Answer the doubt", tip: "Say the objection out loud before they think it." },
-  { title: "Rate something popular in {niche}", points: ["What it is", "One good thing, one bad thing", "Your score out of 10"], skill: "Energy up", tip: "Bring 20% more energy than feels normal. The camera eats energy." },
+  { title: "Sell me on one {niche} thing you love", points: ["What it is", "The best reason", "Answer the doubt"], skill: "Answer the doubt", tip: "Say the objection out loud before they think it." },
+  { title: "Rate a popular {niche} favourite", points: ["What it is", "One good thing, one bad thing", "Your score out of 10"], skill: "Energy up", tip: "Bring 20% more energy than feels normal. The camera eats energy." },
   { title: "Three things nobody tells you about {niche}", points: ["Thing one", "Thing two", "Save the best for last"], skill: "Open a loop", tip: "Tease the best one early: 'the third one surprised me'." },
-  { title: "React to a trend in {niche}", points: ["What the trend is", "What you think", "What you'd do instead"], skill: "Sound like you", tip: "Use your own words and your own jokes. That's your brand." },
-  { title: "If you started {niche} from zero today", points: ["What you'd skip", "What you'd do first", "What you'd tell yourself"], skill: "Strong close", tip: "Finish on your best line, then stop. Don't trail off." },
+  { title: "React to a {niche} trend", points: ["What the trend is", "What you think", "What you'd do instead"], skill: "Sound like you", tip: "Use your own words and your own jokes. That's your brand." },
+  { title: "If you started your {niche} content from zero today", points: ["What you'd skip", "What you'd do first", "What you'd tell yourself"], skill: "Strong close", tip: "Finish on your best line, then stop. Don't trail off." },
   { title: "Your best {niche} hook", points: ["A hook that stops the scroll", "One point that pays it off", "A close that sticks"], skill: "Post-ready", tip: "Use everything: hook, structure, energy, close. This one's for posting." },
   // Graduate
   { title: "What got easier this month", points: ["How you felt on day 1", "What changed", "What surprised you"], skill: "Reflect", tip: "Be specific: name one thing you do now that you didn't before." },
@@ -80,8 +80,8 @@ const GOALS: Record<Goal, { focus: string; swaps: Day[] }> = {
     swaps: [
       { title: "What you do, in one sentence", points: ["Who you help", "What you help with", "Why it's different"], skill: "One-liner", tip: "If a stranger can repeat it back, it's clear." },
       { title: "Explain {niche} to a 10-year-old", points: ["What it is", "A simple example", "Why they'd care"], skill: "No jargon", tip: "Swap every fancy word for one a kid would use." },
-      { title: "Pick one of two options in {niche}", points: ["Option A", "Option B", "Your pick and why"], skill: "Decide", tip: "Say your pick first, then justify it." },
-      { title: "The one thing that matters most in {niche}", points: ["The thing", "Why it beats everything else", "How to start"], skill: "Prioritise", tip: "Resist adding a second thing. One is memorable." },
+      { title: "Two {niche} options: pick one and defend it", points: ["Option A", "Option B", "Your pick and why"], skill: "Decide", tip: "Say your pick first, then justify it." },
+      { title: "The one {niche} rule you'd never break", points: ["The thing", "Why it beats everything else", "How to start"], skill: "Prioritise", tip: "Resist adding a second thing. One is memorable." },
     ],
   },
   on_camera: {

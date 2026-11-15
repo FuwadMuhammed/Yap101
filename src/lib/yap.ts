@@ -34,9 +34,16 @@ export function trackDay(trackStart: string, today = localDate()) {
   return Math.min(30, Math.max(1, days + 1));
 }
 
-/** Today's prompt from a track. `skip` cycles to another prompt with the same tags (shuffle). */
+/**
+ * Today's prompt from a track. `skip` (shuffle) cycles back through days already unlocked,
+ * never ahead: future days stay locked until their day comes.
+ */
 export function pickPrompt(track: Prompt[], day: number, skip = 0): Prompt | null {
-  if (!track.length) return null;
-  const start = Math.max(0, track.findIndex((p) => p.day_index >= day));
-  return track[(start + skip) % track.length];
+  const open = unlockedPrompts(track, day);
+  return open.length ? open[skip % open.length] : null;
+}
+
+/** Prompts up to and including `day`, newest first. */
+export function unlockedPrompts(track: Prompt[], day: number) {
+  return track.filter((p) => p.day_index <= day).sort((a, b) => b.day_index - a.day_index);
 }

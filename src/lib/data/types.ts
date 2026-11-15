@@ -40,6 +40,8 @@ export type YapSummary = {
   words_per_minute: number | null;
   /** Yap score (0-100) from on-device analysis. */
   score: number | null;
+  /** Deleted by the user: the clip is gone, but it still counts for XP, streaks and the daily limit. */
+  deleted?: boolean;
 };
 
 export type YapDetail = { url: string | null; media: Media; title: string; local_date: string; feedback: Feedback | null };
@@ -61,7 +63,8 @@ export interface DataApi {
   /** Throws DailyLimitError after 3 yaps on `localDate`. */
   saveYap(input: { prompt: Prompt; media: Media; blob: Blob; seconds: number; localDate: string; analysis?: Analysis | null }): Promise<{ id: string }>;
   getYap(id: string): Promise<YapDetail | null>;
-  listYaps(): Promise<YapSummary[]>;
+  /** Saved yaps, newest first. `includeDeleted` adds deleted ones (for XP, streaks and the daily limit). */
+  listYaps(opts?: { includeDeleted?: boolean }): Promise<YapSummary[]>;
   deleteYap(id: string): Promise<void>;
   signOut(): Promise<void>;
 }

@@ -71,7 +71,7 @@ export const GOAL_OPTIONS: Option<Goal>[] = [
   { value: "confidence", label: "Feel natural", icon: Smile, hint: "Stop freezing, start talking", fill: "bg-mint" },
   { value: "storytelling", label: "Tell stories", icon: BookOpen, hint: "Keep people watching to the end", fill: "bg-grape", lightFill: true },
   { value: "clarity", label: "Get to the point", icon: Crosshair, hint: "Say more with fewer words", fill: "bg-sky" },
-  { value: "on_camera", label: "Sound pro", icon: Mic2, hint: "Pace, energy, fewer ums", fill: "bg-berry" },
+  { value: "on_camera", label: "Sound pro", icon: Mic2, hint: "Pace, energy and presence", fill: "bg-berry" },
   { value: "hooks", label: "Hook fast", icon: Magnet, hint: "Grab attention in 3 seconds", fill: "bg-yap" },
 ];
 

@@ -29,6 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={href}
                 href={href}
+                aria-label={label === "Yaps" ? "My yaps" : label === "Me" ? "Profile" : label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "tap flex h-12 items-center gap-2 rounded-full font-semibold transition-all",

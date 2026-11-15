@@ -19,6 +19,8 @@ import { GOAL_OPTIONS, LEVEL_OPTIONS, NICHES, PLATFORMS, YAP_TIMES, labelFor } f
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
 
+const withArticle = (w: string) => `${/^[aeiou]/.test(w) ? "an" : "a"} ${w}`;
+
 export default function Me() {
   const { profile, game, yaps, day, refresh, loading } = useGame();
   // iOS only lets home-screen web apps send notifications, so nudge iPhone users to install.
@@ -103,7 +105,7 @@ export default function Me() {
       <section className="surface flex flex-col gap-3 rounded-[28px] p-5 sm:flex-row sm:items-center">
         <div className="flex-1">
           <p className="font-bold">Daily reminder</p>
-          <p className="text-stone text-sm">Adds a {labelFor(YAP_TIMES, profile.yap_time)?.label.toLowerCase() ?? "daily"} yap to your calendar for the rest of your track.</p>
+          <p className="text-stone text-sm">Adds {withArticle(labelFor(YAP_TIMES, profile.yap_time)?.label.toLowerCase() ?? "daily")} yap to your calendar for the rest of your track.</p>
         </div>
         <ReminderButton yapTime={profile.yap_time} daysLeft={31 - day} />
       </section>

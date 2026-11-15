@@ -39,7 +39,7 @@ export const supabaseApi: DataApi = {
   },
 
   async getPromptById(id) {
-    const { data } = await createClient().from("prompts").select(PROMPT_COLS).eq("id", id).single();
+    const { data } = await createClient().from("prompts").select(PROMPT_COLS).eq("id", id).maybeSingle();
     return data as Prompt | null;
   },
 
@@ -87,7 +87,7 @@ export const supabaseApi: DataApi = {
 
   async getYap(id) {
     const sb = createClient();
-    const { data: yap } = await sb.from("yaps").select("storage_path, media, local_date, title").eq("id", id).single();
+    const { data: yap } = await sb.from("yaps").select("storage_path, media, local_date, title").eq("id", id).is("deleted_at", null).maybeSingle();
     if (!yap) return null;
     const [{ data: signed }, { data: feedback }] = await Promise.all([
       sb.storage.from("yaps").createSignedUrl(yap.storage_path, 3600),
@@ -97,11 +97,13 @@ export const supabaseApi: DataApi = {
     return { url: signed?.signedUrl ?? null, media: yap.media, title, local_date: yap.local_date, feedback };
   },
 
-  async listYaps() {
-    const { data } = await createClient()
+  async listYaps(opts) {
+    let q = createClient()
       .from("yaps")
-      .select("id, local_date, duration_seconds, media, title, feedback(filler_count, words_per_minute, score)")
+      .select("id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score)")
       .order("created_at", { ascending: false });
+    if (!opts?.includeDeleted) q = q.is("deleted_at", null);
+    const { data } = await q;
     return (data ?? []).map((r) => ({
       id: r.id,
       local_date: r.local_date,
@@ -111,6 +113,7 @@ export const supabaseApi: DataApi = {
       filler_count: (r.feedback as unknown as { filler_count: number } | null)?.filler_count ?? null,
       words_per_minute: (r.feedback as unknown as { words_per_minute: number } | null)?.words_per_minute ?? null,
       score: (r.feedback as unknown as { score: number | null } | null)?.score ?? null,
+      deleted: Boolean(r.deleted_at),
     }));
   },
 
@@ -118,7 +121,8 @@ export const supabaseApi: DataApi = {
     const sb = createClient();
     const { data } = await sb.from("yaps").select("storage_path").eq("id", id).single();
     if (data) await sb.storage.from("yaps").remove([data.storage_path]);
-    const { error } = await sb.from("yaps").delete().eq("id", id);
+    // Soft delete: the clip and feedback go, the row stays so the limit and XP can't be gamed.
+    const { error } = await sb.rpc("delete_yap", { p_id: id });
     if (error) throw error;
   },
 

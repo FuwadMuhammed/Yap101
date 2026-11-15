@@ -18,8 +18,8 @@
   --color-card: #ffffff;
   --color-mist: #efede8;
   --color-line: #e7e4de;
-  --color-stone: #8a857d;
-  --color-yap: #ff6b2c;
+  --color-stone: #67625a; /* 4.5:1+ on paper, mist and white (WCAG AA) */
+  --color-yap: #ff5a14; /* 3:1+ with white for large text */
   --color-yap-soft: #ffe4d6;
   --color-sky: #2f7bf6;
   --color-sky-soft: #dceaff;
@@ -27,7 +27,7 @@
   --color-mint-soft: #d5f3e3;
   --color-sun: #ffd23f;
   --color-sun-soft: #fff4c7;
-  --color-berry: #ff5fa8;
+  --color-berry: #ff4a9d;
   --color-berry-soft: #ffe0ef;
   --color-grape: #a98bff;
   --color-grape-soft: #ece5ff;
