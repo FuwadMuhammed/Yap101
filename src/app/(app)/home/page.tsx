@@ -78,7 +78,12 @@ export default function Today() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-5">
-          {/* Week strip */}
+          {/* Week strip: this week of the 30-day challenge */}
+          <div>
+          <div className="mb-1 flex items-baseline justify-between px-1">
+            <p className="text-sm font-semibold">Week {weekFor(day).n} · {weekFor(day).theme}</p>
+            <p className="text-stone text-sm">Day {day} of 30</p>
+          </div>
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {game.week.map((d, i) => {
               const y = yapperAt(i);
@@ -89,7 +94,7 @@ export default function Today() {
                   <span
                     className={cn(
                       "relative grid aspect-square w-full max-w-14 place-items-center rounded-[14px] transition-colors",
-                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "bg-[#e8ebef]" : "bg-line"),
+                      !d.done && (d.frozen ? "bg-sky-soft" : waiting ? "bg-white" : d.isFuture ? "border-line border-2 border-dashed" : "bg-line"),
                       // Today: a bold ring (dashed until you've yapped) so it stands out at a glance.
                       d.isToday && (waiting ? "outline-ink outline-dashed outline-2 outline-offset-2" : "outline-ink outline-2 outline-offset-2"),
                     )}
@@ -97,6 +102,9 @@ export default function Today() {
                   >
                     {d.frozen ? (
                       <Snowflake className="text-sky size-5" />
+                    ) : d.isFuture ? (
+                      // Coming up: just the challenge day, no face yet.
+                      <span className="text-stone text-xs font-semibold">{d.trackDay ? `D${d.trackDay}` : ""}</span>
                     ) : (
                       <Yapper
                         shape="square"
@@ -116,11 +124,12 @@ export default function Today() {
                   {tile}
                 </Link>
               ) : (
-                <div key={d.date} className={cls} aria-label={`${d.label} ${d.dayNum}${d.frozen ? ": streak freeze used" : ""}`}>
+                <div key={d.date} className={cls} aria-label={`${d.trackDay ? `Day ${d.trackDay}, ` : ""}${d.label} ${d.dayNum}${d.frozen ? ": streak freeze used" : d.isFuture ? ": coming up" : !d.done && !d.isToday ? ": missed" : ""}`}>
                   {tile}
                 </div>
               );
             })}
+          </div>
           </div>
 
           {/* Today's yap */}

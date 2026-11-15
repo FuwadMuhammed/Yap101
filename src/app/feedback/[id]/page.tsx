@@ -126,8 +126,8 @@ function FeedbackScreen() {
       setProfile(p);
       setToday(t);
       if (celebrate) {
-        const after = computeGame(list, t);
-        const before = computeGame(list.filter((y) => y.id !== id), t);
+        const after = computeGame(list, t, p?.track_start_date);
+        const before = computeGame(list.filter((y) => y.id !== id), t, p?.track_start_date);
         setCelebration({ before, after, diff: gameDiff(before, after) });
       }
       if (p?.level && p.goal && p.track_start_date) {

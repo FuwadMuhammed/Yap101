@@ -1,5 +1,5 @@
 import type { YapSummary } from "@/lib/data/types";
-import { localDate } from "@/lib/yap";
+import { localDate, trackDay } from "@/lib/yap";
 
 // Gamification is derived from the yaps list, so it needs no extra tables and can't drift.
 
@@ -44,7 +44,7 @@ const BADGES: Omit<Badge, "earned">[] = [
   { id: "graduate", name: "Yap graduate", hint: "Yap on 30 different days", emoji: "🎓", color: "bg-ink" },
 ];
 
-export type WeekDay = { date: string; label: string; dayNum: number; done: boolean; frozen: boolean; isToday: boolean; isFuture: boolean };
+export type WeekDay = { date: string; label: string; dayNum: number; done: boolean; frozen: boolean; isToday: boolean; isFuture: boolean; /** Day 1-30 of the challenge, when the strip follows the track. */ trackDay?: number };
 
 export type GameState = {
   xp: number;
@@ -120,7 +120,7 @@ function streaks(days: Set<string>, today: string) {
   return { current, best, freezes, frozen };
 }
 
-export function computeGame(yaps: YapSummary[], today = localDate()): GameState {
+export function computeGame(yaps: YapSummary[], today = localDate(), trackStart?: string | null): GameState {
   // Oldest first, so "first of the day" is the earliest yap on each date.
   const ordered = [...yaps].reverse();
   const seen = new Set<string>();
@@ -139,12 +139,17 @@ export function computeGame(yaps: YapSummary[], today = localDate()): GameState 
 
   const { current, best, freezes, frozen } = streaks(seen, today);
 
-  // This calendar week, Monday to Sunday.
+  // The challenge week: days 1-7, 8-14, ... of the 30-day track (the last strip is days 24-30),
+  // so day 1 never shows sad faces for days before the user signed up. Without a track start,
+  // fall back to this calendar week, Monday to Sunday.
+  const trackNow = trackStart ? trackDay(trackStart, today) : null;
+  const firstDay = trackNow ? Math.min(Math.floor((trackNow - 1) / 7) * 7 + 1, 24) : null;
   const dow = (new Date(`${today}T12:00:00`).getDay() + 6) % 7; // 0 = Monday
   const week: WeekDay[] = Array.from({ length: 7 }, (_, i) => {
-    const date = shiftDay(today, i - dow);
+    const date = firstDay && trackNow ? shiftDay(today, firstDay + i - trackNow) : shiftDay(today, i - dow);
     const d = new Date(`${date}T12:00:00`);
     return {
+      trackDay: firstDay ? firstDay + i : undefined,
       date,
       label: d.toLocaleDateString("en", { weekday: "short" }),
       dayNum: d.getDate(),

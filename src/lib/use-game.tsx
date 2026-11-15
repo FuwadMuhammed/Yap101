@@ -58,7 +58,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const t = today ?? "1970-01-01";
     const start = profile?.track_start_date ?? t;
     // XP, streaks and the daily limit count every yap ever recorded, deleted or not.
-    const game = computeGame(yaps, t);
+    const game = computeGame(yaps, t, profile?.track_start_date);
     return {
       loading,
       profile,
