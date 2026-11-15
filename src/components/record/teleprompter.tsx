@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Script } from "@/lib/prompter";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,15 @@ export function Teleprompter({
       setBrowsing(false);
     }, 5000);
   }, []);
+  // Which way the current word is from where the reader has scrolled, for the button's arrow.
+  const [currentIs, setCurrentIs] = useState<"above" | "below">("below");
+  const updateDirection = () => {
+    const box = boxRef.current;
+    if (!box) return;
+    const last = script ? script.words.length - 1 : points.length - 1;
+    const el = box.querySelector<HTMLElement>(script ? `[data-w="${Math.min(index, last)}"]` : `[data-line="${Math.min(index, last)}"]`);
+    if (el) setCurrentIs(el.offsetTop < box.scrollTop + box.clientHeight * 0.3 ? "above" : "below");
+  };
   const backToCurrent = () => {
     if (idleRef.current) clearTimeout(idleRef.current);
     lastTop.current = -2; // force a scroll on the next pass
@@ -81,6 +90,7 @@ export function Teleprompter({
       <div
         ref={boxRef}
         onWheel={userScrolled}
+        onScroll={() => browsing && updateDirection()}
         onTouchMove={userScrolled}
         onPointerDown={(e) => e.pointerType === "mouse" && e.buttons === 1 && e.target === e.currentTarget && userScrolled()}
         className="prompter-mask relative h-44 touch-pan-y overflow-y-auto overscroll-contain [scrollbar-width:none] sm:h-52 [&::-webkit-scrollbar]:hidden"
@@ -133,7 +143,7 @@ export function Teleprompter({
           onClick={backToCurrent}
           className="glass -mt-10 relative z-10 mx-auto mb-2 flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-bold"
         >
-          <ArrowDownToLine className="size-4" /> Back to current
+          {currentIs === "above" ? <ArrowUpToLine className="size-4" /> : <ArrowDownToLine className="size-4" />} Back to current
         </button>
       )}
     </div>
