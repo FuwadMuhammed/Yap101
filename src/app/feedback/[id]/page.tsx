@@ -258,7 +258,7 @@ function FeedbackScreen() {
               </section>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn("grid gap-3", f.words_per_minute != null && f.filler_count != null ? "grid-cols-2" : "grid-cols-1")}>
               {f.words_per_minute != null && (
                 <div className="bg-sky text-ink relative overflow-hidden rounded-[28px] p-5">
                   <p className="text-ink/70 text-sm">Pace</p>
@@ -281,13 +281,7 @@ function FeedbackScreen() {
                     {f.filler_count === 0 && <span className="rounded-full bg-white px-2 py-0.5 text-xs font-bold text-ink">Clean!</span>}
                   </div>
                 </div>
-              ) : (
-                <div className="surface flex flex-col justify-between rounded-[28px] p-5">
-                  <p className="text-stone text-sm">Filler words</p>
-                  <p className="font-display mt-1 text-[22px]">Coming soon</p>
-                  <p className="text-stone mt-1 text-xs">Counting “um” and “like” needs a transcript. That&apos;s the next update.</p>
-                </div>
-              )}
+              ) : null /* Filler words need a transcript: hidden until that ships. */}
             </div>
 
             {fillerDelta !== null && (
