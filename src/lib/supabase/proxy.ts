@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { GUEST_COOKIE, envDemo } from "@/lib/data/mode";
 
-const PUBLIC_PATHS = ["/", "/login", "/auth", "/privacy", "/terms", "/api/reminder", "/api/admin"];
+// Link-preview images and robots.txt must be reachable by crawlers (WhatsApp, X, Google...).
+const PUBLIC_PATHS = ["/", "/login", "/auth", "/privacy", "/terms", "/api/reminder", "/api/admin", "/opengraph-image", "/twitter-image", "/robots.txt", "/sitemap.xml"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
