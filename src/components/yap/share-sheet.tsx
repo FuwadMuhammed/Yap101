@@ -9,6 +9,27 @@ import { cn } from "@/lib/utils";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yap101.vercel.app";
 
 /** The post text: the day, the prompt, and a "Made with Yap101" line with our link. */
+/** Phones (touch screens) that can share files get the system share menu directly. */
+export function prefersNativeShare(file: File | null) {
+  if (!file || typeof navigator === "undefined" || !navigator.canShare?.({ files: [file] })) return false;
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
+/**
+ * Opens the phone's own share menu with the clip. Call straight from the tap (no awaits
+ * before it), or iOS refuses. The caption goes on the clipboard so it can be pasted in the
+ * post; it isn't attached, because Instagram and TikTok hide from the menu when text is.
+ */
+export function shareNatively(file: File, caption: string, title: string) {
+  navigator.clipboard?.writeText(caption).then(
+    () => toast("Caption copied. Paste it in your post."),
+    () => {},
+  );
+  navigator.share({ files: [file], title }).catch(() => {
+    /* closed the menu */
+  });
+}
+
 export function shareCaption(day: number, title: string) {
   return `Day ${day} of my 30-day speaking challenge 🎤\n"${title}"\n\nMade with Yap101 → ${SITE}\n#yap101 #publicspeaking #creator`;
 }

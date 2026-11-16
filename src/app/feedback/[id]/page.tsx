@@ -7,7 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Mascot, MascotSays, Yapper, YapperAvatar, YapperCluster } from "@/components/brand/mascot";
 import { Confetti } from "@/components/yap/confetti";
-import { ShareSheet } from "@/components/yap/share-sheet";
+import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { Bar, Flame, Ring } from "@/components/yap/stats";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { YapButton, YapLink } from "@/components/yap/yap-button";
@@ -164,6 +164,15 @@ function FeedbackScreen() {
     const ext = blob.type.includes("mp4") ? (yap.media === "audio" ? "m4a" : "mp4") : "webm";
     return new File([blob], `yap101-${yap.local_date}.${ext}`, { type: blob.type.split(";")[0] });
   }, [yap]);
+  // Ready before the tap: iOS only opens the share menu straight from a tap, with no waiting.
+  const [readyFile, setReadyFile] = useState<File | null>(null);
+  useEffect(() => {
+    let alive = true;
+    shareFile().then((f) => alive && setReadyFile(f)).catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [shareFile]);
 
   if (missing)
     return (
@@ -335,7 +344,16 @@ function FeedbackScreen() {
               <YapLink href="/home" size="lg" arrow>Back to today</YapLink>
             )}
             {yap?.url && (
-              <YapButton variant="soft" size="lg" onClick={() => setSharing(true)}><Share2 /> Share or save clip</YapButton>
+              <YapButton
+                variant="soft"
+                size="lg"
+                onClick={() => {
+                  if (yap && readyFile && prefersNativeShare(readyFile)) shareNatively(readyFile, shareCaption(shareDay, yap.title), yap.title);
+                  else setSharing(true);
+                }}
+              >
+                <Share2 /> Share or save clip
+              </YapButton>
             )}
             <ReminderButton yapTime={profile?.yap_time ?? null} daysLeft={profile?.track_start_date && today ? 31 - trackDay(profile.track_start_date, today) : 30} />
             <YapLink href="/history" variant="soft" size="lg">All my yaps</YapLink>

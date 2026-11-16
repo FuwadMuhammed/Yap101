@@ -17,7 +17,7 @@ import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, sn
 import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { loadScript, saveScript } from "@/lib/script";
-import { ShareSheet } from "@/components/yap/share-sheet";
+import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
@@ -915,7 +915,11 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               <YapButton variant="soft" size="icon" className="size-14" onClick={retake} disabled={phase === "saving"} aria-label="Retake">
                 <RotateCcw />
               </YapButton>
-              <YapButton variant="soft" size="icon" className="size-14" onClick={() => setSharing(true)} disabled={phase === "saving"} aria-label="Share or save">
+              <YapButton variant="soft" size="icon" className="size-14" onClick={() => {
+                  const f = clip ? new File([clip.blob], `yap101-day-${prompt.day_index}.${extFor(clip.blob.type)}`, { type: clip.blob.type.split(";")[0] }) : null;
+                  if (f && prefersNativeShare(f)) shareNatively(f, shareCaption(prompt.day_index, prompt.title), prompt.title);
+                  else setSharing(true);
+                }} disabled={phase === "saving"} aria-label="Share or save">
                 <Share2 />
               </YapButton>
               <YapButton size="lg" className="h-14" arrow onClick={save} disabled={phase === "saving"}>

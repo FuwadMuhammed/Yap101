@@ -9,10 +9,19 @@ const display = Fraunces({ variable: "--font-display", subsets: ["latin"], axes:
 const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"] });
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yap101.vercel.app";
+const TITLE = "Yap101: learn to yap on camera";
+const DESCRIPTION = "Daily 60-second speaking practice for creators. Pick a goal, yap with a teleprompter, get a Yap score, keep your streak.";
+
 export const metadata: Metadata = {
-  title: "Yap101: learn to yap on camera",
-  description: "Daily 60-second speaking practice for creators. Pick a goal, yap with a teleprompter, get feedback, keep your streak.",
+  // Absolute URLs for the link-preview image (opengraph-image.tsx / twitter-image.tsx).
+  metadataBase: new URL(SITE),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: "Yap101",
   appleWebApp: { capable: true, title: "Yap101", statusBarStyle: "default" },
+  openGraph: { type: "website", siteName: "Yap101", title: TITLE, description: DESCRIPTION, url: "/", locale: "en_US" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export const viewport: Viewport = {
