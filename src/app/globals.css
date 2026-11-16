@@ -196,7 +196,11 @@
   font-weight: 500 !important;
   font-variation-settings: "SOFT" 100;
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.1;
+}
+/* One-line headings clip what overflows: give Fraunces' descenders (y, g, p) room inside the box. */
+:where(h1, h2, h3, .font-display).truncate {
+  line-height: 1.3;
 }
 
 /* Confetti pieces: each sets --x, --r, --d (drift, rotation, delay) inline. */
