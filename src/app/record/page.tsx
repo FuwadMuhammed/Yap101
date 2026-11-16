@@ -8,7 +8,7 @@ import { Recorder } from "@/components/record/recorder";
 import { YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
 import { api } from "@/lib/data";
-import { labelFor, NICHES } from "@/lib/options";
+import { nicheForDay } from "@/lib/options";
 import { introScript } from "@/lib/script";
 import { DAILY_LIMIT, localDate, trackDay, type Level, type Prompt } from "@/lib/yap";
 
@@ -40,7 +40,7 @@ function RecordScreen() {
         if (usedToday >= DAILY_LIMIT) return setState({ kind: "limit" });
         setState({
           kind: "ready",
-          prompt: personalize(prompt, labelFor(NICHES, profile?.niche)?.label),
+          prompt: personalize(prompt, nicheForDay(profile?.niche, prompt.day_index)),
           firstToday: usedToday === 0,
           level: profile?.level ?? null,
           script: introScript(prompt, profile),

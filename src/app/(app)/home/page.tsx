@@ -8,7 +8,7 @@ import { TopBar } from "@/components/yap/app-shell";
 import { Bar, Chip, Flame, Ring } from "@/components/yap/stats";
 import { personalize, visiblePoints, weekFor } from "@/lib/curriculum";
 import { api } from "@/lib/data";
-import { labelFor, NICHES } from "@/lib/options";
+import { nicheForDay } from "@/lib/options";
 import { LEVELS, XP } from "@/lib/game";
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
@@ -40,8 +40,8 @@ export default function Today() {
   }, []);
   useEffect(() => {
     if (!profile?.level || !profile.goal) return;
-    const niche = labelFor(NICHES, profile.niche)?.label;
-    api.getPrompts(profile.level, profile.goal).then((t) => setPrompts(t.map((p) => personalize(p, niche))));
+    const niches = profile.niche;
+    api.getPrompts(profile.level, profile.goal).then((t) => setPrompts(t.map((p) => personalize(p, nicheForDay(niches, p.day_index)))));
   }, [profile?.level, profile?.goal, profile?.niche]);
 
   if (loading) return <MascotSays mood="think" className="mt-10">Getting your yap ready…</MascotSays>;

@@ -1,6 +1,6 @@
 import type { Profile } from "@/lib/data/types";
 import type { Prompt } from "@/lib/yap";
-import { labelFor, NICHES } from "@/lib/options";
+import { nicheList } from "@/lib/options";
 
 // Ready-made scripts for the "Introduce yourself" yaps (day 1, and again on day 30),
 // built from what the user told us in onboarding. Each string is one teleprompter line.
@@ -28,7 +28,7 @@ export function isIntroPrompt(p: Prompt) {
 export function introScript(p: Prompt, profile: Profile | null): string[] | null {
   if (!isIntroPrompt(p)) return null;
   const name = profile?.display_name && profile.display_name !== "Guest" ? profile.display_name : "[your name]";
-  const niche = labelFor(NICHES, profile?.niche)?.label.toLowerCase() ?? "the things I love";
+  const niche = nicheList(profile?.niche) || "the things I love";
   const goal = GOAL_LINE[profile?.goal ?? ""] ?? "to get better at talking on camera";
   const where = WHERE[profile?.platform ?? ""] ?? "here";
 

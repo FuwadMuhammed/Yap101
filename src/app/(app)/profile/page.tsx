@@ -15,7 +15,7 @@ import { envDemo } from "@/lib/data/mode";
 import { reloadTo } from "@/lib/data/mode";
 import { demoBackfill, demoReset } from "@/lib/data/demo";
 import { FREEZE, LEVELS } from "@/lib/game";
-import { GOAL_OPTIONS, LEVEL_OPTIONS, NICHES, PLATFORMS, YAP_TIMES, labelFor } from "@/lib/options";
+import { GOAL_OPTIONS, LEVEL_OPTIONS, PLATFORMS, YAP_TIMES, labelFor, nicheOptions } from "@/lib/options";
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +35,9 @@ export default function Me() {
   // Yap score trend (on-device analysis). Filler words join once transcripts arrive.
   const scores = [...yaps].reverse().flatMap((y) => (y.score == null ? [] : [y.score]));
 
-  const chips = [labelFor(NICHES, profile.niche), labelFor(PLATFORMS, profile.platform), labelFor(LEVEL_OPTIONS, profile.level), labelFor(GOAL_OPTIONS, profile.goal), labelFor(YAP_TIMES, profile.yap_time)].filter(
+  const picks = nicheOptions(profile.niche);
+  const nicheChip = picks[0] && { ...picks[0], value: "niche", label: picks.map((o) => o.label).join(", ") };
+  const chips = [nicheChip, labelFor(PLATFORMS, profile.platform), labelFor(LEVEL_OPTIONS, profile.level), labelFor(GOAL_OPTIONS, profile.goal), labelFor(YAP_TIMES, profile.yap_time)].filter(
     (c): c is NonNullable<typeof c> => Boolean(c),
   );
 

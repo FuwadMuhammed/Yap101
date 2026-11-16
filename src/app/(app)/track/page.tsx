@@ -8,7 +8,7 @@ import { PageSkeleton } from "@/components/yap/skeleton";
 import { personalize, WEEKS } from "@/lib/curriculum";
 import { api } from "@/lib/data";
 import { shiftDay } from "@/lib/game";
-import { labelFor, NICHES } from "@/lib/options";
+import { nicheForDay } from "@/lib/options";
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
 import { DAILY_LIMIT, type Prompt } from "@/lib/yap";
@@ -22,8 +22,8 @@ export default function Track() {
 
   useEffect(() => {
     if (!profile?.level || !profile.goal) return;
-    const niche = labelFor(NICHES, profile.niche)?.label;
-    api.getPrompts(profile.level, profile.goal).then((t) => setPrompts(t.map((p) => personalize(p, niche))));
+    const niches = profile.niche;
+    api.getPrompts(profile.level, profile.goal).then((t) => setPrompts(t.map((p) => personalize(p, nicheForDay(niches, p.day_index)))));
   }, [profile?.level, profile?.goal, profile?.niche]);
 
   if (loading || !profile?.track_start_date) return <PageSkeleton rows={6} />;

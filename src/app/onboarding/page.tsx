@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Yapper, YapperCluster } from "@/components/brand/mascot";
 import { YapButton } from "@/components/yap/yap-button";
 import { api } from "@/lib/data";
-import { CONFIDENCE, GOAL_OPTIONS, LEVEL_OPTIONS, NICHES, PLATFORMS, YAP_TIMES, labelFor, type Option } from "@/lib/options";
+import { CONFIDENCE, GOAL_OPTIONS, LEVEL_OPTIONS, MAX_NICHES, NICHES, PLATFORMS, YAP_TIMES, labelFor, nicheForDay, nicheOptions, nicheValues, type Option } from "@/lib/options";
 import { personalize, TARGET_SECONDS } from "@/lib/curriculum";
 import { cn } from "@/lib/utils";
 import { localDate, pickPrompt, type Goal, type Level, type Prompt } from "@/lib/yap";
@@ -18,7 +18,7 @@ const DRAFT_KEY = "yap101-onboarding";
 
 const STEPS: { key: Key; title: string; sub: string }[] = [
   { key: "name", title: "Hey, I'm Yappy! What should we call you?", sub: "Just a first name or nickname." },
-  { key: "niche", title: "What do you make content about?", sub: "Pick the one closest to you." },
+  { key: "niche", title: "What do you make content about?", sub: `Pick up to ${MAX_NICHES}. Your daily prompts rotate between them.` },
   { key: "platform", title: "Where do you post?", sub: "Or where you want to start." },
   { key: "confidence", title: "How do you feel on camera?", sub: "Be honest, nobody's watching." },
   { key: "level", title: "Where are you at?", sub: "We'll match the prompts to you." },
@@ -26,12 +26,12 @@ const STEPS: { key: Key; title: string; sub: string }[] = [
   { key: "time", title: "When will you yap?", sub: "Same time every day is how habits stick." },
 ];
 
-function Tile({ o, selected, onClick }: { o: Option; selected: boolean; onClick: () => void }) {
+function Tile({ o, selected, onClick, multi }: { o: Option; selected: boolean; onClick: () => void; multi?: boolean }) {
   const Icon = o.icon;
   return (
     <button
       type="button"
-      role="radio"
+      role={multi ? "checkbox" : "radio"}
       onClick={onClick}
       aria-checked={selected}
       className={cn(
@@ -105,8 +105,7 @@ export default function Onboarding() {
   const set = (k: Key, v: string) => setA((prev) => ({ ...prev, [k]: v }));
 
   useEffect(() => {
-    const niche = labelFor(NICHES, a.niche)?.label;
-    if (done && a.level && a.goal) api.getPrompts(a.level, a.goal).then((t) => setFirstPrompt(pickPrompt(t.map((p) => personalize(p, niche)), 1)));
+    if (done && a.level && a.goal) api.getPrompts(a.level, a.goal).then((t) => setFirstPrompt(pickPrompt(t.map((p) => personalize(p, nicheForDay(a.niche, p.day_index))), 1)));
   }, [done, a.level, a.goal, a.niche]);
 
   async function finish() {
@@ -137,7 +136,7 @@ export default function Onboarding() {
 
   const feel = CONFIDENCE.find((c) => c.value === a.confidence);
   const summary = [
-    { step: 1, label: "Niche", o: labelFor(NICHES, a.niche) },
+    { step: 1, label: nicheValues(a.niche).length > 1 ? "Niches" : "Niche", o: nicheOptions(a.niche)[0], text: nicheOptions(a.niche).map((o) => o.label).join(", ") },
     { step: 2, label: "Platform", o: labelFor(PLATFORMS, a.platform) },
     { step: 4, label: "Level", o: labelFor(LEVEL_OPTIONS, a.level) },
     { step: 5, label: "Goal", o: labelFor(GOAL_OPTIONS, a.goal) },
@@ -177,8 +176,24 @@ export default function Onboarding() {
               </form>
             )}
             {current.key === "niche" && (
-              <div role="radiogroup" aria-label="Niche" className="grid grid-cols-3 gap-2.5">
-                {NICHES.map((o) => <Tile key={o.value} o={o} selected={a.niche === o.value} onClick={() => set("niche", o.value)} />)}
+              <div role="group" aria-label={`Niches, pick up to ${MAX_NICHES}`} className="grid grid-cols-3 gap-2.5">
+                {NICHES.map((o) => {
+                  const picked = nicheValues(a.niche);
+                  const on = picked.includes(o.value);
+                  return (
+                    <Tile
+                      key={o.value}
+                      o={o}
+                      multi
+                      selected={on}
+                      onClick={() => {
+                        if (on) return set("niche", picked.filter((x) => x !== o.value).join(","));
+                        if (picked.length >= MAX_NICHES) return toast(`Pick up to ${MAX_NICHES}. Tap one to remove it first.`);
+                        set("niche", [...picked, o.value].join(","));
+                      }}
+                    />
+                  );
+                })}
               </div>
             )}
             {current.key === "platform" && (
@@ -229,7 +244,7 @@ export default function Onboarding() {
           </div>
           <div className="border-line my-5 border-t border-dashed" />
           <div className="surface divide-line divide-y overflow-hidden rounded-[28px]">
-            {summary.map(({ step: s, label, o }) => {
+            {summary.map(({ step: s, label, o, text }: { step: number; label: string; o?: Option; text?: string }) => {
               const Icon = o?.icon;
               return (
                 <div key={label} className="flex items-center gap-4 px-4 py-3">
@@ -237,7 +252,7 @@ export default function Onboarding() {
                     {Icon && <Icon className="size-5" strokeWidth={2.2} />}
                   </span>
                   <div className="flex-1">
-                    <p className="font-semibold">{o?.label}</p>
+                    <p className="font-semibold">{text || o?.label}</p>
                     <p className="text-stone text-sm">{label}</p>
                   </div>
                   <YapButton variant="mist" size="sm" className="h-9" onClick={() => { setEditing(true); setStep(s); }} aria-label={`Edit ${label.toLowerCase()}`}>Edit</YapButton>

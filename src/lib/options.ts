@@ -42,11 +42,27 @@ export const NICHES: Option[] = (
   ] as const
 ).map(([value, label, icon], i) => ({ value, label, icon, ...tint(i) }));
 
+// --- Niches: people can pick up to 3. Stored as "fitness,tech" (a single value still works). ---
+export const MAX_NICHES = 3;
+export const nicheValues = (v: string | null | undefined) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+export const nicheOptions = (v: string | null | undefined) =>
+  nicheValues(v).flatMap((x) => NICHES.find((o) => o.value === x) ?? []);
+/** "fitness", "fitness and tech", "fitness, tech and food" (lowercase, for sentences). */
+export function nicheList(v: string | null | undefined) {
+  const l = nicheOptions(v).map((o) => o.label.toLowerCase());
+  return l.length <= 1 ? (l[0] ?? "") : `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}`;
+}
+/** The niche a day's prompt is about: rotates through their picks so titles stay simple. */
+export function nicheForDay(v: string | null | undefined, day: number) {
+  const o = nicheOptions(v);
+  return o.length ? o[(Math.max(1, day) - 1) % o.length].label : undefined;
+}
+
 export const PLATFORMS: Option[] = (
   [
     ["tiktok", "TikTok", Music2],
-    ["instagram", "Reels", Camera],
-    ["youtube", "Shorts", Play],
+    ["instagram", "Instagram", Camera],
+    ["youtube", "YouTube", Play],
     ["linkedin", "LinkedIn", Users],
     ["podcast", "Podcast", Mic2],
     ["none", "Not yet", AtSign],

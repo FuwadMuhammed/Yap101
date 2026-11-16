@@ -14,7 +14,7 @@ import { YapButton, YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
 import { api, isDemo, type Profile, type YapDetail, type YapSummary } from "@/lib/data";
 import { computeGame, gameDiff, type GameState } from "@/lib/game";
-import { labelFor, NICHES } from "@/lib/options";
+import { nicheForDay } from "@/lib/options";
 import { cn } from "@/lib/utils";
 import { DAILY_LIMIT, localDate, pickPrompt, trackDay } from "@/lib/yap";
 
@@ -135,7 +135,7 @@ function FeedbackScreen() {
       if (p?.level && p.goal && p.track_start_date) {
         const day = trackDay(p.track_start_date, t);
         if (day < 30) {
-          const track = (await api.getPrompts(p.level, p.goal)).map((x) => personalize(x, labelFor(NICHES, p.niche)?.label));
+          const track = (await api.getPrompts(p.level, p.goal)).map((x) => personalize(x, nicheForDay(p.niche, x.day_index)));
           setTomorrow(pickPrompt(track, day + 1)?.title ?? null);
         }
       }
