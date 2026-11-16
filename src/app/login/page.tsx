@@ -64,7 +64,12 @@ const GOOGLE_ON = process.env.NEXT_PUBLIC_AUTH_GOOGLE === "true";
 function SupabaseLogin() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const redirectTo = () => `${window.location.origin}/auth/callback`;
+  const redirectTo = () => {
+    // Remember where they were heading (e.g. /admin) for after the email link / Google.
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) document.cookie = `yap101-next=${encodeURIComponent(next)}; path=/; max-age=1800; samesite=lax`;
+    return `${window.location.origin}/auth/callback`;
+  };
 
   async function google() {
     const { error } = await createClient().auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirectTo() } });
