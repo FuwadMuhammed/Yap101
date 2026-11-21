@@ -5,12 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { YapButton } from "@/components/yap/yap-button";
 import { api } from "@/lib/data";
-import { labelFor, nicheList, PLATFORMS } from "@/lib/options";
+import { GOAL_OPTIONS, LEVEL_OPTIONS, labelFor, nicheList, PLATFORMS } from "@/lib/options";
 import { buildScript, estimateSeconds } from "@/lib/prompter";
-import { linesToText, textToLines } from "@/lib/script";
+import { linesToText, otherScripts, textToLines } from "@/lib/script";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { MAX_SECONDS, type Prompt } from "@/lib/yap";
-import type { WriteRequest } from "@/lib/write-script";
+import type { WriteRequest, WriteResult } from "@/lib/write-script";
 
 const WRITE_ERRORS: Record<string, string> = {
   signin: "Sign in to have us write your script.",
@@ -45,6 +45,9 @@ export function ScriptEditor({
 }) {
   const [text, setText] = useState(linesToText(initial));
   const [writing, setWriting] = useState(false);
+  const [ask, setAsk] = useState("");
+  /** The writer's clarifying question or redirect, shown under the topic box. */
+  const [coach, setCoach] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lines = textToLines(text);
   const words = lines.join(" ").split(/\s+/).filter(Boolean).length;
@@ -72,23 +75,33 @@ export function ScriptEditor({
   async function writeForMe() {
     if (writing) return;
     setWriting(true);
+    setCoach(null);
     const before = text;
     try {
       const profile = await api.getProfile().catch(() => null);
       const body: WriteRequest = {
+        request: ask,
         title: prompt.title,
         points,
         skill: prompt.skill,
         skillTip: prompt.skill_tip,
         focus: prompt.focus,
+        challengeDay: prompt.day_index,
         seconds: Math.min(targetSeconds, MAX_SECONDS),
         name: profile?.display_name && profile.display_name !== "Guest" ? profile.display_name : null,
         niche: nicheList(profile?.niche) || null,
         platform: labelFor(PLATFORMS, profile?.platform)?.label ?? null,
+        goal: labelFor(GOAL_OPTIONS, profile?.goal)?.hint ?? null,
+        level: labelFor(LEVEL_OPTIONS, profile?.level)?.label ?? null,
         draft: before,
+        previous: otherScripts(prompt.id),
       };
       const res = await fetch("/api/script", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const data = (await res.json().catch(() => ({}))) as { lines?: string[]; error?: string };
+      const data = (await res.json().catch(() => ({}))) as Partial<WriteResult> & { error?: string };
+      if (res.ok && (data.kind === "question" || data.kind === "redirect") && data.message) {
+        setCoach(data.message);
+        return;
+      }
       if (!res.ok || !data.lines?.length) {
         toast.error(WRITE_ERRORS[data.error ?? ""] ?? "Couldn't write a script just now. Try again.");
         return;
@@ -143,7 +156,31 @@ export function ScriptEditor({
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <form
+          className="mt-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void writeForMe();
+          }}
+        >
+          <label htmlFor="script-ask" className="text-stone px-1 text-sm font-semibold">What do you want to talk about? <span className="font-normal">(optional)</span></label>
+          <input
+            id="script-ask"
+            value={ask}
+            onChange={(e) => setAsk(e.target.value)}
+            maxLength={500}
+            enterKeyHint="go"
+            placeholder="A topic, a rough idea, or “suggest something”"
+            className="surface mt-2 h-12 w-full rounded-full px-5 outline-none focus-visible:outline-2 focus-visible:outline-ink"
+          />
+          {coach && (
+            <p role="status" className="bg-mist mt-2 flex gap-2 rounded-[20px] px-4 py-3 text-sm leading-snug">
+              <Sparkles className="mt-0.5 size-4 shrink-0" /> {coach}
+            </p>
+          )}
+        </form>
+
+        <div className="mt-3 flex flex-wrap gap-2">
           <YapButton variant="soft" size="sm" onClick={() => fileRef.current?.click()}>
             <FileUp /> Import .txt
           </YapButton>

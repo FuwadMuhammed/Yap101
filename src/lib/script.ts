@@ -68,6 +68,15 @@ export function loadScript(promptId: number): string[] | null {
   return Array.isArray(s) && s.length ? s : null;
 }
 
+/** Scripts saved for other days, newest prompt first, each as one string. */
+export function otherScripts(promptId: number, limit = 5): string[] {
+  return Object.entries(readAll())
+    .filter(([id, lines]) => Number(id) !== promptId && Array.isArray(lines) && lines.length)
+    .sort(([a], [b]) => Number(b) - Number(a))
+    .slice(0, limit)
+    .map(([, lines]) => lines.join(" "));
+}
+
 export function saveScript(promptId: number, lines: string[] | null) {
   try {
     const all = readAll();
