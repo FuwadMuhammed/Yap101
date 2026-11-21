@@ -1,0 +1,21 @@
+Q01 suggest, complete profile, day 2: 503 248ms setup
+Q02 suggest, no profile at all: 503 39ms setup
+Q03 suggest, no talking points: 503 33ms setup
+Q04 suggest, very short topic: 503 48ms setup
+Q05 suggest, very long topic: 503 37ms setup
+Q06 suggest, special characters: 503 38ms setup
+Q07 suggest, pro level 60s hot take: 503 28ms setup
+Q08 suggest, steer: nurse: 503 33ms setup
+Q09 suggest, off-topic request: 503 47ms setup
+Q10 suggest, prompt injection in request: 503 35ms setup
+Q11 suggest, story day, minimal profile (fabrication check): 503 36ms setup
+P01 polish, names/dates/numbers: 503 32ms setup
+P02 polish, strong opinion: 503 34ms setup
+P03 polish, spelling mistakes: 503 32ms setup
+P04 polish, informal slang: 503 28ms setup
+P05 polish, long draft (~280 words) at 30s: 503 38ms setup
+P06 polish, short draft stays short: 503 34ms setup
+P07 polish, Spanish draft: 503 29ms setup
+P08 polish, prompt injection in draft: 503 27ms setup
+P09 polish, keeps placeholder: 503 34ms setup
+P10 polish, HTML in draft: 503 35ms setup

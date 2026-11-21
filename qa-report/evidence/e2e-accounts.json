@@ -1,0 +1,9 @@
+{
+  "E31_scriptsAfterSignOut": "{\"3\":[\"My private story about my divorce.\"]}",
+  "E31_nextUserSeesPreviousScript": true,
+  "E31_previousUsersScriptSentToAi": true,
+  "previousSent": [
+    "My private story about my divorce."
+  ],
+  "nameSent": "Alex"
+}

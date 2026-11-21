@@ -1,0 +1,33 @@
+{
+  "j1_ms": 17042,
+  "j1_title": "Why you got into food",
+  "j1_suggestion": "Hey, it's Maya.\nPeople always ask why I love food so much.\nThe moment it clicked was when I cooked [my first meal] for someone I love.\nWhat I love most is how food brings people together.\nI make videos for anyone who wants to feel confident in the kitchen.\nI used to think cooking was complicated.\nNow I know it's just about sharing something real.\nThat's what changed.",
+  "j1_reopened_has_edit": true,
+  "j2_ms": 335,
+  "j2_original": "ok so um last tuesday i made my nans lasagne recipe for 6 friends and honestly i burnt the top but everyone still ate 2 plates lol",
+  "j2_polished": "Last tuesday I made my nans lasagne recipe for 6 friends and honestly I burnt the top but everyone still ate 2 plates lol.",
+  "j2_facts_kept": [
+    [
+      "Tuesday|tuesday",
+      true
+    ],
+    [
+      "lasagne|lasagna",
+      true
+    ],
+    [
+      "6|six",
+      true
+    ],
+    [
+      "burnt|burned",
+      true
+    ],
+    [
+      "2|two",
+      true
+    ]
+  ],
+  "j2_persisted": true,
+  "errors": []
+}

@@ -1,0 +1,30 @@
+E01 PASS J1 generate (suggestion) → edit → save → close → reopen :: Edited suggestion saved and present after reload 
+E02 PASS J2 polish → compare → save → reopen :: Polished "I started lifting in 2019 and I coach 12 clients in Leeds." kept 2019/12/Leeds; persisted 
+E03 PASS Day switching keeps scripts on their own day :: Day 2 and day 4 scripts stored under ids 2 and 4; day 4 opened empty 
+E04 PASS Discard unsaved changes with X and Escape :: Unsaved edits discarded both ways 
+E05 PASS Save tapped repeatedly :: Single clean save, no error 
+E06 PASS Suggestion tapped 6x fast with a slow (3s) API → one request :: 1 request sent; button disabled while writing 
+E07 PASS Typing while a request is running is blocked (read-only) :: Box read-only and Save disabled during request; result applied once 
+E08 PASS Close editor during generation, response arrives later :: No script saved, nothing shown; late suggestion cached for next time (cached) 
+E09 PASS J4 offline → starter; back online → retry works; no corruption :: Offline gave starter; retry online returned same template (demo); other day intact 
+E10 PASS Whitespace-only text cannot be saved or polished :: Save and Polish disabled 
+E11 PASS Emoji-only text (4 emoji) polish :: Polish enabled (emoji count as words); server nudge shown, text unchanged 
+E12 FAIL Paste 100 KB, then polish: does the user lose text? :: 43892 chars pasted in 41 ms, 60s warning shown; after polish 3001 chars, last line "Sente." Everything after the first 3,000 characters silently dropped by polish (server truncation)
+E13 PASS HTML/script text renders as plain text (no XSS) :: Markup shown as text on prep card; no dialog fired 
+E14 FAIL Corrupted storage: yap101-scripts = 'null' :: Page shows: "This page couldn’t load  Reload to try again, or go back.  Reload Back"; errors: Cannot read properties of null (reading '2') expected-error Record screen crashes
+E15 PASS Corrupted storage: invalid JSON in yap101-scripts :: Ignored broken data, saved new script (old data discarded) 
+E16 FAIL Corrupted storage: yap101-scripts = '[]' / '"str"' :: storage still "just a string" Save silently does nothing: script gone after reload
+E17 PASS Storage full: save script :: persisted 
+E18 FAIL Out-of-order responses: request A (slow) then B (fast) after reopening :: Box keeps B; cached suggestion is "Response A (stale)." Stale response A overwrote the cached suggestion: the next 'Use our suggestion' returns the older one
+E19 PASS Keyboard: Enter in steer box submits, Escape closes, Tab reaches buttons :: Enter submitted suggestion (used steer text); Escape closed 
+E20 FAIL Stale saved suggestion after profile change :: Hey, I'm Sam and I talk about fitness! Cached suggestion still greets as 'Sam' after the name changed to Alex
+E21 PASS App restart (new browser context with same storage) :: Script present after restart 
+E22 PASS Two tabs, same day: last save wins silently :: Tab A after reload shows B (last write wins, no conflict warning) 
+E23 PASS Two tabs, different days: both saved :: Both days saved 
+E24 PASS Day 1 intro: prefilled from onboarding, Polish off, save unchanged :: Prefilled with Sam/fitness/TikTok; Try another shown; Polish off 
+E25 PASS Intermediate user, Day 1: starts in own words :: Own words selected 
+E26 PASS Locked future day cannot be opened :: Locked screen shown 
+E27 PASS Mobile (iPhone 13): keyboard-height viewport, buttons reachable, no sideways scroll :: Save stays visible above keyboard; no overflow 
+E28 PASS Clear resets AI state :: Box empty, button back to Use our suggestion 
+E29 PASS Undo after several Try another returns the user's original draft :: Original draft restored after 3 takes 
+E30 PASS Signed-out visitor opening /record :: URL /record?prompt=2; shows "Why you got into your niche" 

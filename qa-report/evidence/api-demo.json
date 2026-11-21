@@ -1,0 +1,426 @@
+{
+  "at": "2026-11-21T21:36:26.963Z",
+  "base": "http://localhost:3124",
+  "cases": [
+    {
+      "name": "A01 valid suggest",
+      "status": 200,
+      "ms": 136,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    },
+    {
+      "name": "A02 valid polish",
+      "status": 200,
+      "ms": 14,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hi I'm Sam and I make fitness videos."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A03 legacy no mode, with draft (-> polish)",
+      "status": 200,
+      "ms": 10,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hi I am Sam and I make videos."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A04 legacy no mode, no draft (-> suggest)",
+      "status": 200,
+      "ms": 9,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    },
+    {
+      "name": "A05 invalid mode string",
+      "status": 200,
+      "ms": 9,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    },
+    {
+      "name": "A06 missing title",
+      "status": 400,
+      "ms": 7,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A07 whitespace title",
+      "status": 400,
+      "ms": 7,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A08 polish < 4 words",
+      "status": 400,
+      "ms": 8,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A09 polish empty draft",
+      "status": 400,
+      "ms": 9,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A10 polish whitespace draft",
+      "status": 400,
+      "ms": 9,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A11 polish emoji only (4 tokens)",
+      "status": 200,
+      "ms": 6,
+      "json": {
+        "kind": "question",
+        "lines": [],
+        "message": "There isn't much to polish yet. Add a sentence or two about what you want to say, and try again."
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 0,
+      "kind": "question"
+    },
+    {
+      "name": "A12 polish filler only",
+      "status": 200,
+      "ms": 4,
+      "json": {
+        "kind": "question",
+        "lines": [],
+        "message": "There isn't much to polish yet. Add a sentence or two about what you want to say, and try again."
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 0,
+      "kind": "question"
+    },
+    {
+      "name": "A13 non-JSON body",
+      "status": 400,
+      "ms": 4,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A14 JSON array body",
+      "status": 400,
+      "ms": 4,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A15 JSON null body",
+      "status": 400,
+      "ms": 3,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A16 empty body",
+      "status": 400,
+      "ms": 3,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A17 wrong types",
+      "status": 400,
+      "ms": 3,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A18 title object",
+      "status": 400,
+      "ms": 3,
+      "json": {
+        "error": "bad_request"
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "error": "bad_request"
+    },
+    {
+      "name": "A19 huge draft 100 KB",
+      "status": 200,
+      "ms": 5,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Word."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A20 huge body 5 MB",
+      "status": 200,
+      "ms": 61,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    },
+    {
+      "name": "A21 HTML/script in draft",
+      "status": 200,
+      "ms": 5,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "<script>alert(1)</script> <img src=x onerror=alert(2)> hello there friend."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A22 SQL-like draft",
+      "status": 200,
+      "ms": 8,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "'; DROP TABLE yaps; -- hello there friend."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A23 unicode/mixed languages",
+      "status": 200,
+      "ms": 4,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hola, je suis Sam 日本語 का परीक्षण testing."
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 1,
+      "kind": "script"
+    },
+    {
+      "name": "A24 GET method",
+      "status": 405,
+      "ms": 3,
+      "json": null,
+      "text": "",
+      "ctype": null,
+      "cookie": null
+    },
+    {
+      "name": "A25 seconds out of range 999",
+      "status": 200,
+      "ms": 3,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    },
+    {
+      "name": "A26 Content-Type text/plain",
+      "status": 200,
+      "ms": 3,
+      "json": {
+        "kind": "script",
+        "lines": [
+          "Hey, I'm Sam and I talk about fitness!",
+          "Today: introduce yourself.",
+          "Your name and what you make: [say it in one line].",
+          "Why you started: [say it in one line].",
+          "That's it from me. See you tomorrow!"
+        ],
+        "message": "",
+        "demo": true
+      },
+      "ctype": "application/json",
+      "cookie": null,
+      "lines": 5,
+      "kind": "script"
+    }
+  ],
+  "perf": {
+    "c1": {
+      "total_ms": 4,
+      "ok": 1,
+      "statuses": [
+        200
+      ],
+      "p50": 3,
+      "max": 3
+    },
+    "c5": {
+      "total_ms": 17,
+      "ok": 5,
+      "statuses": [
+        200
+      ],
+      "p50": 11,
+      "max": 16
+    },
+    "c10": {
+      "total_ms": 62,
+      "ok": 10,
+      "statuses": [
+        200
+      ],
+      "p50": 36,
+      "max": 60
+    },
+    "seq50": {
+      "p50": 3,
+      "p95": 6,
+      "max": 7
+    }
+  }
+}

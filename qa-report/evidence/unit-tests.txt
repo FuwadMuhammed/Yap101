@@ -1,0 +1,97 @@
+
+ RUN  v5.1.1 /home/user/Yap101
+
+ ✓ src/lib/ai-script.test.ts > parseLoose > reads plain JSON and JSON in a code fence 2ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > salvages complete lines from cut-off JSON 1ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > falls back to plain lines of text, without bullets 0ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > returns null for nothing 0ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > picks OpenRouter when its key is set 0ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > sends the polish task and returns cleaned lines 23ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > moves on to the next model when one is rate-limited 2ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > reports busy when every model is rate-limited 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > stops at once on a bad key 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > replaces any redirect message with ours 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > passes a clarifying question through 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > treats empty answers as unavailable 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > rejects bad bodies, including polish with too few words 7ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > suggest: passes the mode through and returns the script 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > polish: a clarifying question becomes a local tidy, never a question 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > polish: a draft that is only filler gets a nudge, not an empty script 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > suggest: a clarifying question is passed to the user 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > demo builds with no key use the template for both modes 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > reports setup when there is no key outside demo builds 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > maps AI errors to busy, setup and upstream 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > count finished scripts in a signed cookie 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > don't spend their allowance on questions 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > are stopped after 3 scripts a day 1ms
+ ✓ src/lib/write-script.test.ts > wordCount > counts words across spaces and new lines 2ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > rejects bodies without a title 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > keeps an explicit mode 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > infers the mode for older clients: a draft means polish, none means suggest 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > refuses to polish fewer than 4 words 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > drops the draft for suggestions, so they start from the topic 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > drops avoid for polish, which only works from the draft 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > clamps the length to 15–60 seconds and the day to 1–60 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > trims and caps untrusted strings and lists 1ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > sends the profile and today's prompt 0ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > suggest: asks for a script and includes the request and avoid, never a draft 0ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > suggest: with no request, writes for today's prompt 0ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > polish: sends the draft and the polish task, no request 0ms
+ ✓ src/lib/write-script.test.ts > SCRIPT_SYSTEM > briefs the writer on both jobs 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > cuts filler words and doubled words 1ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > puts one sentence on each line and ends each with punctuation 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > keeps [placeholders] and drops lines with no words 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > leaves words that only contain filler, like 'umbrella', alone 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > uses their name, niche, the topic and each talking point 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > leaves a placeholder when we don't know their name 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > uses their request as the topic when they gave one 0ms
+ ✓ src/lib/write-script.test.ts > demoWrittenScript > polishes the draft in polish mode and suggests otherwise 0ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > is only made for intro prompts 32ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > builds day 1 from their onboarding answers 1ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > uses placeholders for guests with no answers 0ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > writes the day 30 version 0ms
+ ✓ src/lib/script.test.ts > textToLines / linesToText > splits paragraphs into sentences and drops blank lines 1ms
+ ✓ src/lib/script.test.ts > textToLines / linesToText > round-trips 0ms
+ ✓ src/lib/script.test.ts > saved scripts > saves, loads and deletes a day's script 1ms
+ ✓ src/lib/script.test.ts > saved scripts > lists other days' scripts, newest first 0ms
+ ✓ src/lib/script.test.ts > saved suggestions > saves and loads a day's suggestion 1ms
+ ✓ src/lib/script.test.ts > saved suggestions > ignores broken storage 0ms
+ ✓ src/lib/script.test.ts > saved suggestions > keeps only the newest 40 days 1ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: the topic > shows today's day, topic and talking points 107ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: the topic > starts empty with both paths offered and polish waiting for words 24ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > writes from today's topic, talking points and the user's profile 49ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > then offers another take, sending the current one to avoid, and turns polish off 45ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > includes what they typed in 'Anything our suggestion should include?' 80ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > is instant and free on intro days: our onboarding script, no AI call 20ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > opens intro days with the suggestion already in, ready for another take 10ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > reuses the suggestion saved for today instead of calling again 18ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > saves a new suggestion for next time 24ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > falls back to a talking-point starter with [blanks] when the writer is down 22ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > falls back the same way when offline 21ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > shows the writer's clarifying question instead of changing the text 21ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > replacing their own words can be undone 133ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > keeps their original draft as the undo target across several takes 120ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: reopening a saved suggestion > still knows it's ours: no polish, and the next tap is another take 22ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: reopening a saved suggestion > calls for a fresh one instead of putting back the same text 68ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Import .txt > imports a file, one sentence per line, and the same file twice 34ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Import .txt > is locked while the writer is busy 20ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > needs a few words of their own first 80ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > sends their draft in polish mode and shows the polished version 237ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > doesn't send the suggestion box text with a polish 128ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > can be undone back to exactly what they typed 125ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > works again once they edit the polished version 184ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > becomes available after they edit our suggestion 47ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > does a quick local tidy when the writer is down 92ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > shows an error instead when the tidy would change nothing 76ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > saves one teleprompter line per sentence 66ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > locks the box and Save while writing 28ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > Escape closes without saving 8ms
+
+ Test Files  5 passed (5)
+      Tests  85 passed (85)
+   Start at  21:35:49
+   Duration  3.28s (tests 39%, environment 29%, setup 14%, import 12%, transform 6%)
+
+    Isolate  5 workers spawned · ~395ms startup each (spawn + environment, per file)
+             at least ~264ms faster with isolate: false — reuses workers across files instead of one per file
+
