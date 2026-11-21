@@ -196,7 +196,8 @@ export function templateSuggestion(r: Pick<WriteRequest, "name" | "niche" | "tit
   return [hi, `Today: ${stop(r.request || r.title).toLowerCase()}.`, ...body, "That's it from me. See you tomorrow!"];
 }
 
-const FILLER = /\b(?:um+|uh+|erm|you know|i mean|basically|literally|like,)\s*,?\s*/gi;
+// Whole words only: "um" must not eat the start of "umbrella".
+const FILLER = /\b(?:(?:um+|uh+|erm|you know|i mean|basically|literally)\b|like,)\s*,?\s*/gi;
 
 /** A light polish without AI: cut filler and doubled words, one tidy sentence per line. */
 export function tidyDraft(draft: string): string[] {
