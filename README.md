@@ -47,11 +47,21 @@ node --experimental-strip-types scripts/gen-seed.ts
 
 ## Write it for me
 
-The script editor's **Write it for me** button (with an optional "What do you want to talk about?" box) calls `POST /api/script`, which makes one Claude call
-(`SCRIPT_SYSTEM` in `src/lib/write-script.ts` is the script writer's brief; off-topic asks get a polite redirect, and a vague one can get a single clarifying question). It uses today's prompt, talking points and skill, the
-user's name, niche and platform, and the level's target length. Anything already typed is kept and
-tightened ("Polish it for me"), and an Undo in the toast restores it. It needs `ANTHROPIC_API_KEY` on
-the server and a signed-in user; demo builds without a key get a simple template script instead.
+The script editor's **Write it for me** button (with an optional "What do you want to talk about?" box)
+calls `POST /api/script`. `SCRIPT_SYSTEM` in `src/lib/write-script.ts` is the script writer's brief:
+it writes from today's prompt, the user's profile, the level's target length and anything already
+typed, asks one clarifying question when it must, and politely redirects off-topic asks. An Undo in
+the toast restores the previous text. Signed-in users only.
+
+Set one key on the server (`src/lib/ai-script.ts` picks the provider):
+
+- `OPENROUTER_API_KEY` (free, from openrouter.ai/keys): tries free models in order, moving on when one
+  is rate-limited or fails. Free models allow 20 requests a minute and **50 a day for the whole
+  account** (1000 a day once $10 of credit has been bought). Free models change, so
+  `OPENROUTER_MODEL` (comma-separated) can replace the default list.
+- `ANTHROPIC_API_KEY`: Claude, used when no OpenRouter key is set.
+
+Demo builds with neither key get a simple template script instead.
 
 ## Still to build (per the launch plan)
 
