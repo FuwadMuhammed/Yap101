@@ -15,7 +15,7 @@ import type { WriteRequest, WriteResult } from "@/lib/write-script";
 const WRITE_ERRORS: Record<string, string> = {
   signin: "Sign in to have us write your script.",
   setup: "Script writing isn't switched on yet.",
-  busy: "Lots of people are writing right now. Try again in a minute.",
+  busy: "Script writing is busy right now. Try again in a little while.",
   refused: "We couldn't write that one. Try changing your draft.",
 };
 
