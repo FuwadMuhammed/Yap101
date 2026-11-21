@@ -1,0 +1,70 @@
+{
+  "at": "2026-11-21T22:33:41.308Z",
+  "results": [
+    {
+      "id": "X1",
+      "title": "Android back gesture with the editor open and unsaved text",
+      "kind": "FINDING",
+      "severity": "P2",
+      "actual": "Back left the record screen (now /home) instead of closing the sheet; no warning; draft kept=false"
+    },
+    {
+      "id": "X2",
+      "title": "Reload the page with unsaved text in the editor",
+      "kind": "FINDING",
+      "severity": "P3",
+      "actual": "after reload the unsaved text is gone (no draft autosave, no beforeunload warning)"
+    },
+    {
+      "id": "X3",
+      "title": "Change level after saving scripts (re-done onboarding)",
+      "kind": "FINDING",
+      "severity": "P3",
+      "actual": "new day 2 (id 102) shows old script=false; script still stored under ids [\"2\"] and still sent to the AI as \"previous\""
+    },
+    {
+      "id": "X4",
+      "title": "There's no way to delete a saved script",
+      "kind": "FINDING",
+      "severity": "P3",
+      "actual": "cleared box → Save disabled=true; after switching to \"My own words\" and reloading, the day reopens in script mode=true with the old script"
+    },
+    {
+      "id": "X5",
+      "title": "Rotate/resize the phone mid-edit",
+      "kind": "OK",
+      "actual": "text kept=true; Save visible in landscape=true; overflow 0px"
+    },
+    {
+      "id": "X6",
+      "title": "Paste Windows line endings and tabs",
+      "kind": "OK",
+      "actual": "[\"Line one.\",\"Line two.\",\"Line three.\"]"
+    },
+    {
+      "id": "X7",
+      "title": "Draft length boundary: 3,000 vs 3,001 characters",
+      "kind": "OK",
+      "actual": "3,000 chars → Polish enabled=true; 3,001 → disabled=true"
+    },
+    {
+      "id": "X8",
+      "title": "Steer box: 500-character cap and emoji",
+      "kind": "OK",
+      "actual": "steer box holds 500 UTF-16 units (cap 500); suggestion produced"
+    },
+    {
+      "id": "X9",
+      "title": "Change of mind: suggestion → own edit → undo bar gone → Polish → Undo",
+      "kind": "OK",
+      "severity": "P1",
+      "actual": "undo after polish returns the edited suggestion exactly=true"
+    },
+    {
+      "id": "X10",
+      "title": "Day 30 'Introduce yourself, again' reuses the day-30 onboarding script",
+      "kind": "OK",
+      "actual": "day-30 script shown=true"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "at": "2026-11-21T22:34:07.776Z",
+  "engine": "Chromium only (Firefox/WebKit not installed)",
+  "results": [
+    {
+      "device": "iPhone SE",
+      "viewport": "320×568",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "iPhone 13",
+      "viewport": "390×664",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "iPhone 15 Pro Max",
+      "viewport": "430×739",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "Pixel 7",
+      "viewport": "412×839",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "Galaxy S9+",
+      "viewport": "320×658",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "iPad Mini",
+      "viewport": "768×1024",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "Galaxy Tab S4",
+      "viewport": "712×1138",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    },
+    {
+      "device": "Fold 280px",
+      "viewport": "280×653",
+      "status": "PASS",
+      "actual": "overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0"
+    }
+  ]
+}
