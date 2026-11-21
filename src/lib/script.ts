@@ -88,6 +88,32 @@ export function saveScript(promptId: number, lines: string[] | null) {
   }
 }
 
+// --- Our last suggestion for each day ---------------------------------------------------
+// So "Use our suggestion" is instant the second time (and doesn't spend a guest's allowance).
+
+const SUGGEST_KEY = "yap101-suggestions";
+
+export function loadSuggestion(promptId: number): string[] | null {
+  try {
+    const s = (JSON.parse(localStorage.getItem(SUGGEST_KEY) ?? "{}") as Record<string, unknown>)[promptId];
+    return Array.isArray(s) && s.length && s.every((l) => typeof l === "string") ? (s as string[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSuggestion(promptId: number, lines: string[]) {
+  try {
+    const all = JSON.parse(localStorage.getItem(SUGGEST_KEY) ?? "{}") as Record<string, string[]>;
+    all[promptId] = lines;
+    // Keep the newest 40 days.
+    const keep = Object.keys(all).sort((a, b) => Number(b) - Number(a)).slice(0, 40);
+    localStorage.setItem(SUGGEST_KEY, JSON.stringify(Object.fromEntries(keep.map((k) => [k, all[k]]))));
+  } catch {
+    /* private mode */
+  }
+}
+
 /** Typed or pasted text → teleprompter lines: one per line, long paragraphs split into sentences. */
 export function textToLines(text: string): string[] {
   return text

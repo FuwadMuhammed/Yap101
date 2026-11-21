@@ -4,11 +4,13 @@ import { aiProvider, AiBusyError, AiKeyError, writeScript } from "@/lib/ai-scrip
 import { envDemo } from "@/lib/data/mode";
 import { clientIp, GUEST_COOKIE_NAME, GUEST_DAILY_SCRIPTS, guestUsed, recordGuestScript } from "@/lib/guest-limit";
 import { createClient } from "@/lib/supabase/server";
-import { demoWrittenScript, parseWriteRequest, type WriteResult } from "@/lib/write-script";
+import { demoWrittenScript, parseWriteRequest, tidyDraft, type WriteResult } from "@/lib/write-script";
 
-// "Write it for me" in the script editor: one AI call turns today's prompt, the user's
-// profile, their request and anything they already typed into a short teleprompter script
-// (or one clarifying question, or a polite redirect for off-topic asks). See lib/ai-script.
+// The script editor's two AI buttons, one call each (see lib/ai-script):
+//  - mode "suggest" ("Use our suggestion"): today's prompt + talking points + the user's profile
+//    → a fresh script (or, rarely, one clarifying question).
+//  - mode "polish" ("Polish it for me"): the user's own draft → the same words, tidied.
+// Either can get a polite redirect for off-topic asks.
 // API keys stay on the server. Signed-in users can use it freely; guests get a few a day.
 
 export async function POST(request: Request) {
@@ -34,7 +36,9 @@ export async function POST(request: Request) {
   if (guest && used >= GUEST_DAILY_SCRIPTS) return NextResponse.json({ error: "guest_limit" }, { status: 429 });
 
   try {
-    const result = await writeScript(input);
+    let result = await writeScript(input);
+    // Polish never asks back: their draft is the brief. Fall back to a light tidy instead.
+    if (input.mode === "polish" && result.kind === "question") result = { kind: "script", lines: tidyDraft(input.draft), message: "" };
     const res = NextResponse.json(result);
     // Only finished scripts count towards a guest's allowance, not questions or redirects.
     if (guest && result.kind === "script") {
