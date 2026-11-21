@@ -6,6 +6,8 @@ import { clientIp, GUEST_COOKIE_NAME, GUEST_DAILY_SCRIPTS, guestUsed, recordGues
 import { createClient } from "@/lib/supabase/server";
 import { demoWrittenScript, parseWriteRequest, tidyDraft, type WriteResult } from "@/lib/write-script";
 
+const NOTHING_TO_POLISH = "There isn't much to polish yet. Add a sentence or two about what you want to say, and try again.";
+
 // The script editor's two AI buttons, one call each (see lib/ai-script):
 //  - mode "suggest" ("Use our suggestion"): today's prompt + talking points + the user's profile
 //    → a fresh script (or, rarely, one clarifying question).
@@ -19,7 +21,11 @@ export async function POST(request: Request) {
 
   const provider = aiProvider();
   // Local demo build without a key: a template script, so the button can still be tried.
-  if (envDemo && !provider) return NextResponse.json({ kind: "script", lines: demoWrittenScript(input), message: "", demo: true } satisfies WriteResult & { demo: true });
+  if (envDemo && !provider) {
+    const lines = demoWrittenScript(input);
+    if (!lines.length) return NextResponse.json({ kind: "question", lines: [], message: NOTHING_TO_POLISH } satisfies WriteResult);
+    return NextResponse.json({ kind: "script", lines, message: "", demo: true } satisfies WriteResult & { demo: true });
+  }
   if (!provider) return NextResponse.json({ error: "setup" }, { status: 503 });
 
   // Anyone not signed in (guests, and every visitor of a demo build) is a guest.
@@ -38,7 +44,10 @@ export async function POST(request: Request) {
   try {
     let result = await writeScript(input);
     // Polish never asks back: their draft is the brief. Fall back to a light tidy instead.
-    if (input.mode === "polish" && result.kind === "question") result = { kind: "script", lines: tidyDraft(input.draft), message: "" };
+    if (input.mode === "polish" && result.kind === "question") {
+      const lines = tidyDraft(input.draft);
+      result = lines.length ? { kind: "script", lines, message: "" } : { kind: "question", lines: [], message: NOTHING_TO_POLISH };
+    }
     const res = NextResponse.json(result);
     // Only finished scripts count towards a guest's allowance, not questions or redirects.
     if (guest && result.kind === "script") {

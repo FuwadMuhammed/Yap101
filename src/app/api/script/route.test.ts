@@ -62,6 +62,14 @@ describe("POST /api/script", () => {
     expect(await res.json()).toEqual({ kind: "script", lines: ["Hi I'm Sam and I make videos."], message: "" });
   });
 
+  it("polish: a draft that is only filler gets a nudge, not an empty script", async () => {
+    h.writeScript.mockResolvedValue({ kind: "question", lines: [], message: "?" });
+    expect(await (await call({ ...polish, draft: "um uh um erm" })).json()).toMatchObject({ kind: "question", message: expect.stringContaining("much to polish") });
+    h.demo = true;
+    h.provider = null;
+    expect(await (await call({ ...polish, draft: "um uh um erm" })).json()).toMatchObject({ kind: "question" });
+  });
+
   it("suggest: a clarifying question is passed to the user", async () => {
     h.writeScript.mockResolvedValue({ kind: "question", lines: [], message: "What's your niche?" });
     expect(await (await call(suggest)).json()).toMatchObject({ kind: "question", message: "What's your niche?" });

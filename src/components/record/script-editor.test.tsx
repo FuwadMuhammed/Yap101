@@ -206,6 +206,51 @@ describe("ScriptEditor: Use our suggestion", () => {
   });
 });
 
+describe("ScriptEditor: reopening a saved suggestion", () => {
+  it("still knows it's ours: no polish, and the next tap is another take", async () => {
+    saveSuggestion(2, ["Saved earlier."]);
+    const { sent } = api(script("A new take."));
+    const { user, box } = open({ initial: ["Saved earlier."] });
+    expect(btn("Polish it for me")).toBeDisabled();
+    await user.click(btn("Try another"));
+    await waitFor(() => expect(box.value).toBe("A new take."));
+    expect(sent().avoid).toBe("Saved earlier.");
+  });
+
+  it("calls for a fresh one instead of putting back the same text", async () => {
+    saveSuggestion(2, ["Same text."]);
+    const { f } = api(script("Fresh."));
+    // They cleared the box's AI history by editing, then typed the same thing back.
+    const { user, box } = open({ initial: ["Same text?"] });
+    await user.clear(box);
+    await user.type(box, "Same text.");
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(box.value).toBe("Fresh."));
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ScriptEditor: Import .txt", () => {
+  const file = (text: string) => new File([text], "script.txt", { type: "text/plain" });
+
+  it("imports a file, one sentence per line, and the same file twice", async () => {
+    const { user, box } = open();
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await user.upload(input, file("Hi there. I'm Sam."));
+    await waitFor(() => expect(box.value).toBe("Hi there.\nI'm Sam."));
+    await user.clear(box);
+    await user.upload(input, file("Hi there. I'm Sam."));
+    await waitFor(() => expect(box.value).toBe("Hi there.\nI'm Sam."));
+  });
+
+  it("is locked while the writer is busy", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+    const { user } = open();
+    await user.click(btn("Use our suggestion"));
+    expect(btn(/Import .txt/)).toBeDisabled();
+  });
+});
+
 describe("ScriptEditor: Polish it for me", () => {
   it("needs a few words of their own first", async () => {
     const { user, box } = open();

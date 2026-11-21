@@ -57,9 +57,11 @@ export function ScriptEditor({
   /** The writer's clarifying question or redirect, shown under the "anything to add" box. */
   const [coach, setCoach] = useState<string | null>(null);
   // The last text we put in the box, what kind it was, and what was there before (for undo).
+  // A script they saved without changing our suggestion still counts as our suggestion.
   const [ai, setAi] = useState<{ text: string; source: Source; before: string } | null>(() => {
     const t = linesToText(initial);
-    return t && suggested && t === linesToText(suggested) ? { text: t, source: "suggestion", before: "" } : null;
+    const ours = [suggested, loadSuggestion(prompt.id)].some((s) => s && linesToText(s) === t);
+    return t && ours ? { text: t, source: "suggestion", before: "" } : null;
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -156,7 +158,7 @@ export function ScriptEditor({
     const another = showingSuggestion;
     // First tap: the suggestion we already have for today is instant (and free).
     const ready = !another && !ask.trim() ? (loadSuggestion(prompt.id) ?? suggested) : null;
-    if (ready?.length) {
+    if (ready?.length && linesToText(ready) !== text) {
       apply(ready, "suggestion");
       return;
     }
@@ -315,13 +317,17 @@ export function ScriptEditor({
         </form>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <YapButton variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
+          <YapButton variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={Boolean(busy)}>
             <FileUp /> Import .txt
           </YapButton>
-          <input ref={fileRef} type="file" accept=".txt,text/plain" className="hidden" onChange={(e) => void importFile(e.target.files?.[0])} />
+          <input ref={fileRef} type="file" accept=".txt,text/plain" className="hidden" onChange={(e) => {
+              void importFile(e.target.files?.[0]);
+              // So picking the same file again still imports it.
+              e.target.value = "";
+            }} />
         </div>
 
-        <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-paper from-[calc(100%-2rem)] to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <YapButton
             size="xl"
             block

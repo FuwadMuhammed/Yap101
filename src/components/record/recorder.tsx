@@ -611,7 +611,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target ?? estimate ?? 0, firstToday)} XP</span>
           </div>
 
-          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-[calc(100%-2rem)] to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="text-stone mb-3 flex items-center justify-center gap-1.5 text-center text-sm">
               <Lock className="size-3.5" /> Next, your browser asks for {mode === "video" ? "camera and mic" : "mic"} access. Your yap stays private.
             </p>
