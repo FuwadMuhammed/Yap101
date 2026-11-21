@@ -51,7 +51,8 @@ The script editor's **Write it for me** button (with an optional "What do you wa
 calls `POST /api/script`. `SCRIPT_SYSTEM` in `src/lib/write-script.ts` is the script writer's brief:
 it writes from today's prompt, the user's profile, the level's target length and anything already
 typed, asks one clarifying question when it must, and politely redirects off-topic asks. An Undo in
-the toast restores the previous text. Signed-in users only.
+the toast restores the previous text. Signed-in users can use it freely; guests get 3 scripts a day
+(`src/lib/guest-limit.ts`, counted per browser and per IP).
 
 Set one key on the server (`src/lib/ai-script.ts` picks the provider):
 

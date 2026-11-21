@@ -10,6 +10,8 @@ import { REDIRECT_MESSAGE, SCRIPT_SYSTEM, scriptUserMessage, type WriteRequest, 
 
 export class AiBusyError extends Error {}
 export class AiUnavailableError extends Error {}
+/** The API key is missing, wrong or revoked: retrying won't help until it's fixed. */
+export class AiKeyError extends Error {}
 
 export const aiProvider = () => (process.env.OPENROUTER_API_KEY ? "openrouter" : process.env.ANTHROPIC_API_KEY ? "anthropic" : null);
 
@@ -75,6 +77,7 @@ async function viaOpenRouter(input: WriteRequest): Promise<Partial<WriteResult> 
       const out = await askOpenRouter(model, input, left);
       if (out) return out;
     } catch (error) {
+      if (error instanceof AiKeyError) throw error;
       if (error instanceof AiBusyError) busy = true;
       else console.warn(`write-script: ${model} failed`, error instanceof Error ? error.message : error);
     }
@@ -108,6 +111,7 @@ async function askOpenRouter(model: string, input: WriteRequest, timeoutMs: numb
   });
   const data = (await res.json().catch(() => null)) as ChatResponse | null;
   if (res.status === 429 || data?.error?.code === 429) throw new AiBusyError(`${model} rate limited`);
+  if (res.status === 401 || res.status === 403) throw new AiKeyError(`OpenRouter rejected the key (${res.status}): ${data?.error?.message ?? ""}`);
   if (!res.ok || data?.error) throw new AiUnavailableError(`OpenRouter ${res.status}: ${data?.error?.message ?? "no body"}`);
   const choice = data?.choices?.[0];
   const out = parseLoose(choice?.message?.content ?? "");
@@ -167,6 +171,7 @@ async function viaClaude(input: WriteRequest): Promise<Partial<WriteResult> | nu
     return response.parsed_output;
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) throw new AiBusyError("rate limited");
+    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) throw new AiKeyError(`Claude rejected the key: ${error.message}`);
     if (error instanceof Anthropic.APIError) throw new AiUnavailableError(`Claude ${error.status}: ${error.message}`);
     throw error;
   }

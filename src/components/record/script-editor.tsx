@@ -13,7 +13,7 @@ import { MAX_SECONDS, type Prompt } from "@/lib/yap";
 import type { WriteRequest, WriteResult } from "@/lib/write-script";
 
 const WRITE_ERRORS: Record<string, string> = {
-  signin: "Sign in to have us write your script.",
+  guest_limit: "That's today's free scripts for guests. Sign in to write more, or come back tomorrow.",
   setup: "Script writing isn't switched on yet.",
   busy: "Script writing is busy right now. Try again in a little while.",
   refused: "We couldn't write that one. Try changing your draft.",

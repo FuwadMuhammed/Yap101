@@ -1,13 +1,15 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { aiProvider, AiBusyError, writeScript } from "@/lib/ai-script";
+import { aiProvider, AiBusyError, AiKeyError, writeScript } from "@/lib/ai-script";
 import { envDemo } from "@/lib/data/mode";
+import { clientIp, GUEST_COOKIE_NAME, GUEST_DAILY_SCRIPTS, guestUsed, recordGuestScript } from "@/lib/guest-limit";
 import { createClient } from "@/lib/supabase/server";
 import { demoWrittenScript, parseWriteRequest, type WriteResult } from "@/lib/write-script";
 
 // "Write it for me" in the script editor: one AI call turns today's prompt, the user's
 // profile, their request and anything they already typed into a short teleprompter script
 // (or one clarifying question, or a polite redirect for off-topic asks). See lib/ai-script.
-// API keys stay on the server. Signed-in users only, so strangers can't spend them.
+// API keys stay on the server. Signed-in users can use it freely; guests get a few a day.
 
 export async function POST(request: Request) {
   const input = parseWriteRequest(await request.json().catch(() => null));
@@ -18,17 +20,33 @@ export async function POST(request: Request) {
   if (envDemo && !provider) return NextResponse.json({ kind: "script", lines: demoWrittenScript(input), message: "", demo: true } satisfies WriteResult & { demo: true });
   if (!provider) return NextResponse.json({ error: "setup" }, { status: 503 });
 
+  // Anyone not signed in (guests, and every visitor of a demo build) is a guest.
+  let guest = true;
   if (!envDemo) {
     const {
       data: { user },
     } = await (await createClient()).auth.getUser();
-    if (!user) return NextResponse.json({ error: "signin" }, { status: 401 });
+    guest = !user;
   }
+  const jar = await cookies();
+  const ip = clientIp(request);
+  const used = guest ? guestUsed(ip, jar.get(GUEST_COOKIE_NAME)?.value) : 0;
+  if (guest && used >= GUEST_DAILY_SCRIPTS) return NextResponse.json({ error: "guest_limit" }, { status: 429 });
 
   try {
-    return NextResponse.json(await writeScript(input));
+    const result = await writeScript(input);
+    const res = NextResponse.json(result);
+    // Only finished scripts count towards a guest's allowance, not questions or redirects.
+    if (guest && result.kind === "script") {
+      res.cookies.set(GUEST_COOKIE_NAME, recordGuestScript(ip, used), { httpOnly: true, sameSite: "lax", secure: true, path: "/api/script", maxAge: 60 * 60 * 24 });
+    }
+    return res;
   } catch (error) {
     if (error instanceof AiBusyError) return NextResponse.json({ error: "busy" }, { status: 429 });
+    if (error instanceof AiKeyError) {
+      console.error(`write-script: ${error.message}. Check the API key in the server's environment variables.`);
+      return NextResponse.json({ error: "setup" }, { status: 503 });
+    }
     console.error(`write-script (${provider}) failed:`, error);
     return NextResponse.json({ error: "upstream" }, { status: 502 });
   }
