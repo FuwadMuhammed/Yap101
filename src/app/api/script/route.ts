@@ -4,7 +4,13 @@ import { aiProvider, AiBusyError, AiKeyError, writeScript } from "@/lib/ai-scrip
 import { envDemo } from "@/lib/data/mode";
 import { clientIp, GUEST_COOKIE_NAME, GUEST_DAILY_SCRIPTS, guestUsed, recordGuestScript } from "@/lib/guest-limit";
 import { createClient } from "@/lib/supabase/server";
-import { demoWrittenScript, parseWriteRequest, tidyDraft, type WriteResult } from "@/lib/write-script";
+import { demoWrittenScript, MAX_DRAFT_CHARS, parseWriteRequest, tidyDraft, type WriteResult } from "@/lib/write-script";
+
+/** The AI gets up to 50 s (see lib/ai-script); give the function room to answer after it. */
+export const maxDuration = 60;
+
+/** A real request is a few KB; anything far bigger is not from the editor. */
+const MAX_BODY_BYTES = 32_000;
 
 const NOTHING_TO_POLISH = "There isn't much to polish yet. Add a sentence or two about what you want to say, and try again.";
 
@@ -15,8 +21,34 @@ const NOTHING_TO_POLISH = "There isn't much to polish yet. Add a sentence or two
 // Either can get a polite redirect for off-topic asks.
 // API keys stay on the server. Signed-in users can use it freely; guests get a few a day.
 
+/** Only our own pages may call this: a cross-site form or script would spend our AI quota. */
+function crossSite(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return false; // same-origin GET-less fetches and server tools send none
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  try {
+    return new URL(origin).host !== host;
+  } catch {
+    return true;
+  }
+}
+
 export async function POST(request: Request) {
-  const input = parseWriteRequest(await request.json().catch(() => null));
+  if (crossSite(request)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  if (!request.headers.get("content-type")?.includes("application/json")) return NextResponse.json({ error: "bad_request" }, { status: 415 });
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return NextResponse.json({ error: "too_large" }, { status: 413 });
+  const text = await request.text().catch(() => "");
+  if (text.length > MAX_BODY_BYTES) return NextResponse.json({ error: "too_large" }, { status: 413 });
+  let body: unknown = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    /* handled below */
+  }
+  // A draft past the limit is refused, never silently cut: cutting would lose the user's words.
+  const draft = (body as { draft?: unknown } | null)?.draft;
+  if (typeof draft === "string" && draft.trim().length > MAX_DRAFT_CHARS) return NextResponse.json({ error: "too_long" }, { status: 413 });
+  const input = parseWriteRequest(body);
   if (!input) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
   const provider = aiProvider();

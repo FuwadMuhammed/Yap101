@@ -8,16 +8,18 @@ import { api } from "@/lib/data";
 import type { Profile } from "@/lib/data/types";
 import { GOAL_OPTIONS, LEVEL_OPTIONS, labelFor, nicheList, PLATFORMS } from "@/lib/options";
 import { buildScript, estimateSeconds } from "@/lib/prompter";
-import { linesToText, loadSuggestion, otherScripts, saveSuggestion, textToLines } from "@/lib/script";
+import { isCachedSuggestion, linesToText, loadSuggestion, otherScripts, profileSig, saveSuggestion, textToLines } from "@/lib/script";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { MAX_SECONDS, type Prompt } from "@/lib/yap";
-import { MIN_POLISH_WORDS, templateSuggestion, tidyDraft, wordCount, type WriteMode, type WriteRequest, type WriteResult } from "@/lib/write-script";
+import { MAX_DRAFT_CHARS, MIN_POLISH_WORDS, templateSuggestion, tidyDraft, wordCount, type WriteMode, type WriteRequest, type WriteResult } from "@/lib/write-script";
 
 const WRITE_ERRORS: Record<string, string> = {
   guest_limit: "That's today's free AI scripts for guests. Sign in for more, or come back tomorrow.",
   setup: "Our script writer isn't switched on yet.",
   busy: "Our script writer is busy right now.",
   refused: "We couldn't write that one. Try changing your draft.",
+  too_long: "That's too long to polish. Cut it down a little and try again.",
+  unauthorized: "Your session ended. Sign in again to use the script writer.",
 };
 
 /** Where the text in the box came from. Only unedited AI text counts as "suggestion"/"polished". */
@@ -60,12 +62,14 @@ export function ScriptEditor({
   // A script they saved without changing our suggestion still counts as our suggestion.
   const [ai, setAi] = useState<{ text: string; source: Source; before: string } | null>(() => {
     const t = linesToText(initial);
-    const ours = [suggested, loadSuggestion(prompt.id)].some((s) => s && linesToText(s) === t);
+    const ours = Boolean(suggested && linesToText(suggested) === t) || isCachedSuggestion(prompt.id, initial);
     return t && ours ? { text: t, source: "suggestion", before: "" } : null;
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const profileRef = useRef<Promise<Profile | null> | null>(null);
+  /** The request in flight, so Cancel (or closing the sheet) can stop it. */
+  const abortRef = useRef<AbortController | null>(null);
 
   const lines = textToLines(text);
   const words = wordCount(text);
@@ -74,9 +78,15 @@ export function ScriptEditor({
   /** The box still holds exactly what we put there. */
   const untouched = ai && ai.text === text ? ai : null;
   const showingSuggestion = untouched?.source === "suggestion";
-  const canPolish = !busy && !untouched && words >= MIN_POLISH_WORDS;
+  const draftTooLong = text.trim().length > MAX_DRAFT_CHARS;
+  const canPolish = !busy && !untouched && words >= MIN_POLISH_WORDS && !draftTooLong;
 
   useScrollLock();
+  // Load the profile early so the first tap doesn't wait for it; stop any request on close.
+  useEffect(() => {
+    profileRef.current ??= api.getProfile().catch(() => null);
+    return () => abortRef.current?.abort();
+  }, []);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
@@ -137,18 +147,28 @@ export function ScriptEditor({
 
   /** One AI call. Returns lines, or null after telling the user why (question, redirect or error). */
   async function callWriter(body: WriteRequest): Promise<string[] | { error: string } | null> {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
-      const res = await fetch("/api/script", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch("/api/script", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal });
       const data = (await res.json().catch(() => ({}))) as Partial<WriteResult> & { error?: string };
       if (res.ok && (data.kind === "question" || data.kind === "redirect") && data.message) {
         setCoach(data.message);
         return null;
       }
-      if (!res.ok || !data.lines?.length) return { error: data.error ?? "upstream" };
+      if (!res.ok || !data.lines?.length) return { error: data.error ?? (res.status === 401 ? "unauthorized" : "upstream") };
       return data.lines;
     } catch {
-      return { error: "offline" };
+      return { error: ctrl.signal.aborted ? "aborted" : "offline" };
+    } finally {
+      if (abortRef.current === ctrl) abortRef.current = null;
     }
+  }
+
+  /** Stops the request in flight. Nothing in the box changes. */
+  function cancel() {
+    abortRef.current?.abort();
   }
 
   const reason = (error: string) => WRITE_ERRORS[error] ?? (error === "offline" ? "We couldn't reach our script writer." : "Our script writer had a hiccup.");
@@ -156,24 +176,26 @@ export function ScriptEditor({
   async function suggest() {
     if (busy) return;
     const another = showingSuggestion;
-    // First tap: the suggestion we already have for today is instant (and free).
-    const ready = !another && !ask.trim() ? (loadSuggestion(prompt.id) ?? suggested) : null;
-    if (ready?.length && linesToText(ready) !== text) {
-      apply(ready, "suggestion");
-      return;
-    }
     setBusy("suggest");
     setCoach(null);
     try {
       const body = await context("suggest");
+      // Cached for this day and this profile (or the onboarding script): instant and free.
+      const sig = profileSig(body);
+      const ready = !another && !ask.trim() ? (loadSuggestion(prompt.id, sig) ?? suggested) : null;
+      if (ready?.length && linesToText(ready) !== text) {
+        apply(ready, "suggestion");
+        return;
+      }
       const out = await callWriter(body);
       if (!out) return;
       if (Array.isArray(out)) {
-        saveSuggestion(prompt.id, out);
+        saveSuggestion(prompt.id, out, sig);
         apply(out, "suggestion");
         return;
       }
-      if (out.error === "refused") return void toast.error(reason(out.error));
+      if (out.error === "aborted") return;
+      if (out.error === "refused" || out.error === "unauthorized") return void toast.error(reason(out.error));
       // Still give them something to work with: a starter built from the talking points.
       if (another) return void toast.error(`${reason(out.error)} Try another one in a little while.`);
       apply(templateSuggestion(body), "suggestion");
@@ -195,7 +217,8 @@ export function ScriptEditor({
         apply(out, "polished");
         return;
       }
-      if (out.error === "refused") return void toast.error(reason(out.error));
+      if (out.error === "aborted") return;
+      if (out.error === "refused" || out.error === "unauthorized" || out.error === "too_long") return void toast.error(reason(out.error));
       // The full polish is out of reach: a quick tidy (filler out, one sentence per line) still helps.
       const tidy = tidyDraft(text);
       if (tidy.length && linesToText(tidy) !== text) {
@@ -219,6 +242,8 @@ export function ScriptEditor({
           ? "Polished. Read it out loud once, then save."
           : words < MIN_POLISH_WORDS
             ? "Type a few more words and we'll polish them."
+            : draftTooLong
+              ? `Too long to polish (over ${MAX_DRAFT_CHARS.toLocaleString("en")} characters). Cut it down first.`
             : "Happy with it? Save. Or polish it: we keep your words and meaning.";
 
   return (
@@ -259,7 +284,14 @@ export function ScriptEditor({
             {busy === "polish" ? "Polishing…" : "Polish it for me"}
           </YapButton>
         </div>
-        <p role="status" aria-live="polite" className="text-stone mt-2 px-1 text-sm leading-snug">{hint}</p>
+        <div className="mt-2 flex items-start justify-between gap-3 px-1">
+          <p role="status" aria-live="polite" className="text-stone text-sm leading-snug">{hint}</p>
+          {busy && (
+            <button onClick={cancel} className="text-stone hover:text-ink shrink-0 text-sm font-semibold underline-offset-4 hover:underline">
+              Cancel
+            </button>
+          )}
+        </div>
 
         {untouched && untouched.before.trim() && (
           <div className="bg-sun/40 mt-3 flex items-center justify-between gap-3 rounded-[20px] px-4 py-2.5 text-sm">

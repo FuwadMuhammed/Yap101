@@ -4,6 +4,8 @@ import type { Goal, Level, Prompt } from "@/lib/yap";
 export type Media = "video" | "audio";
 
 export type Profile = {
+  /** The account id (Supabase). Demo profiles have none. */
+  id?: string;
   display_name: string | null;
   niche: string | null;
   platform: string | null;

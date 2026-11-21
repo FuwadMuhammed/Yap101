@@ -38,6 +38,8 @@ export type WriteRequest = {
 
 /** Polish needs something to work with: a few words of their own. */
 export const MIN_POLISH_WORDS = 4;
+/** The longest draft we polish (about 500 words, far past a 60-second yap). Longer ones are refused, never cut. */
+export const MAX_DRAFT_CHARS = 3000;
 export const wordCount = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
 /** What Claude sends back (the JSON schema in /api/script matches this). */
@@ -61,7 +63,7 @@ export function parseWriteRequest(body: unknown): WriteRequest | null {
   if (!title) return null;
   const list = (v: unknown, n: number, max: number) => (Array.isArray(v) ? v.map((x) => str(x, max)).filter(Boolean).slice(0, n) : []);
   const day = Math.round(Number(b.challengeDay));
-  const draft = str(b.draft, 3000);
+  const draft = str(b.draft, MAX_DRAFT_CHARS);
   // Older clients sent no mode: a draft meant polish, an empty box meant write.
   const mode: WriteMode = b.mode === "polish" || b.mode === "suggest" ? b.mode : draft ? "polish" : "suggest";
   if (mode === "polish" && wordCount(draft) < MIN_POLISH_WORDS) return null;
@@ -102,12 +104,12 @@ Every request names its job in <task>.
 
 ## suggest ("Use our suggestion")
 Write a ready-to-read script for today's prompt from what you know about the user.
-- Cover today's talking points in order, in their voice, and show off today's speaking skill.
+- Cover today's talking points in order, in their voice. Today's speaking skill and goal reminder are coaching notes for how to deliver it: let the script make them easy (short lines for "slow down", a strong first line for a hook), but never say them or paraphrase them in the script. No line like "picture one friend" or "if I stumble, I'll keep going".
 - Make it personal with their profile: their name, niche, platform and goal where they fit naturally.
 - If <request> has extra context or an angle, use it; it outranks the profile. If it names a different topic, write about that topic instead.
 - "Suggest something" or "give me something interesting": pick one topic that connects to their niche, goal or today's prompt.
 - If <avoid> is given, the user wants another option: take a clearly different angle, opening and wording.
-- Where a personal detail would help and you don't have it, leave a short placeholder in square brackets like [the moment you started] for them to fill in. A placeholder is far better than an invented fact.
+- You know nothing about their life beyond what you are given. Never state an event, a memory, a habit, a feeling at a particular moment, a result or an opinion as theirs unless it is in their profile, request or draft. Every such detail goes in a short square-bracket placeholder for them to fill in, like [the moment it clicked] or [what went wrong]. Story prompts are no exception: give the shape of the story with placeholders, never a made-up story. General statements that are true for anyone are fine.
 - Always write a script. Only ask a question if the request is unreadable.
 
 ## polish ("Polish it for me")
@@ -150,7 +152,18 @@ Reply in the JSON format you are given, with no explanation of how you wrote it.
 const WORDS: Record<number, string> = { 15: "30 to 40", 30: "60 to 75", 45: "90 to 110", 60: "120 to 140" };
 const wordsFor = (s: number) => WORDS[s] ?? `about ${Math.round((s / 60) * 130)}`;
 
-export function scriptUserMessage(r: WriteRequest) {
+/** Our prompt's own section tags. User text may never open or close one (it could forge a section). */
+const SECTION_TAG = /<\s*\/?\s*(profile|todays_prompt|previous_scripts|draft|request|task|avoid)\s*>/gi;
+const safe = (s: string) => s.replace(SECTION_TAG, (_m, name: string) => `(${name})`);
+
+export function scriptUserMessage(input: WriteRequest) {
+  // Everything below comes from the user or their device: neutralise our section tags in it.
+  const r: WriteRequest = {
+    ...input,
+    ...Object.fromEntries((["request", "title", "skill", "skillTip", "focus", "name", "niche", "platform", "goal", "level", "draft", "avoid"] as const).map((k) => [k, typeof input[k] === "string" ? safe(input[k] as string) : input[k]])),
+    points: input.points.map(safe),
+    previous: input.previous.map(safe),
+  };
   const profile = [
     r.name && `Name: ${r.name}`,
     r.niche && `Speaking niche: ${r.niche}`,
@@ -162,8 +175,8 @@ export function scriptUserMessage(r: WriteRequest) {
   const today = [
     `Title: ${r.title}`,
     r.points.length && `Talking points:\n${r.points.map((p) => `- ${p}`).join("\n")}`,
-    r.skill && `Speaking skill: ${r.skill}${r.skillTip ? ` (${r.skillTip})` : ""}`,
-    r.focus && `Reminder for their goal: ${r.focus}`,
+    r.skill && `Coaching note, never say this in the script: today's speaking skill is "${r.skill}"${r.skillTip ? ` (${r.skillTip})` : ""}`,
+    r.focus && `Coaching note, never say this in the script: ${r.focus}`,
   ].filter(Boolean);
   return [
     `<profile>\n${profile.length ? profile.join("\n") : "Nothing yet."}\n</profile>`,
@@ -196,8 +209,11 @@ export function templateSuggestion(r: Pick<WriteRequest, "name" | "niche" | "tit
   return [hi, `Today: ${stop(r.request || r.title).toLowerCase()}.`, ...body, "That's it from me. See you tomorrow!"];
 }
 
+// Doubled small words are stutters ("I I", "the the"); others can be meant ("that that", "had had", "bye bye").
+// Word edges are Unicode-aware: "日本語like," is one word, not "日本語" + a filler.
+const STUTTER = /(?<![\p{L}\p{N}'])(i|i'm|a|an|the|and|so|to|it|we|you|my|is|was|but|or|of|in|on|for|with|just|really)(\s+\1(?![\p{L}\p{N}']))+/giu;
 // Whole words only: "um" must not eat the start of "umbrella".
-const FILLER = /\b(?:(?:um+|uh+|erm|you know|i mean|basically|literally)\b|like,)\s*,?\s*/gi;
+const FILLER = /(?<![\p{L}\p{N}'])(?:(?:um+|uh+|erm|you know|i mean|basically|literally)(?![\p{L}\p{N}'])|like,)\s*,?\s*/giu;
 
 /** A light polish without AI: cut filler and doubled words, one tidy sentence per line. */
 export function tidyDraft(draft: string): string[] {
@@ -207,7 +223,7 @@ export function tidyDraft(draft: string): string[] {
     .map((l) =>
       l
         .replace(FILLER, "")
-        .replace(/\b(\w+)(\s+\1\b)+/gi, "$1")
+        .replace(STUTTER, "$1")
         .replace(/\s+([,.!?])/g, "$1")
         .replace(/\s+/g, " ")
         .replace(/^[,\s]+/, "")

@@ -2,6 +2,7 @@
 
 import { DAILY_LIMIT, localDate } from "@/lib/yap";
 import { ALL_PROMPTS } from "@/lib/curriculum";
+import { clearLocalScripts } from "@/lib/script";
 import { endGuest, envDemo } from "./mode";
 import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
@@ -171,6 +172,7 @@ export const demoApi: DataApi = {
     const s = load();
     s.signedIn = false;
     save(s);
+    clearLocalScripts();
     endGuest();
   },
 };
@@ -187,6 +189,7 @@ export async function demoReset() {
   try {
     localStorage.removeItem(KEY);
   } catch {}
+  clearLocalScripts();
   await clipStore("readwrite", (st) => st.clear()).catch(() => {});
   endGuest();
 }

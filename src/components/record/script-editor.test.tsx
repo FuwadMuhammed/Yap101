@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Profile } from "@/lib/data/types";
-import { saveSuggestion } from "@/lib/script";
+import { profileSig, saveSuggestion } from "@/lib/script";
 import type { Prompt } from "@/lib/yap";
 
 const h = vi.hoisted(() => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
@@ -23,6 +23,8 @@ const profile: Profile = {
 vi.mock("@/lib/data", () => ({ api: { getProfile: vi.fn(async () => profile) } }));
 
 const { ScriptEditor } = await import("./script-editor");
+/** The cache signature for the test profile above (labels as the editor sends them). */
+const SIG = profileSig({ name: "Sam", niche: "fitness", platform: "TikTok", goal: "Stop freezing, start talking", level: "Beginner" });
 
 const day = (over: Partial<Prompt> = {}) =>
   ({
@@ -141,7 +143,7 @@ describe("ScriptEditor: Use our suggestion", () => {
   });
 
   it("reuses the suggestion saved for today instead of calling again", async () => {
-    saveSuggestion(2, ["Saved earlier."]);
+    saveSuggestion(2, ["Saved earlier."], SIG);
     const { f } = api();
     const { user, box } = open();
     await user.click(btn("Use our suggestion"));
@@ -154,7 +156,7 @@ describe("ScriptEditor: Use our suggestion", () => {
     const { user, box } = open();
     await user.click(btn("Use our suggestion"));
     await waitFor(() => expect(box.value).toBe("Fresh one."));
-    expect(JSON.parse(localStorage.getItem("yap101-suggestions")!)[2]).toEqual(["Fresh one."]);
+    expect(JSON.parse(localStorage.getItem("yap101-suggestions")!)[2]).toEqual({ sig: SIG, lines: ["Fresh one."] });
   });
 
   it("falls back to a talking-point starter with [blanks] when the writer is down", async () => {
@@ -208,7 +210,7 @@ describe("ScriptEditor: Use our suggestion", () => {
 
 describe("ScriptEditor: reopening a saved suggestion", () => {
   it("still knows it's ours: no polish, and the next tap is another take", async () => {
-    saveSuggestion(2, ["Saved earlier."]);
+    saveSuggestion(2, ["Saved earlier."], SIG);
     const { sent } = api(script("A new take."));
     const { user, box } = open({ initial: ["Saved earlier."] });
     expect(btn("Polish it for me")).toBeDisabled();
@@ -218,7 +220,7 @@ describe("ScriptEditor: reopening a saved suggestion", () => {
   });
 
   it("calls for a fresh one instead of putting back the same text", async () => {
-    saveSuggestion(2, ["Same text."]);
+    saveSuggestion(2, ["Same text."], SIG);
     const { f } = api(script("Fresh."));
     // They cleared the box's AI history by editing, then typed the same thing back.
     const { user, box } = open({ initial: ["Same text?"] });
@@ -329,6 +331,73 @@ describe("ScriptEditor: Polish it for me", () => {
     await user.click(btn("Polish it for me"));
     await waitFor(() => expect(h.toast.error).toHaveBeenCalledWith(expect.stringContaining("free AI scripts for guests")));
     expect(box.value).toBe("I make fitness videos.");
+  });
+});
+
+describe("ScriptEditor: fixes from the QA audit", () => {
+  it("BUG-04: refuses to polish a draft over the limit instead of cutting it", async () => {
+    const { f } = api();
+    const { box } = open();
+    const long = "Sentence here. ".repeat(250); // 3,750 chars
+    await userEvent.setup().click(box);
+    await act(async () => {
+      box.focus();
+    });
+    // Paste-like: set the whole value at once.
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(box, { target: { value: long } });
+    expect(btn("Polish it for me")).toBeDisabled();
+    expect(screen.getByText(/Too long to polish \(over 3,000 characters\)/)).toBeInTheDocument();
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("BUG-21: Cancel stops a slow request and leaves the box as it was", async () => {
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", vi.fn((_u: string, init: RequestInit) => {
+      signal = init.signal ?? undefined;
+      return new Promise<Response>((_r, reject) => signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
+    }));
+    const { user, box } = open();
+    await user.type(box, "my own words for today");
+    await user.click(btn("Polish it for me"));
+    await user.click(await screen.findByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(btn("Polish it for me")).toBeEnabled());
+    expect(signal?.aborted).toBe(true);
+    expect(box.value).toBe("my own words for today");
+    expect(h.toast).not.toHaveBeenCalled();
+    expect(h.toast.error).not.toHaveBeenCalled();
+  });
+
+  it("BUG-11: closing the sheet aborts the request, so a late reply is never cached", async () => {
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", vi.fn((_u: string, init: RequestInit) => {
+      signal = init.signal ?? undefined;
+      return new Promise<Response>(() => {});
+    }));
+    const { user } = open();
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(signal).toBeDefined());
+    const { cleanup } = await import("@testing-library/react");
+    cleanup();
+    expect(signal?.aborted).toBe(true);
+    expect(localStorage.getItem("yap101-suggestions")).toBeNull();
+  });
+
+  it("BUG-12: a cached suggestion for another name is not reused", async () => {
+    saveSuggestion(2, ["Hey, I'm Alex!"], "Alex|fitness|TikTok|x|Beginner");
+    const { f } = api(script("Hey, I'm Sam!"));
+    const { user, box } = open();
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(box.value).toBe("Hey, I'm Sam!"));
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
+  it("BUG-15: an expired session gets a sign-in message, not a fake script", async () => {
+    api({ status: 401, body: { error: "unauthorized" } });
+    const { user, box } = open();
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(h.toast.error).toHaveBeenCalledWith(expect.stringContaining("Sign in again")));
+    expect(box.value).toBe("");
   });
 });
 

@@ -9,7 +9,7 @@ import { YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
 import { api } from "@/lib/data";
 import { nicheForDay } from "@/lib/options";
-import { introScript } from "@/lib/script";
+import { claimDevice, introScript } from "@/lib/script";
 import { DAILY_LIMIT, localDate, trackDay, type Level, type Prompt } from "@/lib/yap";
 
 type Ready = { kind: "ready"; prompt: Prompt; firstToday: boolean; level: Level | null; script: string[] | null };
@@ -27,6 +27,8 @@ function RecordScreen() {
     Promise.all([id ? api.getPromptById(id) : null, api.listYaps({ includeDeleted: true }), api.getProfile()])
       .then(([prompt, yaps, profile]) => {
         if (!prompt) return setState({ kind: "missing" });
+        // Saved scripts belong to one person: wipe them if someone else used this device.
+        claimDevice(profile?.id ?? "local");
         // Days unlock one at a time from the track start; earlier days stay open for catch-up.
         if (profile?.track_start_date) {
           const day = trackDay(profile.track_start_date, today);

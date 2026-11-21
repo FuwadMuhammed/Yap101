@@ -36,22 +36,77 @@ const DEFAULT_OPENROUTER_MODELS = ["nvidia/nemotron-3.5-super-vl:free", "google/
 
 export async function writeScript(input: WriteRequest): Promise<WriteResult> {
   const raw = aiProvider() === "openrouter" ? await viaOpenRouter(input) : await viaClaude(input);
-  return clean(raw);
+  return clean(raw, input);
+}
+
+// --- Cleaning the model's reply ----------------------------------------------------------
+// Free models don't always follow the format. Whatever comes back, the teleprompter should
+// get only lines the user can say: no markdown, no "Here's your script:", no coaching notes
+// read aloud, no wall of text on one line, and never our own instructions.
+
+/** Phrases only our system brief contains: a reply with them is the brief leaking. */
+const BRIEF_MARKERS = [/yap101's personal script writer/i, /^#+\s*(role|output|scope)\b/i, /reply in the json format/i, /<todays_prompt>|<profile>|<request>/i];
+const LEAD_IN = /^(sure|certainly|of course|absolutely|okay|ok|great)\b[^.?!]*[!.:]?$|^(sure|certainly|of course|absolutely|okay|ok|great|here)\b.*\b(script|version|draft)\b.*:$|^here('s| is| are)\b|^(script|polished( version)?|title|draft)\s*:/i;
+const MAX_LINE = 220;
+
+/** Strips markdown markers from one line. */
+const unmark = (l: string) =>
+  l
+    .replace(/^\s*(#{1,6}\s+|[-*•>]\s+|\d+[.)]\s+)/, "")
+    .replace(/(\*\*|__|`)(.+?)\1/g, "$2")
+    .replace(/(^|\s)[*_](\S(?:.*?\S)?)[*_](?=\s|[.,!?]|$)/g, "$1$2")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Long lines are split at sentence ends, then at commas, then between words. */
+function splitLong(line: string): string[] {
+  if (line.length <= MAX_LINE) return [line];
+  const out: string[] = [];
+  for (const sentence of line.split(/(?<=[.!?])\s+/)) {
+    let rest = sentence;
+    while (rest.length > MAX_LINE) {
+      const cut = rest.lastIndexOf(", ", MAX_LINE) > 40 ? rest.lastIndexOf(", ", MAX_LINE) + 1 : rest.lastIndexOf(" ", MAX_LINE) > 40 ? rest.lastIndexOf(" ", MAX_LINE) : MAX_LINE;
+      out.push(rest.slice(0, cut).trim());
+      rest = rest.slice(cut).trim();
+    }
+    if (rest) out.push(rest);
+  }
+  return out;
+}
+
+const STOP = new Set("the a an and or but if so to of in on at for with your you i i'm i'll it its is are be not that this one".split(" "));
+const contentWords = (s: string) => new Set(s.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w)));
+
+/** True when a line mostly repeats a coaching note (skill tip or goal focus) we sent. */
+function echoesCoaching(line: string, notes: string[]) {
+  const words = contentWords(line);
+  return notes.some((note) => {
+    const want = [...contentWords(note)];
+    if (want.length < 3) return false;
+    return want.filter((w) => words.has(w)).length / want.length >= 0.6;
+  });
 }
 
 /** Tidy whatever the model sent back into a WriteResult the editor can use. */
-function clean(out: Partial<WriteResult> | null): WriteResult {
+export function clean(out: Partial<WriteResult> | null, input?: Pick<WriteRequest, "skillTip" | "focus" | "mode" | "draft">): WriteResult {
   if (!out) throw new AiUnavailableError("empty");
   if (out.kind === "redirect") return { kind: "redirect", lines: [], message: REDIRECT_MESSAGE };
+  const raw = [out.message ?? "", ...(Array.isArray(out.lines) ? out.lines : [])].filter((l): l is string => typeof l === "string");
+  if (raw.some((l) => BRIEF_MARKERS.some((m) => m.test(l.trim())))) return { kind: "redirect", lines: [], message: REDIRECT_MESSAGE };
   if (out.kind === "question") {
     const message = (out.message ?? "").trim().slice(0, 300);
     if (message) return { kind: "question", lines: [], message };
   }
-  const lines = (Array.isArray(out.lines) ? out.lines : [])
+  // Coaching notes are only stripped from suggestions: in a polish the words are the user's own.
+  const notes = input && input.mode !== "polish" ? [input.skillTip, input.focus].filter(Boolean) : [];
+  let lines = (Array.isArray(out.lines) ? out.lines : [])
     .filter((l): l is string => typeof l === "string")
-    .map((l) => l.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .slice(0, 20);
+    .map(unmark)
+    .filter((l, i) => l && !(i === 0 && LEAD_IN.test(l)) && !(LEAD_IN.test(l) && l.endsWith(":")))
+    .flatMap(splitLong);
+  const kept = lines.filter((l) => !echoesCoaching(l, notes));
+  if (kept.length >= 2) lines = kept;
+  lines = lines.slice(0, 30);
   if (!lines.length) throw new AiUnavailableError("empty");
   return { kind: "script", lines, message: "" };
 }

@@ -14,7 +14,7 @@ vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => (h.cookie ? 
 
 const load = async () => (await import("@/app/api/script/route")).POST;
 const body = JSON.stringify({ mode: "suggest", title: "Introduce yourself" });
-const req = (headers: Record<string, string> = {}) => new Request("http://localhost/api/script", { method: "POST", headers, body });
+const req = (headers: Record<string, string> = {}) => new Request("http://localhost/api/script", { method: "POST", headers: { "content-type": "application/json", ...headers }, body });
 const slowScript = () => new Promise((r) => setTimeout(() => r({ kind: "script", lines: ["Hi."], message: "" }), 50));
 const cookieOf = (res: Response) => res.headers.get("set-cookie")?.split(";")[0].split("=").slice(1).join("=");
 
@@ -97,7 +97,7 @@ describe("guest allowance (3 a day)", () => {
     const polish = JSON.stringify({ mode: "polish", title: "X", draft: "hi I am Sam and I make videos" });
     const s = [];
     for (const b of [body, polish, body, polish]) {
-      const res = await POST(new Request("http://localhost/api/script", { method: "POST", headers: { "x-real-ip": "10.7.7.7" }, body: b }));
+      const res = await POST(new Request("http://localhost/api/script", { method: "POST", headers: { "x-real-ip": "10.7.7.7", "content-type": "application/json" }, body: b }));
       s.push(res.status);
       h.cookie = cookieOf(res) ?? h.cookie;
     }

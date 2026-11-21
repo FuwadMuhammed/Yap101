@@ -2,6 +2,8 @@
 
 Commit `2a1f30e` · Tested 2026-11-21 (UTC) · No production code was changed during this audit.
 
+> **Round 2:** fix status for every bug, and the new BUG-22 to BUG-25, are in [`round2-report.md`](round2-report.md) §1. In short: all fixed and verified except BUG-01/02/03/08 (guest-only, skipped because guests are being removed) and BUG-20 (needs an AI budget).
+
 **Environments used**
 
 | Name | What it is |

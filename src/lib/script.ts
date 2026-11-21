@@ -52,66 +52,126 @@ export function introScript(p: Prompt, profile: Profile | null): string[] | null
 
 // --- The user's own scripts -------------------------------------------------------
 // Saved per prompt on this device, so an edited script is there next time they open the day.
+// The data belongs to one person: `claimDevice` wipes it when someone else signs in, and
+// sign-out / "Delete my guest data" call `clearLocalScripts`.
 
 const KEY = "yap101-scripts";
+const SUGGEST_KEY = "yap101-suggestions";
+const OWNER_KEY = "yap101-scripts-owner";
 
-function readAll(): Record<string, string[]> {
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** A stored JSON object, or {} for anything missing, broken or of the wrong shape. */
+function readObject(key: string): Record<string, unknown> {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    const v: unknown = JSON.parse(localStorage.getItem(key) ?? "{}");
+    return isRecord(v) ? v : {};
   } catch {
     return {};
   }
 }
 
+const isLines = (v: unknown): v is string[] => Array.isArray(v) && v.length > 0 && v.every((l) => typeof l === "string");
+
+function readAll(): Record<string, string[]> {
+  return Object.fromEntries(Object.entries(readObject(KEY)).filter(([, v]) => isLines(v))) as Record<string, string[]>;
+}
+
+/** Writes a value; on a full store, frees space by dropping cached suggestions and tries once more. */
+function write(key: string, value: unknown): boolean {
+  const json = JSON.stringify(value);
+  try {
+    localStorage.setItem(key, json);
+    return true;
+  } catch {
+    try {
+      if (key === SUGGEST_KEY) return false;
+      localStorage.removeItem(SUGGEST_KEY);
+      localStorage.setItem(key, json);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export function loadScript(promptId: number): string[] | null {
-  const s = readAll()[promptId];
-  return Array.isArray(s) && s.length ? s : null;
+  return readAll()[promptId] ?? null;
 }
 
 /** Scripts saved for other days, newest prompt first, each as one string. */
 export function otherScripts(promptId: number, limit = 5): string[] {
   return Object.entries(readAll())
-    .filter(([id, lines]) => Number(id) !== promptId && Array.isArray(lines) && lines.length)
+    .filter(([id]) => Number(id) !== promptId)
     .sort(([a], [b]) => Number(b) - Number(a))
     .slice(0, limit)
     .map(([, lines]) => lines.join(" "));
 }
 
-export function saveScript(promptId: number, lines: string[] | null) {
+/** Saves (or, with null, removes) a day's script. Returns false when the device couldn't store it. */
+export function saveScript(promptId: number, lines: string[] | null): boolean {
+  const all = readAll();
+  if (lines?.length) all[promptId] = lines;
+  else delete all[promptId];
+  return write(KEY, all);
+}
+
+/** Removes every script and suggestion from this device. */
+export function clearLocalScripts() {
   try {
-    const all = readAll();
-    if (lines?.length) all[promptId] = lines;
-    else delete all[promptId];
-    localStorage.setItem(KEY, JSON.stringify(all));
+    for (const k of [KEY, SUGGEST_KEY, OWNER_KEY]) localStorage.removeItem(k);
   } catch {
-    /* private mode: the script still works for this visit */
+    /* storage blocked: nothing stored either */
+  }
+}
+
+/**
+ * Call once the signed-in person is known. If the scripts on this device belong to someone
+ * else, they are wiped first. Scripts saved before owners were tracked have no owner: they
+ * are kept for the first person to sign in (wiping them would lose every existing user's
+ * scripts on update); sign-out clears the device from then on.
+ */
+export function claimDevice(owner: string) {
+  try {
+    const current = localStorage.getItem(OWNER_KEY);
+    if (current === owner) return;
+    if (current !== null) clearLocalScripts();
+    localStorage.setItem(OWNER_KEY, owner);
+  } catch {
+    /* storage blocked */
   }
 }
 
 // --- Our last suggestion for each day ---------------------------------------------------
-// So "Use our suggestion" is instant the second time (and doesn't spend a guest's allowance).
+// So "Use our suggestion" is instant the second time. Each one remembers the profile it was
+// written for (`sig`), so a changed name or niche gets a fresh suggestion.
 
-const SUGGEST_KEY = "yap101-suggestions";
+type Cached = { sig: string; lines: string[] };
+const isCached = (v: unknown): v is Cached => isRecord(v) && typeof v.sig === "string" && isLines(v.lines);
 
-export function loadSuggestion(promptId: number): string[] | null {
-  try {
-    const s = (JSON.parse(localStorage.getItem(SUGGEST_KEY) ?? "{}") as Record<string, unknown>)[promptId];
-    return Array.isArray(s) && s.length && s.every((l) => typeof l === "string") ? (s as string[]) : null;
-  } catch {
-    return null;
-  }
+/** The cached suggestion for a day, if it was written for this profile signature. */
+export function loadSuggestion(promptId: number, sig: string): string[] | null {
+  const c = readObject(SUGGEST_KEY)[promptId];
+  return isCached(c) && c.sig === sig ? c.lines : null;
 }
 
-export function saveSuggestion(promptId: number, lines: string[]) {
-  try {
-    const all = JSON.parse(localStorage.getItem(SUGGEST_KEY) ?? "{}") as Record<string, string[]>;
-    all[promptId] = lines;
-    // Keep the newest 40 days.
-    const keep = Object.keys(all).sort((a, b) => Number(b) - Number(a)).slice(0, 40);
-    localStorage.setItem(SUGGEST_KEY, JSON.stringify(Object.fromEntries(keep.map((k) => [k, all[k]]))));
-  } catch {
-    /* private mode */
-  }
+/** True when `lines` are the suggestion we cached for this day (whatever profile it was for). */
+export function isCachedSuggestion(promptId: number, lines: string[] | null): boolean {
+  const c = readObject(SUGGEST_KEY)[promptId];
+  return Boolean(lines?.length && isCached(c) && c.lines.join("\n") === lines.join("\n"));
+}
+
+export function saveSuggestion(promptId: number, lines: string[], sig: string) {
+  const all = Object.fromEntries(Object.entries(readObject(SUGGEST_KEY)).filter(([, v]) => isCached(v))) as Record<string, Cached>;
+  all[promptId] = { sig, lines };
+  // Keep the newest 40 days.
+  const keep = Object.keys(all).sort((a, b) => Number(b) - Number(a)).slice(0, 40);
+  write(SUGGEST_KEY, Object.fromEntries(keep.map((k) => [k, all[k]])));
+}
+
+/** The profile fields a suggestion is written from, as one string (see `saveSuggestion`). */
+export function profileSig(p: { name: string | null; niche: string | null; platform: string | null; goal: string | null; level: string | null }) {
+  return [p.name, p.niche, p.platform, p.goal, p.level].map((v) => v ?? "").join("|");
 }
 
 /** Typed or pasted text → teleprompter lines: one per line, long paragraphs split into sentences. */

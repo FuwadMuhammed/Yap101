@@ -1,5 +1,8 @@
 # QA Summary: Script Editor
 
+> **Round 2 update (same day): READY WITH KNOWN ISSUES.** Guest mode will be removed before release. 19 bugs are fixed and verified, 4 more found by new test angles are fixed too, and every suite is green on the signed-in path. Open items: an AI budget (BUG-20), one real-AI re-check of the writer brief after the free quota resets, and removing the guest bypass in the middleware and route. Details: [`round2-report.md`](round2-report.md). Round 1 below is kept as the original record.
+
+
 **Release recommendation: NOT READY FOR RELEASE.**
 
 The core flows work: suggest, polish, edit, save, reopen, undo and offline fallback all passed in a real browser, and polish quality on real AI was 9 of 9 executed cases. Release is blocked by two privacy bugs, one person's scripts shown to and sent on behalf of the next, and by a guest allowance that can be bypassed three ways while every user shares one small free AI quota.

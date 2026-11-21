@@ -605,7 +605,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           <ModeToggle mode={mode} onChange={setMode} className="mt-3" />
 
           <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm font-semibold">
-            <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`Length: ${target ? `${target} second goal` : "no time limit"}. Tap to change.`}>
+            <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`${target ? `${target}s goal` : "No limit"}: tap to change the length`}>
               <Timer className="size-4" />{target ? `${target}s goal` : "No limit"}
             </button>
             <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target ?? estimate ?? 0, firstToday)} XP</span>
@@ -639,7 +639,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               setLines(next);
               setUseScript(true);
               setCursor(0);
-              saveScript(prompt.id, next);
+              // Still used for this visit; but say so if the device couldn't keep it.
+              if (!saveScript(prompt.id, next)) toast.error("Couldn't save the script on this device (storage is full or blocked). It works for now, but won't be here next time.");
               setEditing(false);
             }}
             onClose={() => {

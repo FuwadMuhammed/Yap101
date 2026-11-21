@@ -1,5 +1,6 @@
 "use client";
 
+import { clearLocalScripts } from "@/lib/script";
 import { createClient } from "@/lib/supabase/client";
 import type { Prompt } from "@/lib/yap";
 import { DailyLimitError, type DataApi } from "./types";
@@ -128,5 +129,7 @@ export const supabaseApi: DataApi = {
 
   async signOut() {
     await createClient().auth.signOut();
+    // Scripts live on the device; the next person to sign in here must not see them.
+    clearLocalScripts();
   },
 };

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AiBusyError, AiKeyError, AiUnavailableError, aiProvider, parseLoose, writeScript } from "./ai-script";
+import { AiBusyError, AiKeyError, AiUnavailableError, aiProvider, clean, parseLoose, writeScript } from "./ai-script";
 import { parseWriteRequest, REDIRECT_MESSAGE, type WriteRequest } from "./write-script";
 
 const input = parseWriteRequest({ mode: "polish", title: "Introduce yourself", draft: "um hi I'm Sam and I make videos" }) as WriteRequest;
@@ -81,5 +81,40 @@ describe("writeScript via OpenRouter", () => {
   it("treats empty answers as unavailable", async () => {
     openRouter(reply('{"kind":"script","lines":[],"message":""}'), reply(""));
     await expect(writeScript(input)).rejects.toBeInstanceOf(AiUnavailableError);
+  });
+});
+
+describe("clean: what reaches the teleprompter", () => {
+  const sugg: { mode: "suggest" | "polish"; draft: string; skillTip: string; focus: string } = { mode: "suggest", draft: "", skillTip: "Picture one friend behind the lens, not a crowd.", focus: "If you stumble, smile and keep going." };
+  const run = (lines: unknown[], kind = "script", input = sugg) => clean({ kind: kind as "script", lines: lines as string[], message: "" }, input);
+
+  it("BUG-07: drops a lead-in line and strips markdown", () => {
+    expect(run(["Sure! Here's your script:", "- **Hey**, I'm Sam.", "## I make videos.", "1. `Short` ones."]).lines).toEqual(["Hey, I'm Sam.", "I make videos.", "Short ones."]);
+  });
+
+  it("BUG-07: a reply that echoes our brief becomes a redirect, never lines", () => {
+    expect(run(["# Role", "You are Yap101's personal script writer and speaking coach."]).kind).toBe("redirect");
+    expect(clean({ kind: "question", lines: [], message: "<profile> Name: Sam" }).kind).toBe("redirect");
+  });
+
+  it("BUG-14: splits a very long line instead of passing it through", () => {
+    const out = run(["This is one sentence that goes on. ".repeat(20).trim()]).lines;
+    expect(out.length).toBeGreaterThan(1);
+    expect(Math.max(...out.map((l) => l.length))).toBeLessThanOrEqual(220);
+    expect(run(["a".repeat(1000)]).lines.every((l) => l.length <= 220)).toBe(true);
+  });
+
+  it("BUG-16: drops lines that recite the coaching notes in a suggestion", () => {
+    const out = run(["Hey, it's Sam.", "Picture one friend behind the lens—that's who I'm talking to.", "Fitness changed my mornings.", "If I stumble, I'll smile and keep going."]).lines;
+    expect(out).toEqual(["Hey, it's Sam.", "Fitness changed my mornings."]);
+  });
+
+  it("BUG-16: keeps the user's own words in a polish even if they match a tip", () => {
+    const out = run(["I picture one friend behind the lens when I film."], "script", { ...sugg, mode: "polish" }).lines;
+    expect(out).toEqual(["I picture one friend behind the lens when I film."]);
+  });
+
+  it("keeps ordinary lines that share a word or two with a tip", () => {
+    expect(run(["My friend got me into lifting.", "Now I go every morning."]).lines).toHaveLength(2);
   });
 });

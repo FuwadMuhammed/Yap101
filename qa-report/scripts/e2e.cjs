@@ -193,13 +193,11 @@ async function test(id, title, fn, { device } = {}) {
     await box(p).fill(big);
     const fillMs = Date.now() - t0;
     const warn = await p.getByText(/over the 60s max/).count();
-    await btn(p, "Polish it for me").click();
-    await p.getByText("Polished version").waitFor({ timeout: 10000 });
-    const out = await box(p).inputValue();
-    const last = out.trim().split("\n").at(-1);
-    await p.screenshot({ path: path.join(SHOTS, "E12-truncated.png") });
-    const lost = !out.includes("Sentence number 1500");
-    return { actual: `${big.length} chars pasted in ${fillMs} ms, 60s warning ${warn ? "shown" : "missing"}; after polish ${out.length} chars, last line "${last}"`, fail: lost ? "Everything after the first 3,000 characters silently dropped by polish (server truncation)" : undefined };
+    // Since the BUG-04 fix: Polish is refused for drafts over 3,000 characters, nothing is cut.
+    const disabled = await btn(p, "Polish it for me").isDisabled();
+    const hint = await p.getByText(/Too long to polish/).count();
+    const kept = (await box(p).inputValue()).includes("Sentence number 1500");
+    return { actual: `${big.length} chars pasted in ${fillMs} ms, 60s warning ${warn ? "shown" : "missing"}; Polish disabled=${disabled}, hint=${!!hint}, all text kept=${kept}`, fail: !(disabled && hint && kept) ? "long draft not protected" : undefined };
   });
 
   await test("E13", "HTML/script text renders as plain text (no XSS)", async (p, ctx, errors) => {
@@ -263,7 +261,7 @@ async function test(id, title, fn, { device } = {}) {
     await p.waitForFunction(() => document.querySelector("#script-text").value === "Response B (latest).");
     await p.waitForTimeout(3200);
     const v = await box(p).inputValue();
-    const cache = await p.evaluate(() => JSON.parse(localStorage.getItem("yap101-suggestions") ?? "{}")[2]?.[0]);
+    const cache = await p.evaluate(() => JSON.parse(localStorage.getItem("yap101-suggestions") ?? "{}")[2]?.lines?.[0]);
     return v === "Response B (latest)." ? { actual: `Box keeps B; cached suggestion is "${cache}"`, fail: cache !== "Response B (latest)." ? "Stale response A overwrote the cached suggestion: the next 'Use our suggestion' returns the older one" : undefined } : { fail: "stale response shown", actual: v };
   });
 
@@ -285,6 +283,7 @@ async function test(id, title, fn, { device } = {}) {
     await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("yap101-demo")); s.profile.display_name = "Alex"; localStorage.setItem("yap101-demo", JSON.stringify(s)); });
     await openEditor(p, 2);
     await btn(p, "Use our suggestion").click();
+    await p.waitForFunction(() => document.querySelector("#script-text").value.length > 0);
     const v = await box(p).inputValue();
     return v.includes("Alex") ? { actual: "new name used" } : { fail: "Cached suggestion still greets as 'Sam' after the name changed to Alex", actual: v.split("\n")[0] };
   });

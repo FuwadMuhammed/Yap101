@@ -1,0 +1,276 @@
+{
+  "at": "2026-11-21T22:20:42.882Z",
+  "base": "http://localhost:3124",
+  "results": [
+    {
+      "id": "E01",
+      "title": "J1 generate (suggestion) → edit → save → close → reopen",
+      "status": "PASS",
+      "actual": "Edited suggestion saved and present after reload",
+      "note": "",
+      "errors": [],
+      "ms": 1829
+    },
+    {
+      "id": "E02",
+      "title": "J2 polish → compare → save → reopen",
+      "status": "PASS",
+      "actual": "Polished \"I started lifting in 2019 and I coach 12 clients in Leeds.\" kept 2019/12/Leeds; persisted",
+      "note": "",
+      "errors": [],
+      "ms": 1567
+    },
+    {
+      "id": "E03",
+      "title": "Day switching keeps scripts on their own day",
+      "status": "PASS",
+      "actual": "Day 2 and day 4 scripts stored under ids 2 and 4; day 4 opened empty",
+      "note": "",
+      "errors": [],
+      "ms": 2142
+    },
+    {
+      "id": "E04",
+      "title": "Discard unsaved changes with X and Escape",
+      "status": "PASS",
+      "actual": "Unsaved edits discarded both ways",
+      "note": "",
+      "errors": [],
+      "ms": 1000
+    },
+    {
+      "id": "E05",
+      "title": "Save tapped repeatedly",
+      "status": "PASS",
+      "actual": "Single clean save, no error",
+      "note": "",
+      "errors": [],
+      "ms": 1365
+    },
+    {
+      "id": "E06",
+      "title": "Suggestion tapped 6x fast with a slow (3s) API → one request",
+      "status": "PASS",
+      "actual": "1 request sent; button disabled while writing",
+      "note": "",
+      "errors": [],
+      "ms": 3944
+    },
+    {
+      "id": "E07",
+      "title": "Typing while a request is running is blocked (read-only)",
+      "status": "PASS",
+      "actual": "Box read-only and Save disabled during request; result applied once",
+      "note": "",
+      "errors": [],
+      "ms": 3415
+    },
+    {
+      "id": "E08",
+      "title": "Close editor during generation, response arrives later",
+      "status": "PASS",
+      "actual": "No script saved, nothing shown; late suggestion cached for next time (not cached)",
+      "note": "",
+      "errors": [],
+      "ms": 3513
+    },
+    {
+      "id": "E09",
+      "title": "J4 offline → starter; back online → retry works; no corruption",
+      "status": "PASS",
+      "actual": "Offline gave starter; retry online returned same template (demo); other day intact",
+      "note": "",
+      "errors": [],
+      "ms": 2490
+    },
+    {
+      "id": "E10",
+      "title": "Whitespace-only text cannot be saved or polished",
+      "status": "PASS",
+      "actual": "Save and Polish disabled",
+      "note": "",
+      "errors": [],
+      "ms": 822
+    },
+    {
+      "id": "E11",
+      "title": "Emoji-only text (4 emoji) polish",
+      "status": "PASS",
+      "actual": "Polish enabled (emoji count as words); server nudge shown, text unchanged",
+      "note": "",
+      "errors": [],
+      "ms": 1698
+    },
+    {
+      "id": "E12",
+      "title": "Paste 100 KB, then polish: does the user lose text?",
+      "status": "PASS",
+      "actual": "43892 chars pasted in 68 ms, 60s warning shown; Polish disabled=true, hint=true, all text kept=true",
+      "note": "",
+      "errors": [],
+      "ms": 885
+    },
+    {
+      "id": "E13",
+      "title": "HTML/script text renders as plain text (no XSS)",
+      "status": "PASS",
+      "actual": "Markup shown as text on prep card; no dialog fired",
+      "note": "",
+      "errors": [],
+      "ms": 1365
+    },
+    {
+      "id": "E14",
+      "title": "Corrupted storage: yap101-scripts = 'null'",
+      "status": "PASS",
+      "actual": "Page loads",
+      "note": "",
+      "errors": [],
+      "ms": 1250
+    },
+    {
+      "id": "E15",
+      "title": "Corrupted storage: invalid JSON in yap101-scripts",
+      "status": "PASS",
+      "actual": "Ignored broken data, saved new script (old data discarded)",
+      "note": "",
+      "errors": [],
+      "ms": 856
+    },
+    {
+      "id": "E16",
+      "title": "Corrupted storage: yap101-scripts = '[]' / '\"str\"'",
+      "status": "PASS",
+      "actual": "Saved",
+      "note": "",
+      "errors": [],
+      "ms": 1468
+    },
+    {
+      "id": "E17",
+      "title": "Storage full: save script",
+      "status": "PASS",
+      "actual": "persisted",
+      "note": "",
+      "errors": [],
+      "ms": 1577
+    },
+    {
+      "id": "E18",
+      "title": "Out-of-order responses: request A (slow) then B (fast) after reopening",
+      "status": "PASS",
+      "actual": "Box keeps B; cached suggestion is \"Response B (latest).\"",
+      "note": "",
+      "errors": [],
+      "ms": 4509
+    },
+    {
+      "id": "E19",
+      "title": "Keyboard: Enter in steer box submits, Escape closes, Tab reaches buttons",
+      "status": "PASS",
+      "actual": "Enter submitted suggestion (used steer text); Escape closed",
+      "note": "",
+      "errors": [],
+      "ms": 885
+    },
+    {
+      "id": "E20",
+      "title": "Stale saved suggestion after profile change",
+      "status": "PASS",
+      "actual": "new name used",
+      "note": "",
+      "errors": [],
+      "ms": 1632
+    },
+    {
+      "id": "E21",
+      "title": "App restart (new browser context with same storage)",
+      "status": "PASS",
+      "actual": "Script present after restart",
+      "note": "",
+      "errors": [],
+      "ms": 1662
+    },
+    {
+      "id": "E22",
+      "title": "Two tabs, same day: last save wins silently",
+      "status": "PASS",
+      "actual": "Tab A after reload shows B (last write wins, no conflict warning)",
+      "note": "",
+      "errors": [],
+      "ms": 2376
+    },
+    {
+      "id": "E23",
+      "title": "Two tabs, different days: both saved",
+      "status": "PASS",
+      "actual": "Both days saved",
+      "note": "",
+      "errors": [],
+      "ms": 1664
+    },
+    {
+      "id": "E24",
+      "title": "Day 1 intro: prefilled from onboarding, Polish off, save unchanged",
+      "status": "PASS",
+      "actual": "Prefilled with Sam/fitness/TikTok; Try another shown; Polish off",
+      "note": "",
+      "errors": [],
+      "ms": 841
+    },
+    {
+      "id": "E25",
+      "title": "Intermediate user, Day 1: starts in own words",
+      "status": "PASS",
+      "actual": "Own words selected",
+      "note": "",
+      "errors": [],
+      "ms": 777
+    },
+    {
+      "id": "E26",
+      "title": "Locked future day cannot be opened",
+      "status": "PASS",
+      "actual": "Locked screen shown",
+      "note": "",
+      "errors": [],
+      "ms": 791
+    },
+    {
+      "id": "E27",
+      "title": "Mobile (iPhone 13): keyboard-height viewport, buttons reachable, no sideways scroll",
+      "status": "PASS",
+      "actual": "Save stays visible above keyboard; no overflow",
+      "note": "",
+      "errors": [],
+      "ms": 907
+    },
+    {
+      "id": "E28",
+      "title": "Clear resets AI state",
+      "status": "PASS",
+      "actual": "Box empty, button back to Use our suggestion",
+      "note": "",
+      "errors": [],
+      "ms": 1030
+    },
+    {
+      "id": "E29",
+      "title": "Undo after several Try another returns the user's original draft",
+      "status": "PASS",
+      "actual": "Original draft restored after 3 takes",
+      "note": "",
+      "errors": [],
+      "ms": 1137
+    },
+    {
+      "id": "E30",
+      "title": "Signed-out visitor opening /record",
+      "status": "PASS",
+      "actual": "URL /record?prompt=2; shows \"Why you got into your niche\"",
+      "note": "",
+      "errors": [],
+      "ms": 800
+    }
+  ]
+}

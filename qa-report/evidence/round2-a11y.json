@@ -1,0 +1,32 @@
+[
+  {
+    "scheme": "light",
+    "screen": "prep screen",
+    "violations": []
+  },
+  {
+    "scheme": "light",
+    "screen": "editor, empty",
+    "violations": []
+  },
+  {
+    "scheme": "light",
+    "screen": "editor, polished + undo bar",
+    "violations": []
+  },
+  {
+    "scheme": "dark",
+    "screen": "prep screen",
+    "violations": []
+  },
+  {
+    "scheme": "dark",
+    "screen": "editor, empty",
+    "violations": []
+  },
+  {
+    "scheme": "dark",
+    "screen": "editor, polished + undo bar",
+    "violations": []
+  }
+]
