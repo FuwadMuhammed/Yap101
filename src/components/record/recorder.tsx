@@ -633,6 +633,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             initial={lines}
             suggested={script ?? null}
             points={prompt.talking_points}
+            prompt={prompt}
+            seconds={TARGET_SECONDS[level ?? "beginner"]}
             onSave={(next) => {
               setLines(next);
               setUseScript(true);

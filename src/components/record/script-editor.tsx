@@ -1,13 +1,23 @@
 "use client";
 
-import { FileUp, RotateCcw, Sparkles, X } from "lucide-react";
+import { FileUp, LoaderCircle, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { YapButton } from "@/components/yap/yap-button";
+import { api } from "@/lib/data";
+import { labelFor, nicheList, PLATFORMS } from "@/lib/options";
 import { buildScript, estimateSeconds } from "@/lib/prompter";
 import { linesToText, textToLines } from "@/lib/script";
 import { useScrollLock } from "@/lib/use-scroll-lock";
-import { MAX_SECONDS } from "@/lib/yap";
+import { MAX_SECONDS, type Prompt } from "@/lib/yap";
+import type { WriteRequest } from "@/lib/write-script";
+
+const WRITE_ERRORS: Record<string, string> = {
+  signin: "Sign in to have us write your script.",
+  setup: "Script writing isn't switched on yet.",
+  busy: "Lots of people are writing right now. Try again in a minute.",
+  refused: "We couldn't write that one. Try changing your draft.",
+};
 
 /**
  * Full-screen sheet for writing, pasting or importing a teleprompter script.
@@ -17,6 +27,8 @@ export function ScriptEditor({
   initial,
   suggested,
   points,
+  prompt,
+  seconds: targetSeconds,
   onSave,
   onClose,
 }: {
@@ -24,10 +36,15 @@ export function ScriptEditor({
   /** The script we made from their onboarding answers, if this day has one. */
   suggested: string[] | null;
   points: string[];
+  /** Today's prompt, for "Write it for me". */
+  prompt: Prompt;
+  /** How long the written script should run, in seconds. */
+  seconds: number;
   onSave: (lines: string[]) => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState(linesToText(initial));
+  const [writing, setWriting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const lines = textToLines(text);
   const words = lines.join(" ").split(/\s+/).filter(Boolean).length;
@@ -50,6 +67,41 @@ export function ScriptEditor({
     if (!raw.trim()) return toast.error("That file looks empty.");
     setText(linesToText(textToLines(raw)));
     toast.success("Script imported. Check it over, then save.");
+  }
+
+  async function writeForMe() {
+    if (writing) return;
+    setWriting(true);
+    const before = text;
+    try {
+      const profile = await api.getProfile().catch(() => null);
+      const body: WriteRequest = {
+        title: prompt.title,
+        points,
+        skill: prompt.skill,
+        skillTip: prompt.skill_tip,
+        focus: prompt.focus,
+        seconds: Math.min(targetSeconds, MAX_SECONDS),
+        name: profile?.display_name && profile.display_name !== "Guest" ? profile.display_name : null,
+        niche: nicheList(profile?.niche) || null,
+        platform: labelFor(PLATFORMS, profile?.platform)?.label ?? null,
+        draft: before,
+      };
+      const res = await fetch("/api/script", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = (await res.json().catch(() => ({}))) as { lines?: string[]; error?: string };
+      if (!res.ok || !data.lines?.length) {
+        toast.error(WRITE_ERRORS[data.error ?? ""] ?? "Couldn't write a script just now. Try again.");
+        return;
+      }
+      setText(linesToText(data.lines));
+      toast.success(before.trim() ? "Polished your draft. Make it yours, then save." : "Here's a first draft. Make it yours, then save.", {
+        action: { label: "Undo", onClick: () => setText(before) },
+      });
+    } catch {
+      toast.error("Couldn't reach us. Check your connection and try again.");
+    } finally {
+      setWriting(false);
+    }
   }
 
   return (
@@ -75,6 +127,7 @@ export function ScriptEditor({
           id="script-text"
           value={text}
           onChange={(e) => setText(e.target.value)}
+          readOnly={writing}
           autoFocus={!initial}
           rows={10}
           placeholder={"Write it how you'd say it.\nOne sentence per line works best.\n\nTip: start with your most interesting line."}
@@ -100,10 +153,10 @@ export function ScriptEditor({
               <RotateCcw /> Use our suggestion
             </YapButton>
           )}
-          <span className="bg-mist text-stone inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold" title="Coming soon">
-            <Sparkles className="size-4" /> Write it for me
-            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-ink">Soon</span>
-          </span>
+          <YapButton variant="soft" size="sm" onClick={() => void writeForMe()} disabled={writing} aria-busy={writing}>
+            {writing ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+            {writing ? "Writing…" : text.trim() ? "Polish it for me" : "Write it for me"}
+          </YapButton>
         </div>
 
         <div className="sticky bottom-0 z-10 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">

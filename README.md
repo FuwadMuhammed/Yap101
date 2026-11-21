@@ -45,6 +45,14 @@ node --experimental-strip-types scripts/gen-seed.ts
 | `/feedback/[id]` | Celebration, pace + filler words, trend vs last yap, tips, tomorrow's prompt, calendar reminder |
 | `/history` | Past yaps, delete |
 
+## Write it for me
+
+The script editor's **Write it for me** button calls `POST /api/script`, which makes one Claude call
+(`src/lib/write-script.ts` holds the prompt). It uses today's prompt, talking points and skill, the
+user's name, niche and platform, and the level's target length. Anything already typed is kept and
+tightened ("Polish it for me"), and an Undo in the toast restores it. It needs `ANTHROPIC_API_KEY` on
+the server and a signed-in user; demo builds without a key get a simple template script instead.
+
 ## Still to build (per the launch plan)
 
 - AI feedback route: speech-to-text + one LLM call, writes to `feedback`
