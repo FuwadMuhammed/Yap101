@@ -5,7 +5,43 @@ import { clearLocalScripts } from "@/lib/script";
 import { createClient } from "@/lib/supabase/client";
 import type { Prompt } from "@/lib/yap";
 import type { Analysis } from "@/lib/analysis/score";
-import { DailyLimitError, type DataApi } from "./types";
+import { DailyLimitError, summarise, type AnalysisSummary, type DataApi, type Media } from "./types";
+
+type FeedbackJoin = {
+  filler_count: number | null;
+  words_per_minute: number | null;
+  score: number | null;
+  /** Full select (fallback). */
+  analysis?: Analysis | null;
+  /** Slim select: just the parts of `analysis` that lists use (PostgREST JSON paths). */
+  version?: Analysis["version"] | null;
+  overall?: number | null;
+  parts?: Analysis["parts"] | null;
+  yap?: Analysis["yap"] | null;
+  confidence?: Analysis["confidence"] | null;
+  pitchRange?: number | null;
+  loudnessRange?: number | null;
+};
+
+// Only what lists, trends and baselines read: the transcript and timeline stay out of the list.
+// (Literal strings, so supabase-js type-checks the select syntax, JSON paths included.)
+const SLIM_SELECT =
+  "id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score, version:analysis->version, overall:analysis->overall, parts:analysis->parts, yap:analysis->yap, confidence:analysis->confidence, pitchRange:analysis->audio->pitchRange, loudnessRange:analysis->audio->loudnessRange)" as const;
+const FULL_SELECT = "id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score, analysis)" as const;
+
+function summaryOf(f: FeedbackJoin | null | undefined): AnalysisSummary | null {
+  if (!f) return null;
+  if (f.analysis !== undefined) return summarise(f.analysis);
+  if (f.overall == null) return null; // no on-device report saved for this take
+  return {
+    version: f.version ?? 1,
+    overall: f.overall,
+    parts: f.parts ?? [],
+    yap: f.yap ?? undefined,
+    confidence: f.confidence ?? undefined,
+    audio: f.pitchRange !== undefined || f.loudnessRange !== undefined ? { pitchRange: f.pitchRange ?? null, loudnessRange: f.loudnessRange ?? null } : null,
+  };
+}
 
 const PROMPT_COLS = "id, level, goal, day_index, title, talking_points, skill, skill_tip, week, focus, milestone";
 const ext = (mime: string) => (mime.includes("mp4") ? (mime.startsWith("audio") ? "m4a" : "mp4") : "webm");
@@ -105,24 +141,29 @@ export const supabaseApi: DataApi = {
   },
 
   async listYaps(opts) {
-    let q = createClient()
-      .from("yaps")
-      .select("id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score, analysis)")
-      .order("created_at", { ascending: false });
-    if (!opts?.includeDeleted) q = q.is("deleted_at", null);
-    const { data } = await q;
-    return (data ?? []).map((r) => ({
-      id: r.id,
-      local_date: r.local_date,
-      duration_seconds: r.duration_seconds,
-      media: r.media,
-      title: r.title ?? "Yap",
-      filler_count: (r.feedback as unknown as { filler_count: number } | null)?.filler_count ?? null,
-      words_per_minute: (r.feedback as unknown as { words_per_minute: number } | null)?.words_per_minute ?? null,
-      score: (r.feedback as unknown as { score: number | null } | null)?.score ?? null,
-      analysis: (r.feedback as unknown as { analysis: Analysis | null } | null)?.analysis ?? null,
-      deleted: Boolean(r.deleted_at),
-    }));
+    const sb = createClient();
+    const live = <Q extends { is: (c: "deleted_at", v: null) => Q }>(q: Q) => (opts?.includeDeleted ? q : q.is("deleted_at", null));
+    const slim = await live(sb.from("yaps").select(SLIM_SELECT).order("created_at", { ascending: false }));
+    // Belt and braces: if the slim select is ever rejected, use the full one.
+    const data: { id: string; local_date: string; duration_seconds: number; media: Media; title: string | null; deleted_at: string | null; feedback: unknown }[] | null = slim.error
+      ? (await live(sb.from("yaps").select(FULL_SELECT).order("created_at", { ascending: false }))).data
+      : slim.data;
+    return (data ?? []).map((r) => {
+      // One feedback row per yap; PostgREST may type the embed as an object or a one-item list.
+      const f = (Array.isArray(r.feedback) ? r.feedback[0] : r.feedback) as FeedbackJoin | null | undefined;
+      return {
+        id: r.id,
+        local_date: r.local_date,
+        duration_seconds: r.duration_seconds,
+        media: r.media,
+        title: r.title ?? "Yap",
+        filler_count: f?.filler_count ?? null,
+        words_per_minute: f?.words_per_minute ?? null,
+        score: f?.score ?? null,
+        analysis: summaryOf(f),
+        deleted: Boolean(r.deleted_at),
+      };
+    });
   },
 
   async deleteYap(id) {

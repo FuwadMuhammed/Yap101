@@ -82,6 +82,7 @@ async function test(id, title, fn, { device } = {}) {
     await p.getByText("Polished version").waitFor();
     const pol = await box(p).inputValue();
     await btn(p, "Save script").click();
+    await p.waitForTimeout(150); // human pause: the closed sheet tidies its history entry (a reload at that instant is aborted)
     await p.reload({ waitUntil: "networkidle" });
     const saved = Object.values(await scripts(p))[0]?.join(" ");
     const keeps = ["2019", "12", "Leeds"].every((w) => pol.includes(w));

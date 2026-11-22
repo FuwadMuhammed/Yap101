@@ -9,19 +9,19 @@
     "id": "A2",
     "title": "Transcription finishes on the device",
     "status": "PASS",
-    "actual": "Filler-word check done: 2 heard. after 15 s more"
+    "actual": "Filler-word check done: 2 heard. after 11 s more"
   },
   {
     "id": "A3",
     "title": "Transcript saved with word timestamps",
     "status": "PASS",
-    "actual": "simple trick for metterslead. Uh, put your phone in another room. I think it kind of works. So try it tonight and follow for more. Hi, I'm Sam. Um, today I want to show you one simple trick for metterslead."
+    "actual": "show you one simple trick for a matter of sleep. Uh, put your phone in another room. I think it kind of So try it tonight and follow for more. Hi, I'm Sam. Um, today I want to show you one simple trick."
   },
   {
     "id": "A4",
     "title": "Filler rate measured and fillers counted in feedback",
     "status": "PASS",
-    "actual": "2 filler words (7.2 a minute); filler_words {\"uh\":1,\"um\":1}"
+    "actual": "2 filler words (7.3 a minute); filler_words {\"uh\":1,\"um\":1}"
   },
   {
     "id": "A5",
@@ -33,7 +33,7 @@
     "id": "A6",
     "title": "Hedging measured, not scored",
     "status": "PASS",
-    "actual": "2 hedges (7.2 a minute)"
+    "actual": "2 hedges (7.3 a minute)"
   },
   {
     "id": "A7",

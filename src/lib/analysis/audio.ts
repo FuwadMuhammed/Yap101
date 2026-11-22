@@ -99,6 +99,11 @@ export class BeatDetector {
 
 export type AudioFrames = { rms: number[]; times: number[] };
 
+/** The browser's AudioContext (older Safari only has the webkit-prefixed one). */
+export function audioContextClass(): typeof AudioContext {
+  return window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!;
+}
+
 export class AudioMeter {
   /** Called on every syllable beat while recording (voice-paced teleprompter). */
   onBeat: (() => void) | null = null;
@@ -119,7 +124,7 @@ export class AudioMeter {
   start(stream: MediaStream) {
     if (!stream.getAudioTracks().length) return;
     try {
-      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const Ctx = audioContextClass();
       this.ctx = new Ctx();
       const source = this.ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
       this.analyser = this.ctx.createAnalyser();

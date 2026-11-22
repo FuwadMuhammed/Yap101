@@ -66,7 +66,7 @@ export type YapScore = {
 };
 
 /** One earlier take, as much as the score needs from it (oldest first in `history`). */
-export type PastTake = { yap?: YapScore | null; audio?: AudioStats | null };
+export type PastTake = { yap?: YapScore | null; audio?: Pick<AudioStats, "pitchRange" | "loudnessRange"> | null };
 
 export type ScoreInput = {
   audio: AudioStats | null;

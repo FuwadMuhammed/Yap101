@@ -7,7 +7,8 @@ import "./globals.css";
 // Display: Fraunces (a soft, slightly playful serif; variable weight). Body: DM Sans (friendly, readable).
 const display = Fraunces({ variable: "--font-display", subsets: ["latin"], axes: ["SOFT", "opsz"] });
 const sans = DM_Sans({ variable: "--font-sans", subsets: ["latin"] });
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Only the recording timer uses the mono font: load it there, not on every page.
+const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], preload: false });
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yap101.vercel.app";
 const TITLE = "Yap101: learn to yap on camera";

@@ -99,6 +99,8 @@ export class FaceMeter {
   private timer: ReturnType<typeof setInterval> | null = null;
   private samples: Sample[] = [];
   private startedAt = 0;
+  /** stop() can come before the model has loaded; then start() must not begin checking. */
+  private stopped = false;
 
   /** Start recording time now. Checks before this (the countdown) are the gaze calibration. */
   markStart() {
@@ -114,7 +116,7 @@ export class FaceMeter {
     // Times are from the start of recording (the hook window), not from when the model loaded.
     this.startedAt = performance.now() + startsIn;
     const model = await loadFaceModel();
-    if (!model) return;
+    if (!model || this.stopped) return;
     let canvas: CanvasRenderingContext2D | null = null;
     try {
       const c = document.createElement("canvas");
@@ -166,6 +168,7 @@ export class FaceMeter {
   }
 
   stop(): FaceStats | null {
+    this.stopped = true;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     // Countdown checks calibrate gaze; only the recording itself is measured.

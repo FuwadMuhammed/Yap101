@@ -18,108 +18,29 @@ import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { isStaleOwner, loadScript, OWNER_STORAGE_KEY, saveScript } from "@/lib/script";
 
-const STALE_TAB = "You signed in or out in another tab. Reloading so you see the right scripts.";
 import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { ScriptEditor } from "./script-editor";
+import { useFillerCheck } from "./use-filler-check";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
 import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
 import { analyse, type AnalyseInput, type Analysis } from "@/lib/analysis/score";
-import { fillerStats, withHiddenFillers, type Word } from "@/lib/analysis/transcript";
-import type { AsrProgress } from "@/lib/analysis/asr";
 import type { Drill, PastTake } from "@/lib/analysis/yapscore";
 import { lastFear, loadScorePrefs, rememberFear } from "@/lib/score-prefs";
 import { Scale } from "@/components/yap/scale";
+import { buzz, extFor, type MediaMode, fmt, pickMimeType, unblockHelp, voiceChain, widestZoom } from "@/lib/media";
 
-type Mode = "video" | "audio";
+const STALE_TAB = "You signed in or out in another tab. Reloading so you see the right scripts.";
+
+type Mode = MediaMode;
 type Pace = "auto" | "beats" | "voice";
 type Facing = "user" | "environment";
 type Phase = "prep" | "setup" | "countdown" | "recording" | "review" | "saving";
 const TEXT_SIZES = { S: "text-xl", M: "text-[26px]", L: "text-[32px]" } as const;
 type TextSize = keyof typeof TEXT_SIZES;
 
-// iOS Safari records mp4; Chrome/Edge usually webm. mp4 first so clips share cleanly to IG/TikTok.
-function pickMimeType(mode: Mode) {
-  const candidates =
-    mode === "video"
-      ? ["video/mp4;codecs=avc1,mp4a", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"]
-      : ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
-  return candidates.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
-}
 // beginRecording runs from the countdown, never during render; the compiler can't tell.
 const clock = () => performance.now();
-const extFor = (mime: string) => (mime.includes("mp4") ? (mime.startsWith("audio") ? "m4a" : "mp4") : "webm");
-const fmt = (s: number) => {
-  const t = Math.max(0, Math.floor(s));
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
-};
-const buzz = (pattern: number | number[]) => {
-  try {
-    navigator.vibrate?.(pattern);
-  } catch {}
-};
-
-/** Browser-specific steps for unblocking the camera. */
-function unblockHelp(mode: Mode) {
-  const what = mode === "video" ? "camera and microphone" : "microphone";
-  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) return `On iPhone: open Settings › Safari › ${mode === "video" ? "Camera" : "Microphone"} › Allow, then reload this page.`;
-  if (/Android/.test(ua)) return `Tap the lock icon next to the address, turn on ${what}, then reload.`;
-  return `Click the camera icon in the address bar, allow ${what}, then reload.`;
-}
-
-/** Front cameras on some phones start slightly zoomed; ask for the widest view they allow. */
-async function widestZoom(stream: MediaStream) {
-  const track = stream.getVideoTracks()[0];
-  try {
-    const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number } }) | undefined;
-    if (caps?.zoom) await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] });
-  } catch {
-    /* not supported: keep the default */
-  }
-}
-
-/**
- * A light voice chain for the recording: cut low rumble (traffic, AC, desk bumps), lift
- * speech presence a touch, and gently even out loud and quiet words. Falls back to the raw
- * mic if the browser can't do it. Video tracks pass straight through.
- */
-function voiceChain(stream: MediaStream): { stream: MediaStream; close: () => void } | null {
-  const mic = stream.getAudioTracks()[0];
-  if (!mic) return null;
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    const src = ctx.createMediaStreamSource(new MediaStream([mic]));
-    const highpass = Object.assign(ctx.createBiquadFilter(), { type: "highpass" });
-    highpass.frequency.value = 85;
-    const mud = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
-    mud.frequency.value = 300;
-    mud.gain.value = -2;
-    mud.Q.value = 1;
-    const presence = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
-    presence.frequency.value = 3200;
-    presence.gain.value = 2.5;
-    presence.Q.value = 0.9;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -26;
-    comp.knee.value = 12;
-    comp.ratio.value = 3;
-    comp.attack.value = 0.006;
-    comp.release.value = 0.2;
-    const out = ctx.createMediaStreamDestination();
-    src.connect(highpass).connect(mud).connect(presence).connect(comp).connect(out);
-    void ctx.resume();
-    const track = out.stream.getAudioTracks()[0];
-    if (!track) throw new Error("no processed track");
-    return {
-      stream: new MediaStream([...stream.getVideoTracks(), track]),
-      close: () => void ctx.close().catch(() => {}),
-    };
-  } catch {
-    return null;
-  }
-}
 
 /** Video or audio only, as one clear switch. */
 function ModeToggle({ mode, onChange, glass, className }: { mode: Mode; onChange: (m: Mode) => void; glass?: boolean; className?: string }) {
@@ -213,12 +134,14 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
   const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number; analysis: Analysis | null } | null>(null);
   // Filler-word check: free on-device Whisper (Hugging Face Transformers.js) listens back after
   // the take and the score is recomputed with the words. Runs in the background; never blocks.
-  const [asr, setAsr] = useState<AsrProgress | { stage: "done"; fillers: number } | { stage: "failed" } | null>(null);
-  const [waitingAsr, setWaitingAsr] = useState(false);
   const analysisRef = useRef<Analysis | null>(null); // the latest analysis (updated when words arrive)
-  const takeRef = useRef(0); // bumps on every new take, so a late transcript for an old one is ignored
-  const asrDoneRef = useRef<Promise<void> | null>(null);
-  const skipAsrRef = useRef<(() => void) | null>(null);
+  const fillers = useFillerCheck(
+    useCallback((next: Analysis) => {
+      analysisRef.current = next;
+      setClip((c) => (c ? { ...c, analysis: next } : c));
+    }, []),
+  );
+  const asr = fillers.status;
   // On-device analysis: voice meter always, face meter for video. Nothing is uploaded.
   const audioMeterRef = useRef<AudioMeter | null>(null);
   const voiceRef = useRef<{ stream: MediaStream; close: () => void } | null>(null);
@@ -463,7 +386,7 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
       analysisRef.current = analysis;
       setClip({ blob, url: URL.createObjectURL(blob), seconds, analysis });
       setPhase("review");
-      if (input?.audio && frames && prefs.transcribe !== false) checkFillers(blob, input, frames);
+      if (input?.audio && frames && prefs.transcribe !== false) fillers.start(blob, input, frames);
     };
     recorderRef.current = recorder;
     startedAtRef.current = clock();
@@ -529,31 +452,8 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
     jumpedRef.current = true;
   }
 
-  // Transcribe the take on the phone, then re-score it with the words (fillers, close, hedging).
-  function checkFillers(blob: Blob, input: AnalyseInput, frames: { rms: number[]; times: number[] }) {
-    const take = ++takeRef.current;
-    const current = () => take === takeRef.current;
-    setAsr({ stage: "download", pct: 0 });
-    asrDoneRef.current = (async () => {
-      try {
-        const { transcribe } = await import("@/lib/analysis/asr");
-        const words: Word[] = withHiddenFillers(await transcribe(blob, (p) => current() && setAsr(p)), frames);
-        if (!current()) return;
-        const next = analyse({ ...input, v2: { ...input.v2!, words } });
-        analysisRef.current = next;
-        setClip((c) => (c ? { ...c, analysis: next } : c));
-        setAsr({ stage: "done", fillers: fillerStats(words).count });
-      } catch (e) {
-        console.warn("Filler check skipped:", e);
-        if (current()) setAsr({ stage: "failed" });
-      }
-    })();
-  }
-
   function retake() {
-    takeRef.current++; // drop any transcript still on its way for the old take
-    setAsr(null);
-    asrDoneRef.current = null;
+    fillers.cancel(); // drop any transcript still on its way for the old take
     takesRef.current += 1;
     setPredicted(null);
     setObserved(null);
@@ -601,12 +501,7 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
     if (!clip) return;
     setPhase("saving");
     // Still listening back? Wait for it (usually a few seconds), unless they skip.
-    if (asr && (asr.stage === "download" || asr.stage === "transcribing") && asrDoneRef.current) {
-      setWaitingAsr(true);
-      await Promise.race([asrDoneRef.current, new Promise<void>((r) => (skipAsrRef.current = r))]);
-      setWaitingAsr(false);
-      skipAsrRef.current = null;
-    }
+    await fillers.settle();
     try {
       if (fearBefore !== null) rememberFear(fearBefore);
       const latest = analysisRef.current ?? clip.analysis;
@@ -1055,7 +950,7 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
                 <Share2 />
               </YapButton>
               <YapButton size="lg" className="h-14" arrow onClick={save} disabled={phase === "saving"}>
-                {waitingAsr ? "Checking…" : phase === "saving" ? "Saving…" : "Get feedback"}
+                {fillers.waiting ? "Checking…" : phase === "saving" ? "Saving…" : "Get feedback"}
               </YapButton>
             </div>
             {asr && asr.stage !== "failed" && (
@@ -1067,7 +962,7 @@ export function Recorder({ prompt, firstToday, level, first, script, scoring, dr
                       ? "Listening back for filler words, on your phone…"
                       : asr.fillers === 0 ? "Filler-word check done: none heard." : `Filler-word check done: ${asr.fillers} heard.`}
                 </span>
-                {waitingAsr && <button onClick={() => skipAsrRef.current?.()} className="font-semibold text-ink underline underline-offset-4">Skip</button>}
+                {fillers.waiting && <button onClick={fillers.skip} className="font-semibold text-ink underline underline-offset-4">Skip</button>}
               </p>
             )}
           </div>

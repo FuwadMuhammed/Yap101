@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from "vitest";
 import { gazeBaseline, isLooking, type Gaze } from "./face";
 
 const g = (side: number, down: number, up: number, yaw: number): Gaze => ({ side, down, up, yaw });
@@ -25,5 +26,27 @@ describe("gaze calibration", () => {
   it("no baseline from too few checks, or from looking away during the countdown", () => {
     expect(gazeBaseline([g(0.1, 0.2, 0, 0), g(0.1, 0.2, 0, 0), g(0.1, 0.2, 0, 0)])).toBeNull();
     expect(gazeBaseline(Array.from({ length: 6 }, () => g(0.9, 0.2, 0, 40)))).toBeNull();
+  });
+});
+
+describe("FaceMeter lifecycle", () => {
+  it("stop() before the model has loaded: no checks start afterwards (no leaked timer)", async () => {
+    vi.resetModules();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    vi.doMock("@mediapipe/tasks-vision", () => ({
+      FilesetResolver: { forVisionTasks: async () => ({}) },
+      // A model that is still downloading until we release it.
+      FaceLandmarker: { createFromOptions: async () => (await gate, { detectForVideo: () => ({ faceBlendshapes: [], faceLandmarks: [], facialTransformationMatrixes: [] }) }) },
+    }));
+    const { FaceMeter } = await import("./face");
+    const spy = vi.spyOn(globalThis, "setInterval");
+    const m = new FaceMeter();
+    const started = m.start({ readyState: 4 } as unknown as HTMLVideoElement);
+    expect(m.stop()).toBeNull();
+    release();
+    await started;
+    expect(spy).not.toHaveBeenCalled();
+    vi.doUnmock("@mediapipe/tasks-vision");
   });
 });

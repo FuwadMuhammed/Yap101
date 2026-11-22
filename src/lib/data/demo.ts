@@ -5,7 +5,7 @@ import { ALL_PROMPTS } from "@/lib/curriculum";
 import { clearLocalScripts } from "@/lib/script";
 import { transcriptFields } from "@/lib/analysis/transcript";
 import { endGuest, envDemo } from "./mode";
-import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
+import { DailyLimitError, summarise, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
 // Demo backend: JSON in localStorage, recordings in IndexedDB (too big for localStorage).
 // Nothing leaves the browser.
@@ -158,7 +158,7 @@ export const demoApi: DataApi = {
       filler_count: feedback?.filler_count ?? null,
       words_per_minute: feedback?.words_per_minute ?? null,
       score: feedback?.analysis?.overall ?? null,
-      analysis: feedback?.analysis ?? null,
+      analysis: summarise(feedback?.analysis),
       deleted: Boolean(deleted),
     }));
   },

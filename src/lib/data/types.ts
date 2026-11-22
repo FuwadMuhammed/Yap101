@@ -1,4 +1,26 @@
+import type { AudioStats } from "@/lib/analysis/audio";
 import type { Analysis } from "@/lib/analysis/score";
+
+/**
+ * The part of a take's report that lists, trends and baselines use. The transcript, voice
+ * timeline and face details stay on the take's own page, so listing 90 takes stays small.
+ */
+export type AnalysisSummary = Pick<Analysis, "version" | "overall" | "parts" | "yap" | "confidence"> & {
+  audio: Pick<AudioStats, "pitchRange" | "loudnessRange"> | null;
+};
+
+/** Cuts a full report down to its summary. */
+export function summarise(a: Analysis | null | undefined): AnalysisSummary | null {
+  if (!a) return null;
+  return {
+    version: a.version,
+    overall: a.overall,
+    parts: a.parts,
+    yap: a.yap,
+    confidence: a.confidence,
+    audio: a.audio ? { pitchRange: a.audio.pitchRange, loudnessRange: a.audio.loudnessRange } : null,
+  };
+}
 import type { Goal, Level, Prompt } from "@/lib/yap";
 
 export type Media = "video" | "audio";
@@ -42,8 +64,8 @@ export type YapSummary = {
   words_per_minute: number | null;
   /** Yap score (0-100) from on-device analysis. */
   score: number | null;
-  /** The full on-device report, for baselines, trends and "since day 1" (null if none). */
-  analysis?: Analysis | null;
+  /** The report's summary, for baselines, trends and "since day 1" (null if none). */
+  analysis?: AnalysisSummary | null;
   /** Deleted by the user: the clip is gone, but it still counts for XP, streaks and the daily limit. */
   deleted?: boolean;
 };
