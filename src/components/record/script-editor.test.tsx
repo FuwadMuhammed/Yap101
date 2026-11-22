@@ -20,7 +20,12 @@ const profile: Profile = {
   onboarded_at: null,
   yap_time: null,
 };
-vi.mock("@/lib/data", () => ({ api: { getProfile: vi.fn(async () => profile) } }));
+const getProfile = vi.hoisted(() => ({ fn: null as unknown as ReturnType<typeof import("vitest").vi.fn> }));
+vi.mock("@/lib/data", async () => {
+  const { vi: v } = await import("vitest");
+  getProfile.fn = v.fn(async () => profile);
+  return { api: { getProfile: getProfile.fn } };
+});
 
 const { ScriptEditor } = await import("./script-editor");
 /** The cache signature for the test profile above (labels as the editor sends them). */
@@ -448,5 +453,61 @@ describe("ScriptEditor: saving", () => {
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
+describe("ScriptEditor: Phase 2 P3 fixes", () => {
+  it("keeps unsaved text across a reload and clears it on save (BUG-29)", async () => {
+    localStorage.clear();
+    const first = open();
+    await first.user.type(first.box, "My own rough words for today");
+    await waitFor(() => expect(localStorage.getItem("yap101-script-drafts")).toContain("rough words"), { timeout: 2000 });
+    document.body.innerHTML = "";
+    const again = open();
+    expect(again.box.value).toBe("My own rough words for today");
+    expect(screen.getByText(/We kept the text you hadn.t saved yet/)).toBeTruthy();
+    await again.user.click(btn("Save script"));
+    expect(again.onSave).toHaveBeenCalledWith(["My own rough words for today"]);
+    expect(localStorage.getItem("yap101-script-drafts")).toBeNull();
+  });
+
+  it("can remove a saved script (BUG-31)", async () => {
+    localStorage.clear();
+    const { onSave, user } = open({ initial: ["A saved line."] });
+    await user.click(btn(/Remove script/));
+    expect(onSave).toHaveBeenCalledWith([]);
+  });
+
+  it("no Remove button when there's nothing saved", () => {
+    localStorage.clear();
+    open();
+    expect(screen.queryByRole("button", { name: /Remove script/ })).toBeNull();
+  });
+
+  it("ignores non-string lines from the server (BUG-36)", async () => {
+    localStorage.clear();
+    const { user, box } = open();
+    api({ body: { kind: "script", lines: [42, null, "  A real line.  ", { x: 1 }, ""], message: "" } });
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(box.value).toBe("A real line."));
+  });
+
+  it("Clear has a 44 px touch target (BUG-35)", async () => {
+    localStorage.clear();
+    const { user, box } = open();
+    await user.type(box, "x");
+    expect(btn("Clear").className).toMatch(/min-h-11/);
+  });
+
+  it("says so when the profile can't load, and still writes (BUG-33)", async () => {
+    localStorage.clear();
+    getProfile.fn.mockRejectedValue(new Error("db down"));
+    const { user, box } = open();
+    const { sent } = api(script("A generic line."));
+    await user.click(btn("Use our suggestion"));
+    await waitFor(() => expect(box.value).toBe("A generic line."));
+    expect(sent().name).toBeNull();
+    expect(h.toast).toHaveBeenCalledWith(expect.stringMatching(/couldn't load your profile/));
+    getProfile.fn.mockImplementation(async () => profile);
   });
 });

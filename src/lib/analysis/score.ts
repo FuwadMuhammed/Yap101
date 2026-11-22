@@ -1,7 +1,7 @@
 import type { AudioStats } from "./audio";
 import type { DeliveryStats } from "./delivery";
 import type { FaceStats } from "./face";
-import type { Word } from "./transcript";
+import { paceFromWords, type Word } from "./transcript";
 import { scoreYap, type PastTake, type ScorePrefs, type YapScore } from "./yapscore";
 import type { Goal } from "@/lib/yap";
 
@@ -40,6 +40,8 @@ export type Analysis = {
   delivery?: DeliveryStats | null;
   /** The 16-parameter Yap score (version 2). `overall` above equals `yap.overall`. */
   yap?: YapScore;
+  /** On-device transcript (Whisper), when the filler-word check ran. */
+  transcript?: Word[] | null;
   confidence?: Confidence;
 };
 
@@ -175,12 +177,13 @@ export function analyse(input: AnalyseInput): Analysis {
       verdict: tooShort ? "Too short to judge" : yapOverall >= 85 ? "Brilliant yap!" : yapOverall >= 70 ? "Strong yap" : yapOverall >= 55 ? "Good start" : "Keep practising",
       parts,
       tips: (tooShort ? ["That was a short one. Talk for at least 15 seconds so Yappy can measure more.", ...v2tips] : v2tips).slice(0, 3),
-      wpm: audio?.wpm ?? null,
+      wpm: (input.v2.words?.length ? paceFromWords(input.v2.words) : null) ?? audio?.wpm ?? null,
       audio,
       face,
       scriptDone,
       delivery: delivery ?? null,
       yap: { ...yap, overall: yapOverall },
+      transcript: input.v2.words ?? null,
     };
   }
 

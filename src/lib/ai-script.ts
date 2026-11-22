@@ -146,11 +146,13 @@ async function viaOpenRouter(input: WriteRequest): Promise<Partial<WriteResult> 
   const models = custom.length ? custom : DEFAULT_OPENROUTER_MODELS;
   const deadline = Date.now() + 50_000;
   let busy = false;
-  for (const model of models) {
+  for (const [i, model] of models.entries()) {
     const left = deadline - Date.now();
     if (left < 5_000) break;
     try {
-      const out = await askOpenRouter(model, input, left);
+      // One slow model mustn't use the whole budget (long polishes did): give it 28 s at most,
+      // then the next model gets a turn. The last model gets whatever is left.
+      const out = await askOpenRouter(model, input, i === models.length - 1 ? left : Math.min(left, 28_000));
       if (out) return out;
     } catch (error) {
       if (error instanceof AiKeyError) throw error;

@@ -89,12 +89,15 @@ export function YapTrends({ yaps }: { yaps: YapSummary[] }) {
 /** The opt-ins from the Yap score spec, kept on this device. */
 export function ScoreSettings() {
   const [prefs, setPrefs] = useState<ScorePrefs>(() => (typeof window === "undefined" ? {} : loadScorePrefs()));
+  // The filler check is on unless turned off; the others are off unless turned on.
+  const on = (k: keyof ScorePrefs) => (k === "transcribe" ? prefs[k] !== false : Boolean(prefs[k]));
   const toggle = (k: keyof ScorePrefs) => {
-    const next = { ...prefs, [k]: !prefs[k] };
+    const next = { ...prefs, [k]: !on(k) };
     setPrefs(next);
     saveScorePrefs(next);
   };
   const rows: [keyof ScorePrefs, string, string][] = [
+    ["transcribe", "Filler-word check (beta)", "Listens back on your phone with a free speech model (about 80 MB, downloaded once). Nothing is uploaded."],
     ["appearanceSensitive", "Appearance-sensitive mode", "No face measures (gaze, smile, framing, lighting) in your score or tips."],
     ["noEyeContact", "Don't score eye contact", "Leaves lens connection out; the rest of Presence still counts."],
     ["nonNative", "I'm not a native speaker", "Pauses are scored more gently."],
@@ -103,13 +106,13 @@ export function ScoreSettings() {
     <ul className="flex flex-col gap-2">
       {rows.map(([k, title, hint]) => (
         <li key={k}>
-          <button role="switch" aria-checked={Boolean(prefs[k])} onClick={() => toggle(k)} className="tap flex w-full items-start justify-between gap-3 text-left">
+          <button role="switch" aria-checked={on(k)} onClick={() => toggle(k)} className="tap flex w-full items-start justify-between gap-3 text-left">
             <span>
               <span className="block font-semibold">{title}</span>
               <span className="text-stone block text-sm">{hint}</span>
             </span>
-            <span className={cn("mt-1 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors", prefs[k] ? "bg-ink" : "bg-mist")}>
-              <span className={cn("size-5 rounded-full bg-white shadow transition-transform", prefs[k] && "translate-x-5")} />
+            <span className={cn("mt-1 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors", on(k) ? "bg-ink" : "bg-mist")}>
+              <span className={cn("size-5 rounded-full bg-white shadow transition-transform", on(k) && "translate-x-5")} />
             </span>
           </button>
         </li>

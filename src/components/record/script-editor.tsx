@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, LoaderCircle, RefreshCw, Sparkles, Undo2, WandSparkles, X } from "lucide-react";
+import { FileUp, LoaderCircle, RefreshCw, Sparkles, Trash2, Undo2, WandSparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { YapButton } from "@/components/yap/yap-button";
@@ -8,7 +8,7 @@ import { api } from "@/lib/data";
 import type { Profile } from "@/lib/data/types";
 import { GOAL_OPTIONS, LEVEL_OPTIONS, labelFor, nicheList, PLATFORMS } from "@/lib/options";
 import { buildScript, estimateSeconds } from "@/lib/prompter";
-import { isCachedSuggestion, linesToText, loadSuggestion, otherScripts, profileSig, saveSuggestion, textToLines } from "@/lib/script";
+import { isCachedSuggestion, linesToText, loadDraft, loadSuggestion, otherScripts, profileSig, saveDraft, saveSuggestion, textToLines } from "@/lib/script";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { MAX_SECONDS, type Prompt } from "@/lib/yap";
 import { MAX_DRAFT_CHARS, MIN_POLISH_WORDS, templateSuggestion, tidyDraft, wordCount, type WriteMode, type WriteRequest, type WriteResult } from "@/lib/write-script";
@@ -85,10 +85,16 @@ export function ScriptEditor({
   prompt: Prompt;
   /** How long the written script should run, in seconds. */
   seconds: number;
+  /** Save the script; an empty list removes the day's script (back to talking points). */
   onSave: (lines: string[]) => void;
   onClose: () => void;
 }) {
-  const [text, setText] = useState(linesToText(initial));
+  // Unsaved text from last time (a reload, a closed tab) comes back; saving clears it.
+  const [restored] = useState(() => {
+    const d = loadDraft(prompt.id);
+    return d !== null && d !== linesToText(initial) ? d : null;
+  });
+  const [text, setText] = useState(restored ?? linesToText(initial));
   const [busy, setBusy] = useState<WriteMode | null>(null);
   const [ask, setAsk] = useState("");
   /** The writer's clarifying question or redirect, shown under the "anything to add" box. */
@@ -96,13 +102,15 @@ export function ScriptEditor({
   // The last text we put in the box, what kind it was, and what was there before (for undo).
   // A script they saved without changing our suggestion still counts as our suggestion.
   const [ai, setAi] = useState<{ text: string; source: Source; before: string } | null>(() => {
+    if (restored !== null) return null;
     const t = linesToText(initial);
     const ours = Boolean(suggested && linesToText(suggested) === t) || isCachedSuggestion(prompt.id, initial);
     return t && ours ? { text: t, source: "suggestion", before: "" } : null;
   });
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const profileRef = useRef<Promise<Profile | null> | null>(null);
+  const profileRef = useRef<Promise<Profile | null | "failed"> | null>(null);
+  const profileWarned = useRef(false);
   /** The request in flight, so Cancel (or closing the sheet) can stop it. */
   const abortRef = useRef<AbortController | null>(null);
 
@@ -120,9 +128,18 @@ export function ScriptEditor({
   useBackCloses(onClose);
   // Load the profile early so the first tap doesn't wait for it; stop any request on close.
   useEffect(() => {
-    profileRef.current ??= api.getProfile().catch(() => null);
+    profileRef.current ??= api.getProfile().catch(() => "failed" as const);
     return () => abortRef.current?.abort();
   }, []);
+  // Keep unsaved text for this day (only what differs from the saved script).
+  useEffect(() => {
+    const t = setTimeout(() => saveDraft(prompt.id, text === linesToText(initial) ? null : text), 400);
+    return () => clearTimeout(t);
+  }, [text, prompt.id, initial]);
+  const save = (next: string[]) => {
+    saveDraft(prompt.id, null);
+    onSave(next);
+  };
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
@@ -158,8 +175,16 @@ export function ScriptEditor({
 
   /** Everything we know about today and the user (from their profile in the backend). */
   async function context(mode: WriteMode): Promise<WriteRequest> {
-    profileRef.current ??= api.getProfile().catch(() => null);
-    const profile = await profileRef.current;
+    profileRef.current ??= api.getProfile().catch(() => "failed" as const);
+    // Don't hang on a slow or failing database: after 3 s, write without the profile.
+    let profile = await Promise.race([profileRef.current, new Promise<"failed">((r) => setTimeout(() => r("failed"), 3000))]);
+    if (profile === "failed") {
+      // Write without the profile and say so; the next tap tries to load it again.
+      profileRef.current = null;
+      if (!profileWarned.current && mode === "suggest") toast("We couldn't load your profile, so this one won't be tailored to you.");
+      profileWarned.current = true;
+      profile = null;
+    }
     return {
       mode,
       request: mode === "suggest" ? ask : "",
@@ -193,8 +218,10 @@ export function ScriptEditor({
         setCoach(data.message);
         return null;
       }
-      if (!res.ok || !data.lines?.length) return { error: data.error ?? (res.status === 401 ? "unauthorized" : "upstream") };
-      return data.lines;
+      // The server already cleans lines; still accept only real, non-empty strings.
+      const lines = Array.isArray(data.lines) ? data.lines.filter((l): l is string => typeof l === "string" && l.trim().length > 0).map((l) => l.trim()) : [];
+      if (!res.ok || !lines.length) return { error: typeof data.error === "string" ? data.error : res.status === 401 ? "unauthorized" : "upstream" };
+      return lines;
     } catch {
       return { error: ctrl.signal.aborted ? "aborted" : "offline" };
     } finally {
@@ -304,13 +331,18 @@ export function ScriptEditor({
           </ul>
         </section>
 
+        {restored !== null && text === restored && (
+          <p className="bg-mist mt-3 rounded-[20px] px-4 py-2.5 text-sm">We kept the text you hadn&apos;t saved yet.</p>
+        )}
+
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <YapButton variant={text.trim() ? "soft" : "primary"} onClick={() => void suggest()} disabled={Boolean(busy)} aria-busy={busy === "suggest"}>
+          <YapButton variant={text.trim() ? "soft" : "primary"} className="h-auto min-h-12 py-2 whitespace-normal text-center leading-tight" onClick={() => void suggest()} disabled={Boolean(busy)} aria-busy={busy === "suggest"}>
             {busy === "suggest" ? <LoaderCircle className="animate-spin" /> : showingSuggestion ? <RefreshCw /> : <Sparkles />}
             {busy === "suggest" ? "Writing…" : showingSuggestion ? "Try another" : "Use our suggestion"}
           </YapButton>
           <YapButton
             variant={canPolish ? "primary" : "soft"}
+            className="h-auto min-h-12 py-2 whitespace-normal text-center leading-tight"
             onClick={() => void polish()}
             disabled={!canPolish}
             aria-busy={busy === "polish"}
@@ -356,7 +388,7 @@ export function ScriptEditor({
             {words} words · about {seconds}s{tooLong && ` · over the ${MAX_SECONDS}s max, try cutting a line`}
           </span>
           {text && !busy && (
-            <button onClick={() => { setText(""); setAi(null); }} className="text-stone hover:text-ink font-semibold underline-offset-4 hover:underline">Clear</button>
+            <button onClick={() => { setText(""); setAi(null); }} className="text-stone hover:text-ink -my-2 inline-flex min-h-11 min-w-11 items-center justify-center px-2 font-semibold underline-offset-4 hover:underline">Clear</button>
           )}
         </div>
 
@@ -388,6 +420,11 @@ export function ScriptEditor({
           <YapButton variant="ghost" size="sm" onClick={() => fileRef.current?.click()} disabled={Boolean(busy)}>
             <FileUp /> Import .txt
           </YapButton>
+          {Boolean(initial?.length) && (
+            <YapButton variant="ghost" size="sm" onClick={() => save([])} disabled={Boolean(busy)}>
+              <Trash2 /> Remove script
+            </YapButton>
+          )}
           <input ref={fileRef} type="file" accept=".txt,text/plain" className="hidden" onChange={(e) => {
               void importFile(e.target.files?.[0]);
               // So picking the same file again still imports it.
@@ -400,7 +437,7 @@ export function ScriptEditor({
             size="xl"
             block
             disabled={!lines.length || Boolean(busy)}
-            onClick={() => onSave(lines)}
+            onClick={() => save(lines)}
           >
             Save script
           </YapButton>

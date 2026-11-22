@@ -3,6 +3,7 @@
 import { DAILY_LIMIT, localDate } from "@/lib/yap";
 import { ALL_PROMPTS } from "@/lib/curriculum";
 import { clearLocalScripts } from "@/lib/script";
+import { transcriptFields } from "@/lib/analysis/transcript";
 import { endGuest, envDemo } from "./mode";
 import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
@@ -118,11 +119,12 @@ export const demoApi: DataApi = {
     if (s.yaps.filter((y) => y.local_date === day).length >= DAILY_LIMIT) throw new DailyLimitError();
     const id = crypto.randomUUID();
     await clipStore("readwrite", (st) => st.put(blob, id));
-    // Feedback is the real on-device analysis. Filler words need a transcript, so they stay empty.
+    // Feedback is the real on-device analysis; filler words come from the on-device transcript.
+    const { filler_count, filler_words } = transcriptFields(analysis?.transcript);
     const feedback: Feedback = {
       words_per_minute: analysis?.wpm ?? null,
-      filler_count: null,
-      filler_words: {},
+      filler_count,
+      filler_words,
       tips: analysis?.tips ?? ["Watch your clip back once. You'll spot one thing to try next time."],
       analysis: analysis ?? null,
     };

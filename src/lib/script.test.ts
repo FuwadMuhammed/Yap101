@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Profile } from "@/lib/data/types";
 import type { Prompt } from "@/lib/yap";
-import { claimDevice, clearLocalScripts, introScript, isCachedSuggestion, isStaleOwner, isIntroPrompt, linesToText, loadScript, loadSuggestion, otherScripts, profileSig, saveScript, saveSuggestion, textToLines } from "./script";
+import { claimDevice, clearLocalScripts, introScript, isCachedSuggestion, isStaleOwner, isIntroPrompt, linesToText, loadDraft, loadScript, loadSuggestion, otherScripts, profileSig, saveDraft, saveScript, saveSuggestion, textToLines } from "./script";
 
 const prompt = (over: Partial<Prompt> = {}) =>
   ({ id: 1, day_index: 1, title: "Introduce yourself", talking_points: [], skill: "", skill_tip: "", week: 1, focus: "", milestone: false, level: "beginner", goal: "confidence", ...over }) as Prompt;
@@ -70,6 +70,36 @@ describe("saved scripts", () => {
     saveScript(3, ["day three"]);
     saveScript(2, ["day two"]);
     expect(otherScripts(2)).toEqual(["day three", "day one"]);
+  });
+
+  it("only sends scripts from the same track: a level change leaves old ones out (BUG-30)", () => {
+    localStorage.clear();
+    saveScript(101, ["old track day one"]);
+    saveScript(402, ["new track day two"]);
+    saveScript(403, ["new track day three"]);
+    expect(otherScripts(401)).toEqual(["new track day three", "new track day two"]);
+    expect(otherScripts(102)).toEqual(["old track day one"]);
+  });
+});
+
+describe("unsaved drafts (BUG-29)", () => {
+  it("keeps, restores and drops a day's draft", () => {
+    localStorage.clear();
+    expect(loadDraft(7)).toBeNull();
+    saveDraft(7, "my rough words");
+    saveDraft(8, "another day");
+    expect(loadDraft(7)).toBe("my rough words");
+    saveDraft(7, null);
+    expect(loadDraft(7)).toBeNull();
+    expect(loadDraft(8)).toBe("another day");
+    saveDraft(8, "   ");
+    expect(localStorage.getItem("yap101-script-drafts")).toBeNull();
+  });
+
+  it("is wiped with the rest of the device's scripts", () => {
+    saveDraft(3, "draft");
+    clearLocalScripts();
+    expect(loadDraft(3)).toBeNull();
   });
 });
 

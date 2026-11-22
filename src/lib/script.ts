@@ -120,10 +120,16 @@ export function loadScript(promptId: number): string[] | null {
   return readAll()[promptId] ?? null;
 }
 
-/** Scripts saved for other days, newest prompt first, each as one string. */
+/** Prompt ids are (track * 100) + day: the same track means the same level and goal. */
+const trackOf = (promptId: number) => Math.floor(promptId / 100);
+
+/**
+ * Scripts saved for other days of the same track (level + goal), newest prompt first, each as
+ * one string. Scripts from a track they've since left aren't shown anywhere, so they aren't sent either.
+ */
 export function otherScripts(promptId: number, limit = 5): string[] {
   return Object.entries(readAll())
-    .filter(([id]) => Number(id) !== promptId)
+    .filter(([id]) => Number(id) !== promptId && trackOf(Number(id)) === trackOf(promptId))
     .sort(([a], [b]) => Number(b) - Number(a))
     .slice(0, limit)
     .map(([, lines]) => lines.join(" "));
@@ -138,10 +144,33 @@ export function saveScript(promptId: number, lines: string[] | null): boolean {
   return write(KEY, all);
 }
 
+// Unsaved editor text, per day, so a reload or a closed tab doesn't lose it.
+const DRAFT_KEY = "yap101-script-drafts";
+
+export function loadDraft(promptId: number): string | null {
+  if (isStaleOwner()) return null;
+  const v = readObject(DRAFT_KEY)[promptId];
+  return typeof v === "string" && v.trim() ? v : null;
+}
+
+/** Keeps (or, with an empty string or null, drops) the editor text for a day. */
+export function saveDraft(promptId: number, text: string | null) {
+  if (isStaleOwner()) return;
+  const all = readObject(DRAFT_KEY) as Record<string, unknown>;
+  if (text?.trim()) all[promptId] = text.slice(0, 20_000);
+  else delete all[promptId];
+  try {
+    if (Object.keys(all).length) localStorage.setItem(DRAFT_KEY, JSON.stringify(all));
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* a draft is a convenience; never break typing over it */
+  }
+}
+
 /** Removes every script and suggestion from this device. */
 export function clearLocalScripts() {
   try {
-    for (const k of [KEY, SUGGEST_KEY, OWNER_KEY]) localStorage.removeItem(k);
+    for (const k of [KEY, SUGGEST_KEY, OWNER_KEY, DRAFT_KEY]) localStorage.removeItem(k);
   } catch {
     /* storage blocked: nothing stored either */
   }

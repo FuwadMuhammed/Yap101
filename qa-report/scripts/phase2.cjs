@@ -200,11 +200,13 @@ const toasts = (p) => p.locator("[data-sonner-toast]").allInnerTexts().then((t) 
     await mock("db-down", true);
     await p.getByRole("radio", { name: "Read a script" }).click();
     await p.getByRole("button", { name: "Use our suggestion" }).click();
-    await p.waitForTimeout(1500);
+    // Round 4: the editor waits at most 3 s for the profile, then writes without it and says so.
+    const notice = await p.getByText(/couldn't load your profile/).waitFor({ timeout: 6000 }).then(() => true, () => false);
+    for (let i = 0; i < 12 && !(await p.inputValue("#script-text")); i++) await p.waitForTimeout(500);
     await mock("db-down", false);
     const r = sent.at(-1) ?? {};
     const v = await p.inputValue("#script-text");
-    return ok(v.length > 0, `request still sent (name=${r.name}, niche=${r.niche}); box filled=${v.length > 0} — profile silently missing from the suggestion`, "P3");
+    return ok(v.length > 0 && notice, `request sent (name=${r.name}, niche=${r.niche}); box filled=${v.length > 0}; "not tailored" notice shown=${notice}`, "P3");
   }, { as: SAM });
 
   // ---------- F. Layout, text scaling, touch targets, accessibility tree ----------

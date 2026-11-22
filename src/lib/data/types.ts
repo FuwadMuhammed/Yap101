@@ -23,7 +23,7 @@ export type Onboarding = Pick<Profile, "display_name" | "niche" | "platform" | "
 export type Feedback = {
   /** Estimated on the phone today; exact once transcripts arrive. */
   words_per_minute: number | null;
-  /** Needs a transcript (speech-to-text), so null until that ships. */
+  /** From the on-device transcript (filler-word check); null when it didn't run. */
   filler_count: number | null;
   filler_words: Record<string, number>;
   tips: string[];

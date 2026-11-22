@@ -12,7 +12,7 @@ export function loadScorePrefs(): ScorePrefs {
     const v: unknown = JSON.parse(localStorage.getItem(KEY) ?? "{}");
     if (!v || typeof v !== "object" || Array.isArray(v)) return {};
     const o = v as Record<string, unknown>;
-    return { appearanceSensitive: o.appearanceSensitive === true, noEyeContact: o.noEyeContact === true, nonNative: o.nonNative === true };
+    return { appearanceSensitive: o.appearanceSensitive === true, noEyeContact: o.noEyeContact === true, nonNative: o.nonNative === true, transcribe: o.transcribe !== false };
   } catch {
     return {};
   }

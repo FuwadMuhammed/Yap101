@@ -112,6 +112,8 @@ function FeedbackScreen() {
   const celebrate = useSearchParams().get("celebrate") === "1";
   const [yap, setYap] = useState<YapDetail | null>(null);
   const [missing, setMissing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [all, setAll] = useState<YapSummary[]>([]);
   const [usedToday, setUsedToday] = useState(0);
@@ -146,8 +148,17 @@ function FeedbackScreen() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let url: string | null = null;
+    let alive = true;
     const load = async () => {
-      const y = await api.getYap(id);
+      let y;
+      try {
+        y = await api.getYap(id);
+      } catch {
+        if (alive) setLoadFailed(true);
+        return;
+      }
+      if (!alive) return;
+      setLoadFailed(false);
       if (!y) return setMissing(true);
       // Keep the first playback URL so the player doesn't reset while polling.
       if (url && y.url && y.url !== url && y.url.startsWith("blob:")) URL.revokeObjectURL(y.url);
@@ -156,8 +167,11 @@ function FeedbackScreen() {
       if (!y.feedback) timer = setTimeout(load, 1500);
     };
     load();
-    return () => clearTimeout(timer);
-  }, [id]);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [id, attempt]);
 
   const shareFile = useCallback(async () => {
     if (!yap?.url) return null;
@@ -174,6 +188,15 @@ function FeedbackScreen() {
       alive = false;
     };
   }, [shareFile]);
+
+  if (loadFailed && !yap)
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+        <MascotSays mood="sleepy">We couldn&apos;t load this yap right now. It&apos;s safe; check your connection and try again.</MascotSays>
+        <YapButton onClick={() => setAttempt((n) => n + 1)} arrow>Try again</YapButton>
+        <YapLink href="/home" variant="soft">Back to today</YapLink>
+      </div>
+    );
 
   if (missing)
     return (
@@ -237,7 +260,7 @@ function FeedbackScreen() {
         ) : a?.yap ? (
           <>
             <YapReport analysis={a as typeof a & { yap: NonNullable<typeof a.yap> }} history={all} yapId={id} localDate={yap?.local_date ?? ""} promptId={yap?.prompt_id ?? null} />
-            <p className="text-stone text-center text-xs">Measured on your phone: nothing was uploaded. Pace and the first-3-second word count are estimates from your voice rhythm.</p>
+            <p className="text-stone text-center text-xs">Measured on your phone: nothing was uploaded.{a.transcript?.length ? " Pace and words in the first 3 seconds come from the transcript." : " Pace and the first-3-second word count are estimates from your voice rhythm."}</p>
           </>
         ) : (
           <>

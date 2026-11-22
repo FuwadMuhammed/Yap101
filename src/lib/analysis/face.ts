@@ -29,7 +29,32 @@ export type FaceStats = {
   faceLuma: number | null;
   /** Face brightness ÷ whole-frame brightness; well under 1 means backlit. */
   backlight: number | null;
+  /** Gaze was judged against their own look at the lens during the countdown. */
+  calibrated?: boolean;
 };
+
+/** Eye direction (blendshape scores, 0-1) and head turn (degrees) for one check. */
+export type Gaze = { side: number; down: number; up: number; yaw: number };
+
+/**
+ * Looking at the lens? Without a calibration, fixed limits (reading the teleprompter just under
+ * the camera looks a little down, so down gets the most room). With one (their own look at the
+ * lens during the 3-2-1), limits are measured from their baseline: eye shape, glasses and where
+ * the phone sits all shift the raw scores, so the same rule fits everyone better.
+ */
+export function isLooking(g: Gaze, base?: Gaze | null) {
+  if (!base) return g.side < 0.5 && g.down < 0.7 && g.up < 0.6 && Math.abs(g.yaw) < 22;
+  return g.side - base.side < 0.4 && g.down - base.down < 0.45 && g.up - base.up < 0.45 && Math.abs(g.yaw - base.yaw) < 18;
+}
+
+/** Median gaze over the calibration checks; null if fewer than 4 had a face or they weren't steady. */
+export function gazeBaseline(samples: Gaze[]): Gaze | null {
+  if (samples.length < 4) return null;
+  const med = (f: (g: Gaze) => number) => [...samples.map(f)].sort((a, b) => a - b)[Math.floor(samples.length / 2)];
+  const base = { side: med((g) => g.side), down: med((g) => g.down), up: med((g) => g.up), yaw: med((g) => g.yaw) };
+  // Clearly not at the lens (looking away during the countdown): don't learn that as "the lens".
+  return isLooking(base) ? base : null;
+}
 
 const VERSION = "1.1.1"; // keep in step with package.json
 const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSION}/wasm`;
@@ -59,7 +84,7 @@ export function loadFaceModel() {
   return loading;
 }
 
-type Sample = { t: number; face: boolean; looking: boolean; smile: boolean; h?: number; eye?: number; yaw?: number; pitch?: number; luma?: number; frameLuma?: number };
+type Sample = { t: number; face: boolean; gaze?: Gaze; smile: boolean; h?: number; eye?: number; yaw?: number; pitch?: number; luma?: number; frameLuma?: number };
 
 /** Mean brightness (0-255) of a region of the video, drawn into a tiny canvas. */
 function lumaOf(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, x: number, y: number, w: number, h: number) {
@@ -75,10 +100,19 @@ export class FaceMeter {
   private samples: Sample[] = [];
   private startedAt = 0;
 
-  async start(video: HTMLVideoElement | null) {
+  /** Start recording time now. Checks before this (the countdown) are the gaze calibration. */
+  markStart() {
+    this.startedAt = performance.now();
+  }
+
+  /**
+   * Starts checking. Call at the countdown with `startsIn` (ms until recording) to calibrate
+   * gaze while they look at the lens; then markStart() when recording begins.
+   */
+  async start(video: HTMLVideoElement | null, startsIn = 0) {
     if (!video) return;
     // Times are from the start of recording (the hook window), not from when the model loaded.
-    this.startedAt = performance.now();
+    this.startedAt = performance.now() + startsIn;
     const model = await loadFaceModel();
     if (!model) return;
     let canvas: CanvasRenderingContext2D | null = null;
@@ -96,16 +130,14 @@ export class FaceMeter {
       try {
         const r = model.detectForVideo(video, now);
         const shapes = r.faceBlendshapes[0]?.categories;
-        if (!shapes) return this.samples.push({ t: now - this.startedAt, face: false, looking: false, smile: false });
+        if (!shapes) return this.samples.push({ t: now - this.startedAt, face: false, smile: false });
         const s = (name: string) => shapes.find((c) => c.categoryName === name)?.score ?? 0;
         const side = Math.max(s("eyeLookOutLeft"), s("eyeLookOutRight"), s("eyeLookInLeft"), s("eyeLookInRight"));
-        // Reading the teleprompter (just under the camera) looks a little down; allow for it.
         const down = Math.max(s("eyeLookDownLeft"), s("eyeLookDownRight"));
         const up = Math.max(s("eyeLookUpLeft"), s("eyeLookUpRight"));
         const yaw = headYaw(r.facialTransformationMatrixes[0]?.data);
-        const looking = side < 0.5 && down < 0.7 && up < 0.6 && Math.abs(yaw) < 22;
         const smile = (s("mouthSmileLeft") + s("mouthSmileRight")) / 2 > 0.35;
-        const sample: Sample = { t: now - this.startedAt, face: true, looking, smile, yaw, pitch: headPitch(r.facialTransformationMatrixes[0]?.data) };
+        const sample: Sample = { t: now - this.startedAt, face: true, gaze: { side, down, up, yaw }, smile, yaw, pitch: headPitch(r.facialTransformationMatrixes[0]?.data) };
         const lm = r.faceLandmarks[0];
         if (lm?.length > 263) {
           let minX = 1, maxX = 0, minY = 1, maxY = 0;
@@ -136,7 +168,9 @@ export class FaceMeter {
   stop(): FaceStats | null {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
-    const all = this.samples;
+    // Countdown checks calibrate gaze; only the recording itself is measured.
+    const base = gazeBaseline(this.samples.filter((x) => x.t < 0 && x.gaze).map((x) => x.gaze!));
+    const all = this.samples.filter((x) => x.t >= 0);
     if (all.length < 5) return null;
     const faces = all.filter((x) => x.face);
     const share = (xs: Sample[], f: (x: Sample) => boolean) => (xs.length ? xs.filter(f).length / xs.length : 0);
@@ -153,7 +187,7 @@ export class FaceMeter {
     const round = (v: number | null, d = 3) => (v === null ? null : Math.round(v * 10 ** d) / 10 ** d);
     return {
       inFrame: faces.length / all.length,
-      eyeContact: share(faces, (x) => x.looking),
+      eyeContact: share(faces, (x) => Boolean(x.gaze && isLooking(x.gaze, base))),
       smiling: share(faces, (x) => x.smile),
       smiledAtStart: faces.some((x) => x.t <= 3000 && x.smile),
       samples: all.length,
@@ -164,6 +198,7 @@ export class FaceMeter {
       headMovement: yawSd === null || pitchSd === null ? null : round((yawSd + pitchSd) / 2, 1),
       faceLuma: round(med(lit.map((x) => x.luma!)), 0),
       backlight: round(med(lit.map((x) => x.luma! / Math.max(1, x.frameLuma!))), 2),
+      calibrated: base !== null,
     };
   }
 }

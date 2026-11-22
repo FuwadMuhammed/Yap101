@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-22T10:03:28.031Z",
+  "base": "http://localhost:3125",
+  "runs": [
+    {
+      "id": "S03",
+      "run": 1,
+      "mode": "suggest",
+      "status": 429,
+      "ms": 695,
+      "error": "busy",
+      "score": null,
+      "input": "The day something went wrong"
+    }
+  ]
+}

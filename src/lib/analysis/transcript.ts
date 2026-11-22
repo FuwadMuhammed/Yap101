@@ -1,8 +1,7 @@
 // Transcript-based measurements for the Yap score: filler rate, a clear close, hedging words,
-// and exact pace / first-3-second word counts. They need word-level timestamps from speech
-// recognition (see the "AI" note in docs: CrisperWhisper on a server, or Whisper + a filler
-// detector in the browser). Until a recogniser is wired in, the score marks these
-// "Needs speech recognition" and leaves them out.
+// and exact pace / first-3-second word counts. The words come from free on-device Whisper
+// (asr.ts); hiddenFillers adds the drawn-out "uhh"s Whisper drops. With no transcript the
+// score marks these "Needs speech recognition" and leaves them out.
 
 export type Word = {
   /** As recognised, e.g. "um", "Hello,". */
@@ -10,6 +9,8 @@ export type Word = {
   /** Seconds from the start of the recording. */
   start: number;
   end: number;
+  /** Not in the transcript: a filled pause heard in the audio between words (see hiddenFillers). */
+  heard?: boolean;
 };
 
 const norm = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}']+/gu, "");
@@ -33,6 +34,12 @@ function countPhrases(tokens: string[], phrases: string[][]) {
   return { n, found };
 }
 
+/** Whether word i is a single-word filler ("um", or "like" set off by commas). */
+export function isFiller(words: Word[], i: number) {
+  const t = norm(words[i].text);
+  return FILLERS.has(t) || (t === "like" && /,$/.test(words[i].text) && i > 0 && /,$/.test(words[i - 1].text));
+}
+
 /** Filler words, with a count per word ({"um": 4, "like": 2}). */
 export function fillerStats(words: Word[]) {
   const tokens = words.map((w) => norm(w.text));
@@ -40,8 +47,7 @@ export function fillerStats(words: Word[]) {
   let count = 0;
   words.forEach((w, i) => {
     const t = tokens[i];
-    const commaLike = t === "like" && /,$/.test(w.text) && i > 0 && /,$/.test(words[i - 1].text);
-    if (FILLERS.has(t) || commaLike) {
+    if (isFiller(words, i)) {
       count++;
       byWord[t] = (byWord[t] ?? 0) + 1;
     }
@@ -80,4 +86,73 @@ export function closeDetected(words: Word[], clipSeconds: number): string | null
   const tail = words.filter((w) => w.start >= Math.max(0, Math.min(clipSeconds, lastSpoken) - 5));
   const r = countPhrases(tail.map((w) => norm(w.text)), CLOSERS);
   return r.found[0] ?? null;
+}
+
+/**
+ * Fillers the recogniser left out. Whisper tends to drop a drawn-out "uhh", so look at the gaps
+ * between recognised words: a stretch of continuous voice of 0.3 s or more inside a gap of
+ * 0.45 s or more is a filled pause (silence would be quiet; a real word would be in the
+ * transcript). `frames` are the take's 25 ms loudness frames (times in any unit of seconds;
+ * the first frame is the start of the recording). Marked `heard` so the UI can say so.
+ */
+export function hiddenFillers(words: Word[], frames: { rms: number[]; times: number[] }): Word[] {
+  const { rms, times } = frames;
+  if (rms.length < 20 || words.length < 2) return [];
+  const t0 = times[0];
+  const thresh = voiceThreshold(rms);
+  const found: Word[] = [];
+  for (let i = 1; i < words.length; i++) {
+    const from = words[i - 1].end + 0.08, to = words[i].start - 0.08; // keep clear of word edges
+    if (to - from < 0.45 - 0.16) continue;
+    let runStart = -1;
+    for (let k = 0; k < rms.length; k++) {
+      const t = times[k] - t0;
+      if (t < from) continue;
+      if (t > to) break;
+      if (rms[k] > thresh) {
+        if (runStart < 0) runStart = t;
+        if (t - runStart >= 0.3 && !found.some((f) => f.start === runStart)) found.push({ text: "uh", start: runStart, end: t, heard: true });
+      } else runStart = -1;
+    }
+  }
+  // One per gap is enough: keep the first of any overlapping finds.
+  return found.filter((f, i) => !found.slice(0, i).some((g) => f.start < g.end + 0.2));
+}
+
+/** Loudness above which a 25 ms frame counts as voice: well over the room's noise floor. */
+function voiceThreshold(rms: number[]) {
+  const sorted = [...rms].sort((a, b) => a - b);
+  const pct = (p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+  return Math.max(pct(0.1) * 3, pct(0.9) * 0.22, 0.004);
+}
+
+/**
+ * Drops words with no voice under them. Whisper is known to invent text ("Thank you.") over
+ * silence or noise, which would fake a clear close; a real word has loud frames in its span.
+ */
+export function voicedOnly(words: Word[], frames: { rms: number[]; times: number[] }): Word[] {
+  const { rms, times } = frames;
+  if (rms.length < 20) return words;
+  const t0 = times[0], thresh = voiceThreshold(rms);
+  return words.filter((w) => {
+    let loud = 0;
+    for (let k = 0; k < rms.length; k++) {
+      const t = times[k] - t0;
+      if (t >= w.start - 0.1 && t <= w.end + 0.1 && rms[k] > thresh) loud++;
+    }
+    return loud >= 2; // 50 ms of voice
+  });
+}
+
+/** Recognised words that were really spoken, plus heard fillers, in time order. */
+export function withHiddenFillers(words: Word[], frames: { rms: number[]; times: number[] }) {
+  const real = voicedOnly(words, frames);
+  return [...real, ...hiddenFillers(real, frames)].sort((a, b) => a.start - b.start);
+}
+
+/** The feedback-row fields a transcript fills in (null when there's no transcript). */
+export function transcriptFields(words: Word[] | null | undefined) {
+  if (!words?.length) return { filler_count: null, filler_words: {} as Record<string, number>, transcript: null };
+  const f = fillerStats(words);
+  return { filler_count: f.count, filler_words: f.byWord, transcript: words.filter((w) => !w.heard).map((w) => w.text).join(" ") };
 }

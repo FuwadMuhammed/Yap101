@@ -46,6 +46,8 @@ export type ScorePrefs = {
   noEyeContact?: boolean;
   /** Non-native speaker: pause metrics are scored more leniently. */
   nonNative?: boolean;
+  /** Filler-word check with on-device speech recognition (default on; false turns it off). */
+  transcribe?: boolean;
 };
 
 export type YapScore = {
@@ -257,7 +259,7 @@ export function scoreYap(input: ScoreInput): YapScore {
   };
   if (prefs.noEyeContact) add("gaze", null, "Turned off in settings", { missing: "off" });
   else
-    presence("gaze", () => [bandOf(face!.eyeContact * 100, { green: [60, 100], amber: [40, 60] }), `Looked into the lens ${Math.round(face!.eyeContact * 100)}% of the time`]);
+    presence("gaze", () => [bandOf(face!.eyeContact * 100, { green: [60, 100], amber: [40, 60] }), `Looked into the lens ${Math.round(face!.eyeContact * 100)}% of the time${face!.calibrated ? " (measured against your own look at the lens)" : ""}`]);
   presence("smile", () => {
     const open = face!.smiledAtStart, close = face!.smileClose;
     return [open && close ? { band: "green", points: 100 } : open || close ? { band: "amber", points: 70 } : { band: "red", points: 40 }, open && close ? "Smiled at the open and the close" : open ? "Smiled at the open, not the close" : close ? "Smiled at the close, not the open" : "No smile at the open or close"];

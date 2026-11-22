@@ -17,7 +17,7 @@ const step = (id, title, ok, actual) => { out.push({ id, title, status: ok ? "PA
   const p = await ctx.newPage();
   const errors = []; p.on("pageerror", (e) => errors.push(e.message));
   await p.goto(BASE + "/terms");
-  await p.evaluate(() => { localStorage.clear(); localStorage.setItem("yap101-demo", JSON.stringify({ signedIn: true, yaps: [], profile: { display_name: "Sam", niche: "fitness", platform: "tiktok", confidence: 2, level: "beginner", goal: "confidence", track_start_date: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10), onboarded_at: "2026-11-01T00:00:00Z", yap_time: "morning" } })); });
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem("yap101-score-prefs", JSON.stringify({ transcribe: false })); localStorage.setItem("yap101-demo", JSON.stringify({ signedIn: true, yaps: [], profile: { display_name: "Sam", niche: "fitness", platform: "tiktok", confidence: 2, level: "beginner", goal: "confidence", track_start_date: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10), onboarded_at: "2026-11-01T00:00:00Z", yap_time: "morning" } })); });
 
   async function record(n, { fear, predicted, observed, after, retake }) {
     await p.goto(`${BASE}/record?prompt=${n === 1 ? 2 : 3}`, { waitUntil: "networkidle" });
@@ -62,9 +62,9 @@ const step = (id, title, ok, actual) => { out.push({ id, title, status: ok ? "PA
     await p.screenshot({ path: path.join(SHOTS, "results-top.png"), fullPage: false });
     await p.getByText("See details: all 16 measures").click();
     const details = await p.locator("details li").count();
-    const soon = await p.getByText("Coming soon").count();
+    const soon = await p.getByText("No transcript").count();
     await p.screenshot({ path: path.join(SHOTS, "results-details.png"), fullPage: true });
-    step("Y5", "Details list all 16 measures; transcript ones marked 'Coming soon'", details === 16 && soon === 3, `rows ${details}, coming soon ${soon}, timeline ${await p.getByText("Your voice over the clip").count() ? "shown" : "not shown"}`);
+    step("Y5", "Details list all 16 measures; transcript ones marked 'No transcript' (filler check off)", details === 16 && soon === 3, `rows ${details}, coming soon ${soon}, timeline ${await p.getByText("Your voice over the clip").count() ? "shown" : "not shown"}`);
     const drill = await p.getByRole("link", { name: /Drill:/ }).first();
     const href = await drill.getAttribute("href");
     await drill.click();

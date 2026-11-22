@@ -4,6 +4,7 @@ import { ChevronDown, Dumbbell, Sparkles, TrendingDown, TrendingUp } from "lucid
 import { Ring } from "@/components/yap/stats";
 import { YapLink } from "@/components/yap/yap-button";
 import type { Analysis } from "@/lib/analysis/score";
+import { isFiller, type Word } from "@/lib/analysis/transcript";
 import type { Band, Group, YapScore } from "@/lib/analysis/yapscore";
 import type { YapSummary } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -142,13 +143,13 @@ export function YapReport({ analysis, history, yapId, localDate, promptId }: Pro
               {y.params.filter((p) => p.group === g).map((p) => (
                 <li key={p.key} className="flex items-start justify-between gap-3 py-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold">{p.label}{!p.scored && p.measured && <span className="text-stone font-normal"> · not scored</span>}</p>
+                    <p className="text-sm font-semibold">{p.label}{!p.scored && p.measured && <span className="text-stone font-normal"> · not scored</span>}{p.measured && (p.key === "fillers" || p.key === "close" || p.key === "hedging") && <span className="text-stone font-normal"> · beta</span>}</p>
                     <p className="text-stone text-sm">{p.display}</p>
                   </div>
                   {p.band ? (
                     <span className={cn("mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold", BAND_BG[p.band])}>{BAND_WORD[p.band]}</span>
                   ) : (
-                    <span className="bg-mist text-stone mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold">{p.missing === "transcript" ? "Coming soon" : "Not measured"}</span>
+                    <span className="bg-mist text-stone mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-bold">{p.missing === "transcript" ? "No transcript" : "Not measured"}</span>
                   )}
                 </li>
               ))}
@@ -156,14 +157,36 @@ export function YapReport({ analysis, history, yapId, localDate, promptId }: Pro
           </div>
         ))}
         {analysis.audio && analysis.audio.timeline.length > 4 && <VoiceTimeline points={analysis.audio.timeline} />}
+        {analysis.transcript && analysis.transcript.length > 0 && <Transcript words={analysis.transcript} />}
         {unmeasured.length > 0 && (
           <p className="text-stone mt-4 text-xs leading-snug">
-            {unmeasured.map((p) => p.label).join(", ")} need speech recognition, which isn&apos;t switched on yet, so they&apos;re left out of your score for now.
+            {unmeasured.map((p) => p.label).join(", ")} need the filler-word check (a transcript made on your phone). It didn&apos;t run for this take: it may be off in your profile, or the speech model couldn&apos;t load. They&apos;re left out of your score.
           </p>
         )}
         {y.personalBaseline && <p className="text-stone mt-2 text-xs">Pitch and energy are compared with your own first takes, not other people.</p>}
       </details>
     </>
+  );
+}
+
+/** What the on-device speech model heard, fillers highlighted. */
+function Transcript({ words }: { words: Word[] }) {
+  return (
+    <div className="mt-4">
+      <p className="text-stone text-xs font-bold tracking-wide uppercase">What we heard (beta)</p>
+      <p className="mt-1 text-sm leading-relaxed">
+        {words.map((w, i) =>
+          isFiller(words, i) ? (
+            <mark key={i} className="bg-sun mx-0.5 rounded px-1 font-semibold" title={w.heard ? "A filled pause heard between words" : undefined}>
+              {w.heard ? "(uh)" : w.text}
+            </mark>
+          ) : (
+            <span key={i}>{i ? " " : ""}{w.text}</span>
+          ),
+        )}
+      </p>
+      <p className="text-stone mt-1 text-xs">Made on your phone by a free speech model; it can mishear. Highlighted words count as fillers.</p>
+    </div>
   );
 }
 

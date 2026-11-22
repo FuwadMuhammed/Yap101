@@ -157,7 +157,7 @@ export default function Me() {
       </section>
 
       <p className="text-stone flex items-center gap-1.5 px-1 text-sm">
-        <Sparkles className="size-4 shrink-0" /> Coming soon: filler-word counts, an AI script writer and an AI coach.
+        <Sparkles className="size-4 shrink-0" /> Coming soon: an AI coach that talks you through each take.
       </p>
 
       <section className="flex flex-wrap gap-2 pt-2">

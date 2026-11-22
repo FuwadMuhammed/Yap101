@@ -1,5 +1,6 @@
 "use client";
 
+import { transcriptFields } from "@/lib/analysis/transcript";
 import { clearLocalScripts } from "@/lib/script";
 import { createClient } from "@/lib/supabase/client";
 import type { Prompt } from "@/lib/yap";
@@ -41,7 +42,9 @@ export const supabaseApi: DataApi = {
   },
 
   async getPromptById(id) {
-    const { data } = await createClient().from("prompts").select(PROMPT_COLS).eq("id", id).maybeSingle();
+    const { data, error } = await createClient().from("prompts").select(PROMPT_COLS).eq("id", id).maybeSingle();
+    // An outage is not "no such prompt": throw so the screen can say so and offer a retry.
+    if (error) throw new Error(error.message || "Couldn't load today's prompt");
     return data as Prompt | null;
   },
 
@@ -73,12 +76,12 @@ export const supabaseApi: DataApi = {
       await sb.storage.from("yaps").remove([path]);
       throw error.message.includes("daily limit") ? new DailyLimitError() : error;
     }
-    // On-device analysis is saved straight away. Transcript-based feedback (filler words,
-    // AI tips) will update this row from a server route later.
+    // On-device analysis (and the on-device transcript, when the filler check ran) is saved straight away.
     if (analysis)
       await sb.from("feedback").insert({
         yap_id: data.id,
         user_id: auth.user.id,
+        ...transcriptFields(analysis.transcript),
         words_per_minute: analysis.wpm,
         tips: analysis.tips,
         score: analysis.overall,
@@ -89,7 +92,9 @@ export const supabaseApi: DataApi = {
 
   async getYap(id) {
     const sb = createClient();
-    const { data: yap } = await sb.from("yaps").select("storage_path, media, local_date, title, prompt_id").eq("id", id).is("deleted_at", null).maybeSingle();
+    const { data: yap, error } = await sb.from("yaps").select("storage_path, media, local_date, title, prompt_id").eq("id", id).is("deleted_at", null).maybeSingle();
+    // A database or network failure is not "deleted": throw, so the page can offer a retry.
+    if (error) throw new Error(error.message || "Couldn't load this yap");
     if (!yap) return null;
     const [{ data: signed }, { data: feedback }] = await Promise.all([
       sb.storage.from("yaps").createSignedUrl(yap.storage_path, 3600),
