@@ -141,7 +141,7 @@ export const demoApi: DataApi = {
       save(s);
     }
     const blob = await clipStore<Blob | undefined>("readonly", (st) => st.get(id)).catch(() => undefined);
-    return { url: blob ? URL.createObjectURL(blob) : null, media: yap.media, title: yap.title, local_date: yap.local_date, feedback: yap.feedback };
+    return { url: blob ? URL.createObjectURL(blob) : null, media: yap.media, title: yap.title, local_date: yap.local_date, feedback: yap.feedback, prompt_id: yap.prompt_id || null };
   },
 
   async listYaps(opts) {
@@ -156,6 +156,7 @@ export const demoApi: DataApi = {
       filler_count: feedback?.filler_count ?? null,
       words_per_minute: feedback?.words_per_minute ?? null,
       score: feedback?.analysis?.overall ?? null,
+      analysis: feedback?.analysis ?? null,
       deleted: Boolean(deleted),
     }));
   },

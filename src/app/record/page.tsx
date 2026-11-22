@@ -10,15 +10,18 @@ import { personalize } from "@/lib/curriculum";
 import { api } from "@/lib/data";
 import { nicheForDay } from "@/lib/options";
 import { claimDevice, introScript } from "@/lib/script";
+import { DRILLS } from "@/lib/analysis/yapscore";
+import type { Scoring } from "@/components/record/recorder";
 import { DAILY_LIMIT, localDate, trackDay, type Level, type Prompt } from "@/lib/yap";
 
-type Ready = { kind: "ready"; prompt: Prompt; firstToday: boolean; level: Level | null; script: string[] | null };
+type Ready = { kind: "ready"; prompt: Prompt; firstToday: boolean; level: Level | null; script: string[] | null; scoring: Scoring };
 type Blocked = { kind: "missing" } | { kind: "locked"; day: number; unlocks: string } | { kind: "limit" };
 
 function RecordScreen() {
   const params = useSearchParams();
   const id = Number(params.get("prompt"));
   const first = params.get("first") === "1";
+  const drill = DRILLS[params.get("drill") ?? ""] ?? null;
   const [state, setState] = useState<Ready | Blocked | null>(null);
 
   useEffect(() => {
@@ -46,13 +49,15 @@ function RecordScreen() {
           firstToday: usedToday === 0,
           level: profile?.level ?? null,
           script: introScript(prompt, profile),
+          // Earlier takes, oldest first: personal baselines, "since day 1", tips that don't repeat.
+          scoring: { goal: profile?.goal ?? null, history: [...yaps].reverse().filter((y) => y.analysis).map((y) => ({ yap: y.analysis!.yap ?? null, audio: y.analysis!.audio ?? null })) },
         });
       })
       .catch(() => setState({ kind: "missing" }));
   }, [id]);
 
   if (!state) return <Loading />;
-  if (state.kind === "ready") return <Recorder prompt={state.prompt} firstToday={state.firstToday} level={state.level} first={first} script={state.script} />;
+  if (state.kind === "ready") return <Recorder prompt={state.prompt} firstToday={state.firstToday} level={state.level} first={first} script={state.script} scoring={state.scoring} drill={drill} />;
   return <BlockedScreen state={state} />;
 }
 

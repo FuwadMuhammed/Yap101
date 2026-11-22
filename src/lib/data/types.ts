@@ -42,11 +42,13 @@ export type YapSummary = {
   words_per_minute: number | null;
   /** Yap score (0-100) from on-device analysis. */
   score: number | null;
+  /** The full on-device report, for baselines, trends and "since day 1" (null if none). */
+  analysis?: Analysis | null;
   /** Deleted by the user: the clip is gone, but it still counts for XP, streaks and the daily limit. */
   deleted?: boolean;
 };
 
-export type YapDetail = { url: string | null; media: Media; title: string; local_date: string; feedback: Feedback | null };
+export type YapDetail = { url: string | null; media: Media; title: string; local_date: string; feedback: Feedback | null; /** For "try the drill" on the same day's prompt. */ prompt_id?: number | null };
 
 export class DailyLimitError extends Error {
   constructor() {

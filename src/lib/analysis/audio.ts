@@ -21,6 +21,18 @@ export type AudioStats = {
   /** Loudness spread in dB over voiced frames. */
   loudnessRange: number | null;
   speakingSeconds: number;
+  /** Short pauses (0.3–2 s) between words: the helpful kind. */
+  shortPauses: number;
+  /** Silences over 3 s between the first and last word ("dead air"). */
+  deadAir: number;
+  /** Estimated words in the first 3 seconds of the recording (from syllable beats). */
+  wordsFirst3s: number | null;
+  /** Mean loudness of voiced frames, in dBFS. */
+  meanDb: number | null;
+  /** Share of frames that hit the top of the mic's range (0-1). */
+  clipping: number;
+  /** Every 0.5 s: pitch in semitones above 100 Hz, and loudness in dBFS (null when silent). */
+  timeline: { t: number; st: number | null; db: number | null }[];
 };
 
 const FRAME_MS = 25;
@@ -99,6 +111,7 @@ export class AudioMeter {
   private buf = new Float32Array(1024);
   private rms: number[] = [];
   private pitch: (number | null)[] = [];
+  private peaks: number[] = [];
   /** Real time of each frame: browsers throttle timers, so never assume a fixed step. */
   private times: number[] = [];
   private frame = 0;
@@ -125,8 +138,14 @@ export class AudioMeter {
     if (!a || !this.ctx) return;
     a.getFloatTimeDomainData(this.buf);
     let sum = 0;
-    for (let i = 0; i < this.buf.length; i++) sum += this.buf[i] * this.buf[i];
+    let peak = 0;
+    for (let i = 0; i < this.buf.length; i++) {
+      sum += this.buf[i] * this.buf[i];
+      const v = Math.abs(this.buf[i]);
+      if (v > peak) peak = v;
+    }
     const rms = Math.sqrt(sum / this.buf.length);
+    this.peaks.push(peak);
     const t = performance.now() / 1000;
     this.rms.push(rms);
     this.times.push(t);
@@ -146,7 +165,7 @@ export class AudioMeter {
     this.timer = null;
     void this.ctx?.close().catch(() => {});
     this.ctx = null;
-    return this.rms.length > 20 ? summarise(this.rms, this.pitch, this.times) : null;
+    return this.rms.length > 20 ? summarise(this.rms, this.pitch, this.times, this.peaks) : null;
   }
 }
 
@@ -182,7 +201,7 @@ const sd = (xs: number[]) => {
   return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length);
 };
 
-function summarise(rms: number[], pitch: (number | null)[], times: number[]): AudioStats {
+export function summarise(rms: number[], pitch: (number | null)[], times: number[], peaks: number[] = []): AudioStats {
   const at = (i: number) => times[i] - times[0];
   const between = (a: number, b: number) => times[b] - times[a];
   const noise = pct(rms, 10);
@@ -203,10 +222,12 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
   }
   const seconds = at(rms.length - 1) + FRAME_MS / 1000;
   if (first < 0 || last <= first)
-    return { seconds, startDelay: null, talkRatio: 0, pauses: 0, longPauses: 0, longestPause: 0, wpm: null, pitchRange: null, loudnessRange: null, speakingSeconds: 0 };
+    return { seconds, startDelay: null, talkRatio: 0, pauses: 0, longPauses: 0, longestPause: 0, wpm: null, pitchRange: null, loudnessRange: null, speakingSeconds: 0, shortPauses: 0, deadAir: 0, wordsFirst3s: 0, meanDb: null, clipping: 0, timeline: [] };
 
   // Pauses between the first and last word.
   let pauses = 0;
+  let shortPauses = 0;
+  let deadAir = 0;
   let longPauses = 0;
   let longest = 0;
   let gapStart = -1;
@@ -217,6 +238,8 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
       if (gapStart >= 0) {
         const g = between(gapStart, i);
         if (g >= 0.6) pauses++;
+        if (g >= 0.3 && g <= 2) shortPauses++;
+        if (g > 3) deadAir++;
         if (g >= 2) longPauses++;
         longest = Math.max(longest, g);
       }
@@ -228,6 +251,7 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
   // Syllable beats: peaks in the smoothed loudness that rise clearly above the dip before them.
   const smooth = rms.map((_, i) => (rms[i - 1] ?? rms[i]) * 0.25 + rms[i] * 0.5 + (rms[i + 1] ?? rms[i]) * 0.25);
   let syllables = 0;
+  let syllablesFirst3s = 0;
   let trough = Infinity;
   let lastPeak = -1;
   for (let i = first + 1; i < last; i++) {
@@ -235,6 +259,7 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
     const peak = smooth[i] > smooth[i - 1] && smooth[i] >= smooth[i + 1] && smooth[i] > thresh;
     if (peak && (lastPeak < 0 || between(lastPeak, i) >= 0.1) && smooth[i] - trough > smooth[i] * 0.25) {
       syllables++;
+      if (at(i) < 3) syllablesFirst3s++;
       lastPeak = i;
       trough = smooth[i];
     }
@@ -246,6 +271,22 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
   const semis = pitches.map((p) => 12 * Math.log2(p / 100));
   const trimmed = semis.filter((s) => s >= pct(semis, 5) && s <= pct(semis, 95));
   const db = rms.filter((_, i) => voiced[i]).map((r) => 20 * Math.log10(r));
+  const meanDb = db.length >= 20 ? Math.round((db.reduce((a, b) => a + b, 0) / db.length) * 10) / 10 : null;
+  const clipping = peaks.length ? peaks.filter((p) => p >= 0.98).length / peaks.length : 0;
+
+  // A light timeline for the report: one point every 0.5 s.
+  const timeline: AudioStats["timeline"] = [];
+  for (let start = 0, i = 0; start < seconds; start += 0.5) {
+    const st: number[] = [];
+    const level: number[] = [];
+    for (; i < rms.length && at(i) < start + 0.5; i++) {
+      if (!voiced[i]) continue;
+      level.push(20 * Math.log10(rms[i]));
+      if (pitch[i] != null) st.push(12 * Math.log2((pitch[i] as number) / 100));
+    }
+    const mean = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null);
+    timeline.push({ t: start, st: mean(st), db: mean(level) });
+  }
 
   return {
     seconds,
@@ -258,5 +299,11 @@ function summarise(rms: number[], pitch: (number | null)[], times: number[]): Au
     pitchRange: trimmed.length >= 15 ? Math.round(sd(trimmed) * 10) / 10 : null,
     loudnessRange: db.length >= 20 ? Math.round(sd(db) * 10) / 10 : null,
     speakingSeconds: Math.round(span * 10) / 10,
+    shortPauses,
+    deadAir,
+    wordsFirst3s: Math.round(syllablesFirst3s / SYLLABLES_PER_WORD),
+    meanDb,
+    clipping: Math.round(clipping * 1000) / 1000,
+    timeline,
   };
 }

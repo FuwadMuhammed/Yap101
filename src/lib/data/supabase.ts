@@ -3,6 +3,7 @@
 import { clearLocalScripts } from "@/lib/script";
 import { createClient } from "@/lib/supabase/client";
 import type { Prompt } from "@/lib/yap";
+import type { Analysis } from "@/lib/analysis/score";
 import { DailyLimitError, type DataApi } from "./types";
 
 const PROMPT_COLS = "id, level, goal, day_index, title, talking_points, skill, skill_tip, week, focus, milestone";
@@ -88,20 +89,20 @@ export const supabaseApi: DataApi = {
 
   async getYap(id) {
     const sb = createClient();
-    const { data: yap } = await sb.from("yaps").select("storage_path, media, local_date, title").eq("id", id).is("deleted_at", null).maybeSingle();
+    const { data: yap } = await sb.from("yaps").select("storage_path, media, local_date, title, prompt_id").eq("id", id).is("deleted_at", null).maybeSingle();
     if (!yap) return null;
     const [{ data: signed }, { data: feedback }] = await Promise.all([
       sb.storage.from("yaps").createSignedUrl(yap.storage_path, 3600),
       sb.from("feedback").select("*").eq("yap_id", id).maybeSingle(),
     ]);
     const title = yap.title ?? "Yap";
-    return { url: signed?.signedUrl ?? null, media: yap.media, title, local_date: yap.local_date, feedback };
+    return { url: signed?.signedUrl ?? null, media: yap.media, title, local_date: yap.local_date, feedback, prompt_id: yap.prompt_id ?? null };
   },
 
   async listYaps(opts) {
     let q = createClient()
       .from("yaps")
-      .select("id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score)")
+      .select("id, local_date, duration_seconds, media, title, deleted_at, feedback(filler_count, words_per_minute, score, analysis)")
       .order("created_at", { ascending: false });
     if (!opts?.includeDeleted) q = q.is("deleted_at", null);
     const { data } = await q;
@@ -114,6 +115,7 @@ export const supabaseApi: DataApi = {
       filler_count: (r.feedback as unknown as { filler_count: number } | null)?.filler_count ?? null,
       words_per_minute: (r.feedback as unknown as { words_per_minute: number } | null)?.words_per_minute ?? null,
       score: (r.feedback as unknown as { score: number | null } | null)?.score ?? null,
+      analysis: (r.feedback as unknown as { analysis: Analysis | null } | null)?.analysis ?? null,
       deleted: Boolean(r.deleted_at),
     }));
   },

@@ -9,6 +9,7 @@ import { Mascot, MascotSays, Yapper, YapperAvatar, YapperCluster } from "@/compo
 import { Confetti } from "@/components/yap/confetti";
 import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { Bar, Flame, Ring } from "@/components/yap/stats";
+import { YapReport } from "@/components/yap/yap-report";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { YapButton, YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
@@ -188,7 +189,8 @@ function FeedbackScreen() {
   const idx = all.findIndex((y) => y.id === id);
   const prev = idx >= 0 ? all.slice(idx + 1).find((y) => y.filler_count !== null) : undefined;
   const fillerDelta = f?.filler_count != null && prev?.filler_count != null ? f.filler_count - prev.filler_count : null;
-  const a = f?.analysis && f.analysis.parts.length ? f.analysis : null;
+  // v2 reports always show (even a take with no speech has a score and fixes); v1 only with parts.
+  const a = f?.analysis && (f.analysis.yap || f.analysis.parts.length) ? f.analysis : null;
   const prevScored = idx >= 0 ? all.slice(idx + 1).find((y) => y.score !== null) : undefined;
   const scoreDelta = a && prevScored?.score != null ? a.overall - prevScored.score : null;
   const leftToday = today ? DAILY_LIMIT - usedToday : 0;
@@ -232,6 +234,11 @@ function FeedbackScreen() {
             <p className="text-lg font-semibold">Yappy is listening back…</p>
             <p className="text-stone text-sm">Checking your pace, pauses and energy.</p>
           </div>
+        ) : a?.yap ? (
+          <>
+            <YapReport analysis={a as typeof a & { yap: NonNullable<typeof a.yap> }} history={all} yapId={id} localDate={yap?.local_date ?? ""} promptId={yap?.prompt_id ?? null} />
+            <p className="text-stone text-center text-xs">Measured on your phone: nothing was uploaded. Pace and the first-3-second word count are estimates from your voice rhythm.</p>
+          </>
         ) : (
           <>
             {a && (

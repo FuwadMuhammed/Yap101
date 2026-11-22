@@ -12,7 +12,7 @@ import { api, DailyLimitError } from "@/lib/data";
 import { xpForYap } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
-import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
+import { localDate, MAX_SECONDS, type Goal, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, snapToBreak, syllableOffsets, wordAtSyllable, wordDuration } from "@/lib/prompter";
 import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -25,6 +25,9 @@ import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
 import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
 import { analyse, type Analysis } from "@/lib/analysis/score";
+import type { Drill, PastTake } from "@/lib/analysis/yapscore";
+import { lastFear, loadScorePrefs, rememberFear } from "@/lib/score-prefs";
+import { Scale } from "@/components/yap/scale";
 
 type Mode = "video" | "audio";
 type Pace = "auto" | "beats" | "voice";
@@ -140,7 +143,18 @@ function ModeToggle({ mode, onChange, glass, className }: { mode: Mode; onChange
   );
 }
 
-export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
+/** What the Yap score needs beyond the take itself (see lib/analysis/yapscore). */
+export type Scoring = { goal: Goal | null; history: PastTake[] };
+
+export function Recorder({ prompt, firstToday, level, first, script, scoring, drill }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null; scoring?: Scoring; drill?: Drill | null }) {
+  // Self-reports around the take: tracked next to the Yap score, never inside it.
+  const [fearBefore, setFearBefore] = useState<number | null>(() => lastFear());
+  const [predicted, setPredicted] = useState<number | null>(null);
+  const [observed, setObserved] = useState<number | null>(null);
+  const [fearAfter, setFearAfter] = useState<number | null>(null);
+  const [predictDone, setPredictDone] = useState(false);
+  const takesRef = useRef(1);
+  const [streamReady, setStreamReady] = useState(false);
   // Any day can be read from a script: the one they wrote (saved on this device), or the one
   // we made from their onboarding answers (intro days). Beginners start in script mode when one exists.
   const [saved] = useState(() => loadScript(prompt.id));
@@ -219,6 +233,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     let cancelled = false;
     (async () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      setStreamReady(false);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           // Ask for clean speech: the browser's own noise suppression and echo cancellation.
@@ -232,6 +247,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         streamRef.current = stream;
         if (previewRef.current) previewRef.current.srcObject = stream;
         setError(null);
+        setStreamReady(true);
       } catch {
         setError(unblockHelp(mode));
       }
@@ -417,6 +433,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           face: faceMeterRef.current?.stop() ?? null,
           scriptDone: usedVoiceRef.current && model ? Math.min(1, cursorRef.current / model.words.length) : null,
           skill: prompt.skill,
+          v2: { seconds, targetSeconds: target ?? MAX_SECONDS, day: prompt.day_index, goal: scoring?.goal ?? null, prefs: loadScorePrefs(), history: scoring?.history ?? [] },
         });
       } catch {
         /* analysis is a bonus; never block saving the clip */
@@ -487,6 +504,11 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   }
 
   function retake() {
+    takesRef.current += 1;
+    setPredicted(null);
+    setObserved(null);
+    setFearAfter(null);
+    setPredictDone(false);
     if (clip) URL.revokeObjectURL(clip.url);
     setClip(null);
     setElapsed(0);
@@ -509,6 +531,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   function backToPrep() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setStreamReady(false);
     setShowSettings(false);
     setPreviewing(false);
     setCursor(0);
@@ -526,7 +549,9 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     if (!clip) return;
     setPhase("saving");
     try {
-      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate(), analysis: clip.analysis });
+      if (fearBefore !== null) rememberFear(fearBefore);
+      const analysis = clip.analysis ? { ...clip.analysis, confidence: { fearBefore, fearAfter, predicted, observed, takes: takesRef.current } } : null;
+      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate(), analysis });
       router.push(`/feedback/${id}?celebrate=1`);
     } catch (e) {
       toast.error(e instanceof DailyLimitError ? e.message : (e as Error).message || "Couldn't save your yap.");
@@ -556,6 +581,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           </div>
 
           {first && <MascotSays mood="cheer" className="mt-6">Your first yap! Don&apos;t aim for perfect. Just talk.</MascotSays>}
+          {drill && (
+            <section className="bg-sun-soft mt-6 rounded-[20px] px-4 py-3">
+              <p className="text-sm"><span className="text-stone">Drill · </span><span className="font-semibold">{drill.name}</span></p>
+              <p className="mt-0.5 text-sm leading-snug">{drill.how}</p>
+            </section>
+          )}
 
           <h1 className="mt-6 text-[34px] leading-[1.08]">{prompt.title}</h1>
           {prompt.milestone && <p className="bg-sun mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"><Star className="size-4 fill-current" /> Milestone yap: worth posting</p>}
@@ -614,6 +645,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             )}
             <p className="text-stone mt-3 flex items-center gap-1.5 text-sm"><Target className="size-4" /> {prompt.focus}</p>
           </section>
+
+          <Scale label="How nervous are you right now?" value={fearBefore} onChange={setFearBefore} className="surface mt-3 rounded-[24px] p-4" />
 
           <ModeToggle mode={mode} onChange={setMode} className="mt-3" />
 
@@ -699,7 +732,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           ))}
         {clip && !live &&
           (mode === "video" ? (
-            <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-contain" />
+            // Asked "how nervous do you think you looked?" first, so the replay waits for that answer.
+            <video key={predictDone ? "play" : "wait"} src={clip.url} controls playsInline autoPlay={predictDone} className="absolute inset-0 h-full w-full bg-black object-contain" />
           ) : (
             <div className="bg-[#1f2229] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
               <Yapper shape="puff" color={YAPPY_BLUE} mood="cheer" className="size-40" />
@@ -904,7 +938,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             )}
             <button
               onClick={phase === "recording" ? stop : startCountdown}
-              disabled={!!error || phase === "countdown"}
+              // Not before the camera/mic is live: an early tap used to do nothing, silently.
+              disabled={!!error || phase === "countdown" || (phase !== "recording" && !streamReady)}
               className="relative grid size-24 place-items-center disabled:opacity-50"
               aria-label={phase === "recording" ? "Stop recording" : "Start recording"}
             >
@@ -929,10 +964,23 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="bg-sun rounded-full px-3 py-1.5 text-sm font-bold">+{xpForYap(clip.seconds, firstToday)} XP</span>
-                {clip.analysis && clip.analysis.parts.length > 0 && <span className="text-stone text-xs font-bold">Yap score {clip.analysis.overall}</span>}
+                {clip.analysis && (clip.analysis.yap || clip.analysis.parts.length > 0) && <span className="text-stone text-xs font-bold">Yap score {clip.analysis.overall}</span>}
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-[auto_auto_1fr] gap-2">
+            <div className="mt-4">
+              {!predictDone ? (
+                <>
+                  <Scale label="Before you watch it: how nervous do you think you looked?" value={predicted} onChange={(v) => { setPredicted(v); if (v !== null) setPredictDone(true); }} low="Calm" high="Very" />
+                  <button onClick={() => setPredictDone(true)} className="text-stone mt-1 text-sm font-semibold underline-offset-4 hover:underline">Skip</button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Scale label="Now you've watched it: how nervous did you actually look?" value={observed} onChange={setObserved} low="Calm" high="Very" />
+                  <Scale label="How nervous do you feel about yapping now?" value={fearAfter} onChange={setFearAfter} />
+                </div>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-[auto_auto_1fr] gap-2">
               <YapButton variant="soft" size="icon" className="size-14" onClick={retake} disabled={phase === "saving"} aria-label="Retake">
                 <RotateCcw />
               </YapButton>

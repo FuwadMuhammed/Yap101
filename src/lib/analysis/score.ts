@@ -1,14 +1,32 @@
 import type { AudioStats } from "./audio";
 import type { DeliveryStats } from "./delivery";
 import type { FaceStats } from "./face";
+import type { Word } from "./transcript";
+import { scoreYap, type PastTake, type ScorePrefs, type YapScore } from "./yapscore";
+import type { Goal } from "@/lib/yap";
 
 // Turns the raw measurements into a Yap score (0-100), sub-scores and three tips.
 // Rule-based and transparent: every number on the report says what it was based on.
 
 export type PartKey = "hook" | "pace" | "flow" | "energy" | "eyes" | "smile" | "script" | "delivery";
 export type Part = { key: PartKey; label: string; score: number; value: string; focus: boolean };
+/** Self-reports around a take: tracked next to the score, never inside it. 0-10 scales. */
+export type Confidence = {
+  /** "How nervous are you?" before recording. */
+  fearBefore: number | null;
+  /** The same question after watching the take back. */
+  fearAfter: number | null;
+  /** "How nervous do you think you looked?" before watching it back. */
+  predicted: number | null;
+  /** "How nervous did you actually look?" after watching it back. */
+  observed: number | null;
+  /** Takes recorded for this yap (1 = no retakes). */
+  takes: number;
+};
+
 export type Analysis = {
-  version: 1;
+  /** 1: the original score. 2: adds `yap`, the 16-parameter Yap score (see yapscore.ts). */
+  version: 1 | 2;
   overall: number;
   verdict: string;
   parts: Part[];
@@ -20,6 +38,9 @@ export type Analysis = {
   scriptDone: number | null;
   /** Pauses and emphasis on a script read (voice-paced or voice follow). */
   delivery?: DeliveryStats | null;
+  /** The 16-parameter Yap score (version 2). `overall` above equals `yap.overall`. */
+  yap?: YapScore;
+  confidence?: Confidence;
 };
 
 const clamp = (n: number, lo = 25, hi = 100) => Math.round(Math.max(lo, Math.min(hi, n)));
@@ -73,7 +94,17 @@ const PRAISE: Record<PartKey, string> = {
   delivery: "Great delivery: you paused and pushed right where the script asked.",
 };
 
-export function analyse(input: { audio: AudioStats | null; face: FaceStats | null; scriptDone: number | null; delivery?: DeliveryStats | null; skill?: string }): Analysis {
+export type AnalyseInput = {
+  audio: AudioStats | null;
+  face: FaceStats | null;
+  scriptDone: number | null;
+  delivery?: DeliveryStats | null;
+  skill?: string;
+  /** With these, the take also gets the v2 Yap score. */
+  v2?: { seconds: number; targetSeconds: number; day: number; goal: Goal | null; prefs?: ScorePrefs; history?: PastTake[]; words?: Word[] | null };
+};
+
+export function analyse(input: AnalyseInput): Analysis {
   const { audio, face, scriptDone, delivery } = input;
   const focus = skillPart(input.skill);
   const parts: Part[] = [];
@@ -132,6 +163,26 @@ export function analyse(input: { audio: AudioStats | null; face: FaceStats | nul
   if (face && face.samples >= 5 && !sawFace) tips.unshift("We couldn't see your face, so eye contact and smile weren't scored. Face the camera in good light.");
   if (tooShort) tips.unshift("That was a short one. Talk for at least 15 seconds so Yappy can measure more.");
   while (tips.length < 3) tips.push(["Watch your clip back once. You'll spot one thing to try next time.", "Same time tomorrow? Daily reps are what make it feel easy."][tips.length % 2]);
+
+  if (input.v2) {
+    const yap = scoreYap({ audio, face, ...input.v2 });
+    const yapOverall = tooShort ? Math.min(yap.overall, 50) : yap.overall;
+    const v2tips = [...yap.fixes.map((f) => `${f.tip} Drill: ${f.drill.name}.`), ...(yap.win ? [yap.win.text] : [])];
+    while (v2tips.length < 3) v2tips.push(tips[v2tips.length] ?? "Same time tomorrow? Daily reps are what make it feel easy.");
+    return {
+      version: 2,
+      overall: yapOverall,
+      verdict: tooShort ? "Too short to judge" : yapOverall >= 85 ? "Brilliant yap!" : yapOverall >= 70 ? "Strong yap" : yapOverall >= 55 ? "Good start" : "Keep practising",
+      parts,
+      tips: (tooShort ? ["That was a short one. Talk for at least 15 seconds so Yappy can measure more.", ...v2tips] : v2tips).slice(0, 3),
+      wpm: audio?.wpm ?? null,
+      audio,
+      face,
+      scriptDone,
+      delivery: delivery ?? null,
+      yap: { ...yap, overall: yapOverall },
+    };
+  }
 
   return {
     version: 1,
