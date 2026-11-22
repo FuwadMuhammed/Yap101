@@ -1,0 +1,6 @@
+S03#2 200 21673ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":0,"noInvent":1}
+S03#3 200 11461ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":0,"noInvent":0}
+S05#2 200 38547ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":0,"noInvent":1}
+S05#3 200 23124ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":0,"noInvent":1}
+P01#2 200 6112ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}
+P01#3 200 9081ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}

@@ -103,7 +103,13 @@ async function call(body) {
 }
 
 const runs = [];
-const plan = [...cases.map((c) => [...c, 1]), ...cases.filter((c) => repeats.includes(c[0])).flatMap((c) => [[...c, 2], [...c, 3]])];
+// Each entry: [id, mode, body, expect, run]. (`expect` is undefined unless the case expects a redirect.)
+const norm = (c) => [c[0], c[1], c[2], c[3]];
+let plan = [...cases.map((c) => [...norm(c), 1]), ...cases.filter((c) => repeats.includes(c[0])).flatMap((c) => [[...norm(c), 2], [...norm(c), 3]])];
+// Resume support: FROM=P05 skips everything before that entry (e.g. after a provider "busy" stop).
+// ONLY_REPEATS=S03,S05 runs just the repeat runs (2 and 3) of those ids.
+if (process.env.ONLY_REPEATS) plan = plan.filter(([id, , , , run]) => run > 1 && process.env.ONLY_REPEATS.split(",").includes(id));
+if (process.env.FROM) plan = plan.slice(plan.findIndex(([id, , , , run]) => id === process.env.FROM && run === 1));
 for (const [id, mode, body, expect, run] of plan) {
   const res = await call({ mode, ...body });
   const sc = res.status === 200 ? score(id, mode, body, res, expect) : null;

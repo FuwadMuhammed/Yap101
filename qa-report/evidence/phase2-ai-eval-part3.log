@@ -1,0 +1,11 @@
+P06#1 200 4936ms redirect {"scope":0,"format":0,"length":1,"noEcho":1,"facts":1}
+P07#1 200 6737ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1,"language":1}
+P08#1 200 8414ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}
+P09#1 200 4534ms redirect {"scope":1}
+P10#1 200 19449ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}
+P11#1 200 8982ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}
+P12#1 200 19802ms script {"scope":1,"format":1,"length":1,"noEcho":1,"facts":1}
+S01#2 200 11578ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":1,"noInvent":1}
+S01#3 200 9666ms script {"scope":1,"format":1,"length":1,"noEcho":1,"coverage":1,"personal":1,"noInvent":1}
+S03#2 429 50007ms busy 
+provider busy: stopping to save quota

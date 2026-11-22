@@ -17,7 +17,7 @@ Environments: Supabase-mode build against a local mock Supabase (auth, refresh, 
 | Integration | G1–G9 full journey | 9 | 9 | 0 | `phase2-integration.*` |
 | Exploratory (charter: real-world behaviour) | X1–X10 | 10 | 6 | 4 findings | `phase2-explore.*` |
 | Guest deprecation | static audit of 12 files + A5 | — | — | report | `guest-deprecation-impact.md` |
-| AI evaluation | 30 inputs + 10 repeats | **scheduled 00:07 UTC** | — | — | `ai-quality-report.md` |
+| AI evaluation (live, 2026-11-22 00:08 UTC) | 30 inputs + 10 repeats | 40 calls (37 answered) | see rubric | FAIL: BUG-37, BUG-17 open, BUG-16 variant, BUG-38 | `ai-quality-report.md` §4 |
 
 Totals for executed Phase 2 browser/journey checks: **51 executed, 41 pass, 10 fail or finding**, plus 2,200 load requests with 0 errors. Nothing is counted as passed without running.
 
@@ -43,7 +43,7 @@ Totals for executed Phase 2 browser/journey checks: **51 executed, 41 pass, 10 f
 | --- | --- | --- | --- |
 | R-1 | P1 | No AI limit for signed-in users; one account can drain the shared quota | S04; BUG-20 |
 | R-2 | P2 | The free AI tier can't serve real traffic (429 after ~30 requests; 50/day) | round 1 + this session |
-| R-3 | P2 | Writer fixes for invented stories and recited tips (BUG-16/17) not yet confirmed on the live model | AI report §4 pending |
+| R-3 | — | (Resolved by the live run: tip/focus echo fixed; invention **not** fixed → BUG-17 stays open) | AI report §4 |
 | R-4 | P3 | Two auth round-trips per AI request (middleware + route) | load test, code |
 | R-5 | P3 | Provider error objects logged whole; safe today, fragile to SDK changes | `security-audit.md` R-3 |
 | R-6 | P3 | Long polishes (48 s) approach the 50 s AI budget and many hosts' limits | performance report |

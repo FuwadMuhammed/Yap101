@@ -1,0 +1,193 @@
+{
+  "at": "2026-11-22T00:21:05.414Z",
+  "base": "http://localhost:3125",
+  "runs": [
+    {
+      "id": "S03",
+      "run": 2,
+      "mode": "suggest",
+      "status": 200,
+      "ms": 21673,
+      "kind": "script",
+      "lines": [
+        "It was [when] in my kitchen, and I was shooting a cooking video for Instagram.",
+        "The camera was rolling, and I really wanted to get it right in one take.",
+        "I was making [the dish], something I’d never tried on camera before.",
+        "Everything looked fine until [what went wrong].",
+        "I remember [how I felt] in that moment.",
+        "I tried to fix it fast, but [what happened next].",
+        "In the end, [how it ended].",
+        "That day changed how I cook.",
+        "Now I always [what I do differently] before I hit record."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "coverage": 1,
+        "personal": 0,
+        "noInvent": 1,
+        "_invented": []
+      },
+      "input": "The day something went wrong"
+    },
+    {
+      "id": "S03",
+      "run": 3,
+      "mode": "suggest",
+      "status": 200,
+      "ms": 11461,
+      "kind": "script",
+      "lines": [
+        "It was a Sunday afternoon in my kitchen, filming a recipe for Instagram.",
+        "I had everything prepped, the camera was rolling, and I was halfway through [the dish].",
+        "Then [what went wrong].",
+        "The pan slipped, sauce splattered everywhere, and my perfect take was ruined.",
+        "I stood there staring at the mess, wondering if I should stop recording.",
+        "Instead, I kept the camera on, showed what happened, and finished the dish anyway.",
+        "That video got more messages than any of my polished ones.",
+        "It taught me people don’t watch for perfection—they watch for something real.",
+        "Now I leave the mistakes in, and my audience feels closer to the food."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "coverage": 1,
+        "personal": 0,
+        "noInvent": 0,
+        "_invented": [
+          "The pan slipped, sauce splattered everywhere, and my perfect take was ruined."
+        ]
+      },
+      "input": "The day something went wrong"
+    },
+    {
+      "id": "S05",
+      "run": 2,
+      "mode": "suggest",
+      "status": 200,
+      "ms": 38547,
+      "kind": "script",
+      "lines": [
+        "AI won't take your job.",
+        "People who know how to use AI will.",
+        "That's my hot take, and I'm not backing down.",
+        "No hedge, no middle ground.",
+        "Here's why.",
+        "First, tools have always beaten raw talent when the tool does the heavy lifting.",
+        "A creator using AI gets more done in an hour than most people do in a day.",
+        "Second, companies don't pay for effort.",
+        "They pay for output, and output is what AI amplifies.",
+        "So if you're ignoring it, you're not staying safe.",
+        "You're just making yourself easier to replace.",
+        "This isn't about hating AI.",
+        "It's not about the technology.",
+        "It's about who adapts first.",
+        "Now I want to hear from you.",
+        "Am I wrong?",
+        "Tell me in the comments.",
+        "Change my mind."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "coverage": 1,
+        "personal": 0,
+        "noInvent": 1,
+        "_invented": []
+      },
+      "input": "Your hot take about tech"
+    },
+    {
+      "id": "S05",
+      "run": 3,
+      "mode": "suggest",
+      "status": 200,
+      "ms": 23124,
+      "kind": "script",
+      "lines": [
+        "Most tech content plays it safe, so I am not going to do that today.",
+        "My hot take: [your one-line take about tech].",
+        "Here are the two reasons I believe it.",
+        "First, [reason one].",
+        "Second, [reason two].",
+        "I am not saying this just to get comments.",
+        "I am saying it because the usual conversation is missing something.",
+        "The loudest voices in tech are not always the right ones.",
+        "That is exactly why I am saying this out loud.",
+        "If you think I am wrong, tell me why.",
+        "Leave your counter-take in the comments below this video.",
+        "I read every reply, and I actually want to change my mind.",
+        "So do not be polite.",
+        "Tell me where I am wrong.",
+        "Let's debate."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "coverage": 1,
+        "personal": 0,
+        "noInvent": 1,
+        "_invented": []
+      },
+      "input": "Your hot take about tech"
+    },
+    {
+      "id": "P01",
+      "run": 2,
+      "mode": "polish",
+      "status": 200,
+      "ms": 6112,
+      "kind": "script",
+      "lines": [
+        "I started lifting in 2019 after my knee surgery.",
+        "Now I coach 12 clients in Leeds.",
+        "My coach Priya always said form first, weight second."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "facts": 1,
+        "_missing": []
+      },
+      "input": "um so I started lifting in 2019 after my knee surgery and now i coach 12 clients in Leeds, my coach Priya always said form first weight second"
+    },
+    {
+      "id": "P01",
+      "run": 3,
+      "mode": "polish",
+      "status": 200,
+      "ms": 9081,
+      "kind": "script",
+      "lines": [
+        "I started lifting in 2019 after my knee surgery.",
+        "Now I coach 12 clients in Leeds.",
+        "My coach Priya always said form first, weight second."
+      ],
+      "message": "",
+      "score": {
+        "scope": 1,
+        "format": 1,
+        "length": 1,
+        "noEcho": 1,
+        "facts": 1,
+        "_missing": []
+      },
+      "input": "um so I started lifting in 2019 after my knee surgery and now i coach 12 clients in Leeds, my coach Priya always said form first weight second"
+    }
+  ]
+}
