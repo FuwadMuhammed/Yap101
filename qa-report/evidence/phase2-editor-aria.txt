@@ -2,7 +2,7 @@
   - button "Close without saving"
   - paragraph: Your script
   - paragraph: Day 2 · today's topic
-  - paragraph: Why you got into fitness
+  - paragraph: Why you got into travel
   - paragraph: Make sure you cover
   - list:
     - listitem: The moment it clicked

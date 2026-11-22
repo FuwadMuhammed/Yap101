@@ -73,7 +73,28 @@ function readObject(key: string): Record<string, unknown> {
 
 const isLines = (v: unknown): v is string[] => Array.isArray(v) && v.length > 0 && v.every((l) => typeof l === "string");
 
+/**
+ * The person this tab claimed the device for (see `claimDevice`). If another tab has since
+ * signed in someone else (or signed out), this tab is stale: it may no longer read or write
+ * scripts, or one person's words would end up in the other's store and AI requests.
+ */
+let claimed: string | null = null;
+
+/** True when another tab changed who owns this device's scripts since this tab claimed it. */
+export function isStaleOwner(): boolean {
+  if (claimed === null) return false;
+  try {
+    return localStorage.getItem(OWNER_KEY) !== claimed;
+  } catch {
+    return false; // storage blocked: nothing shared between tabs either
+  }
+}
+
+/** The storage key that records the owner, for tabs that listen to `storage` events. */
+export const OWNER_STORAGE_KEY = OWNER_KEY;
+
 function readAll(): Record<string, string[]> {
+  if (isStaleOwner()) return {};
   return Object.fromEntries(Object.entries(readObject(KEY)).filter(([, v]) => isLines(v))) as Record<string, string[]>;
 }
 
@@ -110,6 +131,7 @@ export function otherScripts(promptId: number, limit = 5): string[] {
 
 /** Saves (or, with null, removes) a day's script. Returns false when the device couldn't store it. */
 export function saveScript(promptId: number, lines: string[] | null): boolean {
+  if (isStaleOwner()) return false;
   const all = readAll();
   if (lines?.length) all[promptId] = lines;
   else delete all[promptId];
@@ -129,13 +151,16 @@ export function clearLocalScripts() {
  * Call once the signed-in person is known. If the scripts on this device belong to someone
  * else, they are wiped first. Scripts saved before owners were tracked have no owner: they
  * are kept for the first person to sign in (wiping them would lose every existing user's
- * scripts on update); sign-out clears the device from then on.
+ * scripts on update); sign-out clears the device from then on. Guest scripts ("local") are
+ * adopted the same way when that guest signs in to an account on this device.
  */
 export function claimDevice(owner: string) {
+  claimed = owner;
   try {
     const current = localStorage.getItem(OWNER_KEY);
     if (current === owner) return;
-    if (current !== null) clearLocalScripts();
+    const adopt = current === null || (current === "local" && owner !== "local");
+    if (!adopt) clearLocalScripts();
     localStorage.setItem(OWNER_KEY, owner);
   } catch {
     /* storage blocked */
@@ -151,6 +176,7 @@ const isCached = (v: unknown): v is Cached => isRecord(v) && typeof v.sig === "s
 
 /** The cached suggestion for a day, if it was written for this profile signature. */
 export function loadSuggestion(promptId: number, sig: string): string[] | null {
+  if (isStaleOwner()) return null;
   const c = readObject(SUGGEST_KEY)[promptId];
   return isCached(c) && c.sig === sig ? c.lines : null;
 }
@@ -162,6 +188,7 @@ export function isCachedSuggestion(promptId: number, lines: string[] | null): bo
 }
 
 export function saveSuggestion(promptId: number, lines: string[], sig: string) {
+  if (isStaleOwner()) return;
   const all = Object.fromEntries(Object.entries(readObject(SUGGEST_KEY)).filter(([, v]) => isCached(v))) as Record<string, Cached>;
   all[promptId] = { sig, lines };
   // Keep the newest 40 days.

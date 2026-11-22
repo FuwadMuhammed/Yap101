@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-22T06:35:01.081Z",
+  "base": "http://localhost:3124",
+  "results": [
+    {
+      "id": "V-E12",
+      "bug": "BUG-04",
+      "status": "PASS",
+      "actual": "Polish disabled=true, hint shown=true, API answers 413 for a 5,000-char draft"
+    },
+    {
+      "id": "V-E14",
+      "bug": "BUG-06",
+      "status": "PASS",
+      "actual": "Record screen loads with storage = null"
+    },
+    {
+      "id": "V-E16",
+      "bug": "BUG-09",
+      "status": "PASS",
+      "actual": "Saved over the bad value; present after reload"
+    },
+    {
+      "id": "V-E17b",
+      "bug": "BUG-05",
+      "status": "PASS",
+      "actual": "storage FULL; warning toast shown"
+    },
+    {
+      "id": "V-E18",
+      "bug": "BUG-11",
+      "status": "PASS",
+      "actual": "cached suggestion: \"Response B (latest).\""
+    },
+    {
+      "id": "V-E20",
+      "bug": "BUG-12",
+      "status": "PASS",
+      "actual": "Hey, I'm Alex and I talk about fitness!"
+    },
+    {
+      "id": "V-E31",
+      "bug": "BUG-18",
+      "status": "PASS",
+      "actual": "after sign-out storage=null; next person sees it=false; sent to AI=false"
+    },
+    {
+      "id": "V-E32",
+      "bug": "BUG-19",
+      "status": "PASS",
+      "actual": "keys left: []"
+    },
+    {
+      "id": "V-A20/26",
+      "bug": "BUG-10",
+      "status": "PASS",
+      "actual": "5 MB → 413; text/plain → 415; same-site JSON → 200; Origin evil.example → 403"
+    },
+    {
+      "id": "V-CANCEL",
+      "bug": "BUG-21",
+      "status": "PASS",
+      "actual": "box after cancel + 4.5 s: \"my own words for today here\"; Polish enabled=true"
+    }
+  ]
+}

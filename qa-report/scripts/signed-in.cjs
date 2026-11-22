@@ -36,6 +36,7 @@ async function run(id, title, fn, opts = {}) {
   await b.close();
 }
 const editor = async (p, id) => {
+  await p.waitForTimeout(100);
   await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" });
   const e = p.getByRole("button", { name: "Edit" });
   if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click();

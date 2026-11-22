@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Profile } from "@/lib/data/types";
 import type { Prompt } from "@/lib/yap";
-import { claimDevice, clearLocalScripts, introScript, isCachedSuggestion, isIntroPrompt, linesToText, loadScript, loadSuggestion, otherScripts, profileSig, saveScript, saveSuggestion, textToLines } from "./script";
+import { claimDevice, clearLocalScripts, introScript, isCachedSuggestion, isStaleOwner, isIntroPrompt, linesToText, loadScript, loadSuggestion, otherScripts, profileSig, saveScript, saveSuggestion, textToLines } from "./script";
 
 const prompt = (over: Partial<Prompt> = {}) =>
   ({ id: 1, day_index: 1, title: "Introduce yourself", talking_points: [], skill: "", skill_tip: "", week: 1, focus: "", milestone: false, level: "beginner", goal: "confidence", ...over }) as Prompt;
@@ -152,14 +152,45 @@ describe("one person per device (BUG-18)", () => {
   });
 
   it("keeps scripts saved before ownership was tracked (existing users updating)", () => {
-    saveScript(3, ["Saved before the update."]);
+    // An existing user's device: scripts, no owner key yet.
+    localStorage.setItem("yap101-scripts", JSON.stringify({ 3: ["Saved before the update."] }));
     claimDevice("user-b");
     expect(loadScript(3)).toEqual(["Saved before the update."]);
     claimDevice("user-c");
     expect(loadScript(3)).toBeNull();
   });
 
+  it("guest scripts are adopted when that guest signs in to an account", () => {
+    claimDevice("local");
+    saveScript(4, ["Written as a guest."]);
+    claimDevice("account-1");
+    expect(loadScript(4)).toEqual(["Written as a guest."]);
+  });
+
+  it("BUG-26: a tab whose person was replaced in another tab can't read or write", () => {
+    claimDevice("sam");
+    saveScript(2, ["Sam's script."]);
+    // Another tab signs Priya in: the device is now hers and Sam's scripts are gone.
+    localStorage.setItem("yap101-scripts-owner", "priya");
+    localStorage.setItem("yap101-scripts", JSON.stringify({ 6: ["Priya's script."] }));
+    expect(isStaleOwner()).toBe(true);
+    expect(saveScript(2, ["Sam saves from the old tab."])).toBe(false);
+    expect(otherScripts(1)).toEqual([]); // Priya's scripts are not readable from Sam's tab
+    expect(loadScript(6)).toBeNull();
+    saveSuggestion(2, ["x"], "s");
+    expect(localStorage.getItem("yap101-suggestions")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("yap101-scripts")!)).toEqual({ 6: ["Priya's script."] });
+  });
+
+  it("BUG-26: signing out in another tab also makes this tab stale", () => {
+    claimDevice("sam");
+    clearLocalScripts();
+    expect(isStaleOwner()).toBe(true);
+    expect(saveScript(2, ["after sign-out"])).toBe(false);
+  });
+
   it("clearLocalScripts removes scripts and suggestions", () => {
+    claimDevice("someone");
     saveScript(3, ["x"]);
     saveSuggestion(3, ["y"], "s");
     clearLocalScripts();

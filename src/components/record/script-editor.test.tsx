@@ -401,6 +401,27 @@ describe("ScriptEditor: fixes from the QA audit", () => {
   });
 });
 
+describe("ScriptEditor: browser Back (BUG-28)", () => {
+  it("Back closes the sheet instead of leaving the page", async () => {
+    const { onClose } = open();
+    expect(window.history.state?.yapSheet).toBe(true);
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate", { state: null }));
+    });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("closing with X removes the history entry it added", async () => {
+    const back = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    const { user } = open();
+    await user.click(btn("Close without saving"));
+    const { cleanup } = await import("@testing-library/react");
+    cleanup();
+    await new Promise((r) => setTimeout(r, 5));
+    expect(back).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ScriptEditor: saving", () => {
   it("saves one teleprompter line per sentence", async () => {
     const { user, box, onSave } = open();

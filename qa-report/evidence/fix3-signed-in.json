@@ -1,0 +1,102 @@
+{
+  "at": "2026-11-22T06:33:55.373Z",
+  "base": "http://localhost:3126",
+  "results": [
+    {
+      "id": "S01",
+      "title": "API with no session → 401 JSON (not a login page)",
+      "status": "PASS",
+      "actual": "401 {\"error\":\"unauthorized\"}"
+    },
+    {
+      "id": "S02",
+      "title": "Page with no session → login redirect",
+      "status": "PASS",
+      "actual": "/login?prompt=2&next=%2Frecord"
+    },
+    {
+      "id": "S03",
+      "title": "Signed in: record screen and editor load from the Supabase profile",
+      "status": "PASS",
+      "actual": "title \"Why you got into fitness\"; request name=Sam, niche=fitness, platform=TikTok, level=Beginner; device owner=Sam's id; box starts \"Hey, I'm Sam and I talk about fitness!\""
+    },
+    {
+      "id": "S04",
+      "title": "Signed in: never limited like a guest (6 calls), no guest cookie",
+      "status": "PASS",
+      "actual": "429:busy, 429:busy, 429:busy, 429:busy, 429:busy, 429:busy; guest cookie set=false (AI quota is exhausted today, so \"busy\" is the provider, not our limit)"
+    },
+    {
+      "id": "S05",
+      "title": "Switch account without signing out: previous person's scripts wiped",
+      "status": "PASS",
+      "actual": "Sam saved ✓; as Priya: scripts=null, owner=Priya, request name=Priya, previous=[], day title \"Why you got into travel\""
+    },
+    {
+      "id": "S06",
+      "title": "Sign out from profile: scripts cleared, back to start",
+      "status": "PASS",
+      "actual": "after sign-out: scripts=null, suggestions=null; now at /"
+    },
+    {
+      "id": "S07",
+      "title": "Session revoked mid-edit: clear sign-in message, text untouched",
+      "status": "PASS",
+      "actual": "API 401; toast \"Your session ended. Sign in again to use the script writer.\"; box \"My half-written draft here.\""
+    },
+    {
+      "id": "S08",
+      "title": "Supabase auth outage during a request",
+      "status": "PASS",
+      "actual": "API 401; toast \"Your session ended. Sign in again to use the script writer.\"; draft kept=true"
+    },
+    {
+      "id": "S09",
+      "title": "Profile changed on the backend: new suggestion, cache not reused",
+      "status": "PASS",
+      "actual": "requests=2; last name=Samuel, niche=travel; title \"Why you got into travel\""
+    },
+    {
+      "id": "S10",
+      "title": "Pro user (Alex, hooks): own words by default, opener only; editor shows all points; 60 s",
+      "status": "PASS",
+      "actual": "own words=true, opener label=true, editor points=3, seconds=60, level=Pro, goal=\"Grab attention in 3 seconds\""
+    },
+    {
+      "id": "S11",
+      "title": "Intermediate, two niches: day titles rotate niches",
+      "status": "PASS",
+      "actual": "day 2 \"Why you got into travel\"; day 5 \"The best food advice you ever got\""
+    },
+    {
+      "id": "S12",
+      "title": "Keyboard only: open editor, type, save",
+      "status": "PASS",
+      "actual": "Save reached by Tab=true; saved=true"
+    },
+    {
+      "id": "S13",
+      "title": "320 px wide screen: no sideways scroll, both buttons visible",
+      "status": "PASS",
+      "actual": "overflow 0px; buttons 136 and 136 px wide, right edge 300"
+    },
+    {
+      "id": "S14",
+      "title": "Slow 3G: writing state, Cancel, no duplicate request",
+      "status": "PASS",
+      "actual": "\"Writing…\" shown=true; requests=1; after Cancel box=\"\", toasts=\"\""
+    },
+    {
+      "id": "S15",
+      "title": "Dark mode: editor readable",
+      "status": "PASS",
+      "actual": "text rgb(21, 23, 28) on rgb(255, 255, 255) (see shots/S15-dark.png)"
+    },
+    {
+      "id": "S16",
+      "title": "Saved script reaches the camera screen (fake camera)",
+      "status": "PASS",
+      "actual": "Script text shown on the camera screen"
+    }
+  ]
+}

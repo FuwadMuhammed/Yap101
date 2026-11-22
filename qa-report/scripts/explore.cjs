@@ -17,7 +17,8 @@ async function x(id, title, fn) {
   if (errors.filter((e) => !e.startsWith("dialog")).length) r = { kind: "FAIL", actual: `${r.actual}; errors: ${errors.join(" | ")}` };
   out.push({ id, title, ...r }); process.stderr.write(`${id} ${r.kind} ${title} :: ${r.actual}\n`); await b.close();
 }
-const open = async (p, id = 2) => { await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" }); const e = p.getByRole("button", { name: "Edit" }); if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click(); await p.locator("#script-text").waitFor(); };
+const open = async (p, id = 2) => { await p.waitForTimeout(100);
+  await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" }); const e = p.getByRole("button", { name: "Edit" }); if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click(); await p.locator("#script-text").waitFor(); };
 
 (async () => {
   await x("X1", "Android back gesture with the editor open and unsaved text", async (p) => {
@@ -30,7 +31,8 @@ const open = async (p, id = 2) => { await p.goto(`${BASE}/record?prompt=${id}`, 
     const url = p.url().replace(BASE, "");
     await p.goto(`${BASE}/record?prompt=2`, { waitUntil: "networkidle" });
     const kept = await p.getByText("A long draft I spent five minutes writing.").count();
-    return { kind: kept ? "OK" : "FINDING", severity: "P2", actual: `Back left the record screen (now ${url}) instead of closing the sheet; no warning; draft kept=${!!kept}` };
+    const stayed = url.startsWith("/record");
+    return { kind: stayed ? "OK" : "FINDING", severity: "P2", actual: stayed ? `Back closed the sheet and stayed on ${url} (draft discarded like X; page kept)` : `Back left the record screen (now ${url}) instead of closing the sheet; draft kept=${!!kept}` };
   });
   await x("X2", "Reload the page with unsaved text in the editor", async (p) => {
     await open(p);

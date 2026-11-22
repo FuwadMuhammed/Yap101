@@ -37,6 +37,7 @@ async function run(id, area, title, fn, opts = {}) {
 }
 const ok = (cond, actual, severity) => ({ status: cond ? "PASS" : "FAIL", actual, severity: cond ? undefined : severity });
 const editor = async (p, base, id) => {
+  await p.waitForTimeout(100);
   await p.goto(`${base}/record?prompt=${id}`, { waitUntil: "networkidle" });
   const e = p.getByRole("button", { name: "Edit" });
   if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click();
@@ -79,7 +80,7 @@ const toasts = (p) => p.locator("[data-sonner-toast]").allInnerTexts().then((t) 
     const leakedToAi = sent2.some((s) => (s.previous ?? []).join(" ").includes("Sam's private"));
     await p2.goto(`${BASE}/record?prompt=2`, { waitUntil: "networkidle" });
     const priyaSees = await p2.getByText("Sam's private script").count();
-    return ok(!leakedToAi && !priyaSees, `owner after Priya's tab=${ownerAfterB === PRIYA ? "Priya" : ownerAfterB}; Sam's stale tab saved into Priya's store; Priya sees it on /record?prompt=2=${!!priyaSees}; sent to AI in Priya's request=${leakedToAi}`, "P1");
+    return ok(!leakedToAi && !priyaSees, `owner after Priya's tab=${ownerAfterB === PRIYA ? "Priya" : ownerAfterB}; Sam's stale tab then tried to save; Priya sees it on /record?prompt=2=${!!priyaSees}; sent to AI in Priya's request=${leakedToAi}`, "P1");
   }, { as: SAM });
 
   await run("A4", "Isolation", "Same user, two devices: scripts don't follow the account", async (p) => {

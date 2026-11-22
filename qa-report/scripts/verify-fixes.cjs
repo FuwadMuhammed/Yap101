@@ -21,7 +21,8 @@ async function seed(p, profile = prof("Sam"), extra = {}) {
   await p.goto(BASE + "/terms");
   await p.evaluate(([pr, extra]) => { localStorage.clear(); localStorage.setItem("yap101-demo", JSON.stringify({ signedIn: true, yaps: [], profile: pr })); for (const [k, v] of Object.entries(extra)) localStorage.setItem(k, v); }, [profile, extra]);
 }
-const editor = async (p, id) => { await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" }); const e = p.getByRole("button", { name: "Edit" }); if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click(); await p.locator("#script-text").waitFor(); };
+const editor = async (p, id) => { await p.waitForTimeout(100);
+  await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" }); const e = p.getByRole("button", { name: "Edit" }); if (await e.count()) await e.click(); else await p.getByRole("radio", { name: "Read a script" }).click(); await p.locator("#script-text").waitFor(); };
 
 (async () => {
   await run("V-E12", "BUG-04", async (p) => {

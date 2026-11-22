@@ -118,3 +118,40 @@ describe("clean: what reaches the teleprompter", () => {
     expect(run(["My friend got me into lifting.", "Now I go every morning."]).lines).toHaveLength(2);
   });
 });
+
+describe("writeScript: invented facts in suggestions (BUG-17)", () => {
+  const sugg = parseWriteRequest({ mode: "suggest", title: "The day something went wrong", points: ["Where you were"] }) as WriteRequest;
+  const reply = (lines: string[]) => new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify({ kind: "script", lines, message: "" }) } }] }));
+  beforeEach(() => {
+    vi.stubEnv("OPENROUTER_API_KEY", "test");
+    vi.stubEnv("OPENROUTER_MODEL", "m1");
+  });
+
+  it("asks once more with a review, and uses the clean rewrite", async () => {
+    const f = vi.fn().mockResolvedValueOnce(reply(["I was in my kitchen.", "The pan caught fire."])).mockResolvedValueOnce(reply(["I was in [where you were].", "Then [what went wrong]."]));
+    vi.stubGlobal("fetch", f);
+    const out = await writeScript(sugg);
+    expect(out.lines).toEqual(["I was in [where you were].", "Then [what went wrong]."]);
+    const second = JSON.parse(f.mock.calls[1][1].body).messages[1].content;
+    expect(second).toContain("<review>");
+    expect(second).toContain('"I was in my kitchen."');
+  });
+
+  it("marks what is still invented after the retry as an example", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(reply(["I was in my kitchen.", "Then [what went wrong]."])).mockResolvedValueOnce(reply(["I was in my kitchen.", "I froze."])));
+    expect((await writeScript(sugg)).lines).toEqual(["[e.g. I was in my kitchen]", "Then [what went wrong]."]);
+  });
+
+  it("doesn't retry a clean suggestion, or a polish", async () => {
+    const f = vi.fn().mockImplementation(async () => reply(["I was in [where you were]."]));
+    vi.stubGlobal("fetch", f);
+    await writeScript(sugg);
+    await writeScript(parseWriteRequest({ mode: "polish", title: "X", draft: "I was in my kitchen and it burnt" }) as WriteRequest);
+    expect(f).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops a line that recites the user's goal (BUG-16 variant)", () => {
+    const out = clean({ kind: "script", lines: ["Money tip one.", "Say more with fewer words: start small.", "Start today."], message: "" }, { mode: "suggest", draft: "", skillTip: "", focus: "", goal: "Say more with fewer words" });
+    expect(out.lines).toEqual(["Money tip one.", "Start today."]);
+  });
+});

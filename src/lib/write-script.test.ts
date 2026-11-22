@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  asExample,
   demoWrittenScript,
+  inventedLines,
+  reviewNote,
   MIN_POLISH_WORDS,
   parseWriteRequest,
   SCRIPT_SYSTEM,
@@ -203,5 +206,33 @@ describe("demoWrittenScript", () => {
   it("polishes the draft in polish mode and suggests otherwise", () => {
     expect(demoWrittenScript(req({ mode: "polish", draft: "um hi I make fitness videos" }))).toEqual(["Hi I make fitness videos."]);
     expect(demoWrittenScript(req({ mode: "suggest" }))[0]).toBe("Hey, I'm Sam and I talk about fitness!");
+  });
+});
+
+describe("inventedLines (BUG-17)", () => {
+  const story = { title: "The day something went wrong", request: "" };
+  it("flags first-person events with no placeholder, and scores", () => {
+    expect(inventedLines(["It was a weekday morning in [my kitchen].", "Smoke filled the room, and I froze.", "My score: seven out of ten."], story)).toEqual(["Smoke filled the room, and I froze.", "My score: seven out of ten."]);
+  });
+  it("leaves placeholders, general advice, the topic itself and the user's own request alone", () => {
+    expect(inventedLines(["I got into fitness when [the moment it clicked].", "Consistency beats timing.", "Here's why I got into fitness."], { title: "Why you got into fitness", request: "" })).toEqual([]);
+    expect(inventedLines(["I got into fitness after my first marathon last spring."], { title: "Why you got into fitness", request: "my first marathon last spring" })).toEqual([]);
+  });
+  it("on opinion days, a take with no placeholder is flagged at its first line", () => {
+    expect(inventedLines(["Most AI tools are making creators worse.", "Here's why."], { title: "Your hot take about tech", request: "" })).toEqual(["Most AI tools are making creators worse."]);
+    expect(inventedLines(["My hot take: [your take].", "Here's why."], { title: "Your hot take about tech", request: "" })).toEqual([]);
+  });
+  it("review notes and examples", () => {
+    expect(reviewNote(["I froze."])).toContain('"I froze."');
+    expect(asExample("Smoke filled the room.")).toBe("[e.g. Smoke filled the room]");
+  });
+  it("the goal is labelled as a coaching note (BUG-16 variant) and review is its own section", () => {
+    const m = scriptUserMessage({ ...req({ mode: "suggest" }), review: "Fix these." });
+    expect(m).toContain("Speaking goal (coaching note, never say this in the script)");
+    expect(m).toContain("<review>\nFix these.\n</review>");
+    expect(parseWriteRequest({ ...base, mode: "suggest", review: "client-sent" })!.review).toBeUndefined();
+  });
+  it("the polish brief keeps any everyday topic in scope (BUG-37)", () => {
+    expect(SCRIPT_SYSTEM).toMatch(/fitness creator talking about baking bread/);
   });
 });

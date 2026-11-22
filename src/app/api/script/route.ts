@@ -9,6 +9,9 @@ import { demoWrittenScript, MAX_DRAFT_CHARS, parseWriteRequest, tidyDraft, type 
 /** The AI gets up to 50 s (see lib/ai-script); give the function room to answer after it. */
 export const maxDuration = 60;
 
+/** A draft written to the assistant rather than to an audience (an injection or an off-topic ask). */
+const INSTRUCTION = /\b(ignore|disregard|forget)\b.{0,40}\b(instructions|rules|prompt)\b|\b(system prompt|your (instructions|prompt|rules)|api key)\b|^\s*(write|give|generate|create|solve|translate|code|calculate|tell) me\b/i;
+
 /** A real request is a few KB; anything far bigger is not from the editor. */
 const MAX_BODY_BYTES = 32_000;
 
@@ -75,6 +78,12 @@ export async function POST(request: Request) {
 
   try {
     let result = await writeScript(input);
+    // Polish never refuses the user's own words (QA BUG-37: models sometimes call a draft on
+    // another subject "off-topic"). Only a draft that instructs the assistant keeps the redirect.
+    if (input.mode === "polish" && result.kind === "redirect" && !INSTRUCTION.test(input.draft)) {
+      const lines = tidyDraft(input.draft);
+      if (lines.length) result = { kind: "script", lines, message: "" };
+    }
     // Polish never asks back: their draft is the brief. Fall back to a light tidy instead.
     if (input.mode === "polish" && result.kind === "question") {
       const lines = tidyDraft(input.draft);

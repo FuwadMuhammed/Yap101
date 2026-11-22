@@ -1,0 +1,57 @@
+{
+  "at": "2026-11-22T06:34:18.333Z",
+  "results": [
+    {
+      "id": "B1",
+      "how": "back",
+      "status": "PASS",
+      "afterClose": {
+        "url": "/record?prompt=4",
+        "sheetOpen": false,
+        "prep": true,
+        "saved": false
+      },
+      "afterBack": "/home",
+      "errors": []
+    },
+    {
+      "id": "B2",
+      "how": "save",
+      "status": "PASS",
+      "afterClose": {
+        "url": "/record?prompt=4",
+        "sheetOpen": false,
+        "prep": true,
+        "saved": true
+      },
+      "afterBack": "/home",
+      "errors": []
+    },
+    {
+      "id": "B3",
+      "how": "x",
+      "status": "PASS",
+      "afterClose": {
+        "url": "/record?prompt=4",
+        "sheetOpen": false,
+        "prep": true,
+        "saved": false
+      },
+      "afterBack": "/home",
+      "errors": []
+    },
+    {
+      "id": "B4",
+      "how": "escape",
+      "status": "PASS",
+      "afterClose": {
+        "url": "/record?prompt=4",
+        "sheetOpen": false,
+        "prep": true,
+        "saved": false
+      },
+      "afterBack": "/home",
+      "errors": []
+    }
+  ]
+}

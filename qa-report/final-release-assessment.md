@@ -2,6 +2,8 @@
 
 2026-11-21 · Commit `52d23ca` · Inputs: Phase 1 (`qa-summary.md`), round-2 fixes (`round2-report.md`), Phase 2 (`advanced-qa-report.md` and its companion reports). **Updated 2026-11-22 00:45 UTC with the live AI evaluation** (`ai-quality-report.md` §4).
 
+> **Update 2026-11-22 (round 3):** all five engineering must-fixes are fixed and verified in the browser where possible (BUG-26, 27, 28 PASS). BUG-37 and BUG-17 are fixed in code with unit tests, but their **live AI re-check is blocked** by today's exhausted free quota. Regression is green. See [`round3-fixes.md`](round3-fixes.md). **Status: READY WITH KNOWN ISSUES once the live AI re-check passes and the product/ops items 6–8 below are done.**
+
 ## Decision: NOT READY FOR RELEASE (yet)
 
 Round 2 left the signed-in path green. Phase 2 found two **P1 user-isolation bugs** that ordinary functional testing missed:

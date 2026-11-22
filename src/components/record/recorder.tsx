@@ -16,7 +16,9 @@ import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, snapToBreak, syllableOffsets, wordAtSyllable, wordDuration } from "@/lib/prompter";
 import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
-import { loadScript, saveScript } from "@/lib/script";
+import { isStaleOwner, loadScript, OWNER_STORAGE_KEY, saveScript } from "@/lib/script";
+
+const STALE_TAB = "You signed in or out in another tab. Reloading so you see the right scripts.";
 import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { ScriptEditor } from "./script-editor";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
@@ -142,6 +144,17 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   // Any day can be read from a script: the one they wrote (saved on this device), or the one
   // we made from their onboarding answers (intro days). Beginners start in script mode when one exists.
   const [saved] = useState(() => loadScript(prompt.id));
+  // Another tab signed someone else in (or out): this tab's scripts are no longer theirs.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if ((e.key === OWNER_STORAGE_KEY || e.key === null) && isStaleOwner()) {
+        toast(STALE_TAB);
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const [lines, setLines] = useState<string[] | null>(saved ?? script ?? null);
   const [useScript, setUseScript] = useState(Boolean(saved) || (Boolean(script) && level !== "pro" && level !== "intermediate"));
   const [editing, setEditing] = useState(false);
@@ -640,7 +653,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               setUseScript(true);
               setCursor(0);
               // Still used for this visit; but say so if the device couldn't keep it.
-              if (!saveScript(prompt.id, next)) toast.error("Couldn't save the script on this device (storage is full or blocked). It works for now, but won't be here next time.");
+              if (!saveScript(prompt.id, next)) {
+                if (isStaleOwner()) {
+                  toast.error(STALE_TAB);
+                  setTimeout(() => window.location.reload(), 1500);
+                } else toast.error("Couldn't save the script on this device (storage is full or blocked). It works for now, but won't be here next time.");
+              }
               setEditing(false);
             }}
             onClose={() => {

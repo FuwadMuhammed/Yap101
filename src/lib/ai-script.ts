@@ -1,7 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
-import { REDIRECT_MESSAGE, SCRIPT_SYSTEM, scriptUserMessage, type WriteRequest, type WriteResult } from "@/lib/write-script";
+import { asExample, inventedLines, REDIRECT_MESSAGE, reviewNote, SCRIPT_SYSTEM, scriptUserMessage, type WriteRequest, type WriteResult } from "@/lib/write-script";
 
 // The AI call behind "Write it for me". Two providers, picked by which key is set:
 //  - OPENROUTER_API_KEY: OpenRouter's free models (OPENROUTER_MODEL to change them).
@@ -34,9 +34,30 @@ const SCHEMA = {
  */
 const DEFAULT_OPENROUTER_MODELS = ["nvidia/nemotron-3.5-super-vl:free", "google/gemma-4-31b-it:free", "openrouter/free"];
 
-export async function writeScript(input: WriteRequest): Promise<WriteResult> {
+async function ask(input: WriteRequest): Promise<WriteResult> {
   const raw = aiProvider() === "openrouter" ? await viaOpenRouter(input) : await viaClaude(input);
   return clean(raw, input);
+}
+
+/**
+ * One script. Suggestions are checked for invented facts (see `inventedLines`): if any, the
+ * writer gets one more try with our review; whatever is still invented after that is shown as
+ * an "[e.g. …]" example for the user to replace, never as something they said or did.
+ */
+export async function writeScript(input: WriteRequest): Promise<WriteResult> {
+  const first = await ask(input);
+  if (input.mode !== "suggest" || first.kind !== "script") return first;
+  const bad = inventedLines(first.lines, input);
+  if (!bad.length) return first;
+  let best = first;
+  try {
+    const second = await ask({ ...input, review: reviewNote(bad) });
+    if (second.kind === "script" && inventedLines(second.lines, input).length < bad.length) best = second;
+  } catch {
+    /* keep the first draft */
+  }
+  const still = new Set(inventedLines(best.lines, input));
+  return still.size ? { ...best, lines: best.lines.map((l) => (still.has(l) ? asExample(l) : l)) } : best;
 }
 
 // --- Cleaning the model's reply ----------------------------------------------------------
@@ -88,7 +109,7 @@ function echoesCoaching(line: string, notes: string[]) {
 }
 
 /** Tidy whatever the model sent back into a WriteResult the editor can use. */
-export function clean(out: Partial<WriteResult> | null, input?: Pick<WriteRequest, "skillTip" | "focus" | "mode" | "draft">): WriteResult {
+export function clean(out: Partial<WriteResult> | null, input?: Pick<WriteRequest, "skillTip" | "focus" | "mode" | "draft"> & { goal?: string | null }): WriteResult {
   if (!out) throw new AiUnavailableError("empty");
   if (out.kind === "redirect") return { kind: "redirect", lines: [], message: REDIRECT_MESSAGE };
   const raw = [out.message ?? "", ...(Array.isArray(out.lines) ? out.lines : [])].filter((l): l is string => typeof l === "string");
@@ -98,7 +119,7 @@ export function clean(out: Partial<WriteResult> | null, input?: Pick<WriteReques
     if (message) return { kind: "question", lines: [], message };
   }
   // Coaching notes are only stripped from suggestions: in a polish the words are the user's own.
-  const notes = input && input.mode !== "polish" ? [input.skillTip, input.focus].filter(Boolean) : [];
+  const notes = input && input.mode !== "polish" ? [input.skillTip, input.focus, input.goal ?? ""].filter(Boolean) : [];
   let lines = (Array.isArray(out.lines) ? out.lines : [])
     .filter((l): l is string => typeof l === "string")
     .map(unmark)

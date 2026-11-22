@@ -22,6 +22,41 @@ const WRITE_ERRORS: Record<string, string> = {
   unauthorized: "Your session ended. Sign in again to use the script writer.",
 };
 
+/**
+ * Browser Back (and Android's back gesture) should close this sheet, not leave the page and
+ * lose the draft. Opening pushes one history entry; Back pops it and closes the sheet; closing
+ * any other way removes the entry again. The instance id keeps React's dev-mode double mount
+ * from pushing twice or popping the new entry.
+ */
+let sheetInstance = 0;
+let activeSheet = 0;
+function useBackCloses(onClose: () => void) {
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  }, [onClose]);
+  useEffect(() => {
+    const id = ++sheetInstance;
+    activeSheet = id;
+    let byBack = false;
+    if (!(window.history.state as { yapSheet?: boolean } | null)?.yapSheet) window.history.pushState({ ...(window.history.state ?? {}), yapSheet: true }, "");
+    const onPop = () => {
+      byBack = true;
+      closeRef.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      // Deferred: a dev-mode remount replaces `activeSheet` first, and then we leave history alone.
+      setTimeout(() => {
+        if (activeSheet !== id || byBack) return;
+        activeSheet = 0;
+        if ((window.history.state as { yapSheet?: boolean } | null)?.yapSheet) window.history.back();
+      }, 0);
+    };
+  }, []);
+}
+
 /** Where the text in the box came from. Only unedited AI text counts as "suggestion"/"polished". */
 type Source = "suggestion" | "polished";
 
@@ -82,6 +117,7 @@ export function ScriptEditor({
   const canPolish = !busy && !untouched && words >= MIN_POLISH_WORDS && !draftTooLong;
 
   useScrollLock();
+  useBackCloses(onClose);
   // Load the profile early so the first tap doesn't wait for it; stop any request on close.
   useEffect(() => {
     profileRef.current ??= api.getProfile().catch(() => null);

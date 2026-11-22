@@ -24,6 +24,7 @@ async function seed(page, profile = PROFILE, extra = {}) {
 const box = (p) => p.locator("#script-text");
 const btn = (p, name) => p.getByRole("button", { name, exact: typeof name === "string" });
 async function openEditor(p, id) {
+  await p.waitForTimeout(100);
   await p.goto(`${BASE}/record?prompt=${id}`, { waitUntil: "networkidle" });
   const edit = p.getByRole("button", { name: "Edit" });
   if (await edit.count()) await edit.click();
@@ -93,6 +94,7 @@ async function test(id, title, fn, { device } = {}) {
     await openEditor(p, 4);
     const d4 = await box(p).inputValue();
     await box(p).fill("Day four script here."); await btn(p, "Save script").click();
+    await p.waitForTimeout(150); // human pause: the closed sheet tidies its history entry
     await p.goto(`${BASE}/record?prompt=2`, { waitUntil: "networkidle" });
     const ok2 = await p.getByText("Day two script here.").count();
     const s = await scripts(p);
@@ -231,6 +233,7 @@ async function test(id, title, fn, { device } = {}) {
     await seed(p, PROFILE, { "yap101-scripts": '"just a string"' }); await openEditor(p, 2);
     await box(p).fill("After string.");
     await btn(p, "Save script").click();
+    await p.waitForTimeout(150);
     await p.reload({ waitUntil: "networkidle" });
     const shown = await p.getByText("After string.").count();
     const raw = await p.evaluate(() => localStorage.getItem("yap101-scripts"));
