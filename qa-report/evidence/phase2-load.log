@@ -1,0 +1,5 @@
+{"name":"signed-in","concurrency":1,"requests":200,"codes":{"503":200},"p50_ms":5.2,"p95_ms":9.5,"p99_ms":23.1,"max_ms":34.1,"rps":171}
+{"name":"signed-in","concurrency":10,"requests":500,"codes":{"503":500},"p50_ms":34.3,"p95_ms":49.6,"p99_ms":60.1,"max_ms":94.6,"rps":280.1}
+{"name":"signed-in","concurrency":25,"requests":500,"codes":{"503":500},"p50_ms":79.2,"p95_ms":96.4,"p99_ms":241.6,"max_ms":321.1,"rps":307.7}
+{"name":"signed-in","concurrency":50,"requests":500,"codes":{"503":500},"p50_ms":126.8,"p95_ms":197.7,"p99_ms":737.8,"max_ms":939.3,"rps":345.2}
+{"name":"no session (rejected by middleware)","concurrency":50,"requests":500,"codes":{"401":500},"p50_ms":67.9,"p95_ms":81.8,"p99_ms":96.3,"max_ms":104.9,"rps":720.4}

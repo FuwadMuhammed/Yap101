@@ -1,0 +1,9 @@
+G1 1st (fresh guest):        200 4.533459s {"kind":"script","lines":["Hi, I'm Sam.","I make fitness videos for busy moms."],"message"
+G2 2nd:                      200 8.928231s {"kind":"script","lines":["Hi, I'm Sam.","I make fitness videos for busy moms."],"message"
+G3 3rd:                      200 3.567852s {"kind":"script","lines":["Hi, I'm Sam, and I make fitness videos for busy moms."],"messag
+G4 4th (expect 429):         429 0.008462s {"error":"guest_limit"}
+G5 'app restart' same jar:   429 0.005770s {"error":"guest_limit"}
+G6 cookie cleared, same IP:  429 0.007419s {"error":"guest_limit"}
+G7 jar kept, new IP:         429 0.005645s {"error":"guest_limit"}
+G8 no cookie, spoofed IP:    200 7.007703s {"kind":"script","lines":["Hi, I'm Sam.","I make fitness videos for busy moms."],"message"
+cookie in jar: yap101-scripts 2026-11-21.3.CwrrUjtTC3BD…

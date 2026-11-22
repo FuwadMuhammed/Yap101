@@ -70,6 +70,11 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* The demo/guest banner (24px) is subtracted from full-height screens. */
+:root:has([data-demo-banner]) {
+  --banner-h: 24px;
+}
+
 :root {
   --background: #f4f6f8;
   --foreground: #15171c;

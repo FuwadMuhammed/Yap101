@@ -64,6 +64,19 @@ Set one key on the server (`src/lib/ai-script.ts` picks the provider):
 
 Demo builds with neither key get a simple template script instead.
 
+## Tests
+
+`npm test` runs the unit tests once (`npm run test:watch` while you work). They use Vitest,
+with Testing Library for components, and need no API keys or network: the AI, Supabase and
+`fetch` are faked.
+
+- `src/lib/write-script.test.ts`: request checks, the suggest/polish prompts, the no-AI fallbacks.
+- `src/lib/ai-script.test.ts`: reading model replies, model fallback, busy and bad-key errors.
+- `src/lib/script.test.ts`: the day 1 / day 30 intro script, saved scripts and suggestions.
+- `src/app/api/script/route.test.ts`: `/api/script` modes, errors and the guest allowance.
+- `src/components/record/script-editor.test.tsx`: the editor's "Use our suggestion" and
+  "Polish it for me" flows, undo and saving, clicked through like a user would.
+
 ## Still to build (per the launch plan)
 
 - AI feedback route: speech-to-text + one LLM call, writes to `feedback`

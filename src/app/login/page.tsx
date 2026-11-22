@@ -2,12 +2,13 @@
 
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { safeNext } from "@/lib/safe-next";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { YapperCluster } from "@/components/brand/mascot";
 import { YapButton } from "@/components/yap/yap-button";
 import { demoApi, demoSignIn } from "@/lib/data/demo";
-import { hasSupabase, reloadTo, startGuest } from "@/lib/data/mode";
+import { endGuest, hasSupabase, reloadTo, startGuest } from "@/lib/data/mode";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Login() {
@@ -65,9 +66,11 @@ function SupabaseLogin() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const redirectTo = () => {
+    // Signing in for real ends guest mode (see also the auth callback and the proxy).
+    endGuest();
     // Remember where they were heading (e.g. /admin) for after the email link / Google.
-    const next = new URLSearchParams(window.location.search).get("next");
-    if (next && next.startsWith("/") && !next.startsWith("//")) document.cookie = `yap101-next=${encodeURIComponent(next)}; path=/; max-age=1800; samesite=lax`;
+    const next = safeNext(encodeURIComponent(new URLSearchParams(window.location.search).get("next") ?? ""));
+    if (next) document.cookie = `yap101-next=${encodeURIComponent(next)}; path=/; max-age=1800; samesite=lax`;
     return `${window.location.origin}/auth/callback`;
   };
 

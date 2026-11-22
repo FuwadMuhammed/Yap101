@@ -1,0 +1,22 @@
+- dialog "Edit your script":
+  - button "Close without saving"
+  - paragraph: Your script
+  - paragraph: Day 2 · today's topic
+  - paragraph: Why you got into fitness
+  - paragraph: Make sure you cover
+  - list:
+    - listitem: The moment it clicked
+    - listitem: What you love about it
+    - listitem: Who you want to help
+  - button "Use our suggestion"
+  - button "Polish it for me" [disabled]
+  - status: Start from our suggestion, or type your own and we'll polish it.
+  - text: Script
+  - textbox "Script":
+    - /placeholder: "Or write it your way, how you'd say it.\nOne sentence per line works best.\n\nRough is fine: “Polish it for me” tidies it up."
+  - text: 0 words · about 0s Anything our suggestion should include? (optional)
+  - textbox "Anything our suggestion should include? (optional)":
+    - /placeholder: e.g. “I'm a nurse who films on my lunch break”
+  - button "Import .txt"
+  - button "Save script" [disabled]
+  - paragraph: Saved on this device for this day's yap.

@@ -1,0 +1,8 @@
+PASS iPhone SE 320×568 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS iPhone 13 390×664 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS iPhone 15 Pro Max 430×739 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS Pixel 7 412×839 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS Galaxy S9+ 320×658 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS iPad Mini 768×1024 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS Galaxy Tab S4 712×1138 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0
+PASS Fold 280px 280×653 :: overflow 0px; Save on screen=true; tap-to-save worked=true; errors=0

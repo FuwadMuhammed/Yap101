@@ -1,0 +1,59 @@
+{
+  "at": "2026-11-22T07:17:59.624Z",
+  "results": [
+    {
+      "id": "G1",
+      "title": "Home → today's yap opens the record screen for day 2",
+      "status": "PASS",
+      "actual": "link /record?prompt=2; heading \"Why you got into fitness\""
+    },
+    {
+      "id": "G2",
+      "title": "Saved script shows on the prep card",
+      "status": "PASS",
+      "actual": "card shows script=true"
+    },
+    {
+      "id": "G3",
+      "title": "Teleprompter on the camera screen uses the saved script",
+      "status": "PASS",
+      "actual": "script on camera screen=true"
+    },
+    {
+      "id": "G4",
+      "title": "Recording stops and reaches review",
+      "status": "PASS",
+      "actual": "4 s · \"Why you got into fitness\""
+    },
+    {
+      "id": "G5",
+      "title": "Feedback page loads after a scripted yap",
+      "status": "PASS",
+      "actual": "Demo mode · data stays in this browser Yap complete! +15 XP Streak +1 1 day streak Level 1 Mumbler 15 XP 🎤 New badge First words 📸 New badge Camera brave See "
+    },
+    {
+      "id": "G6",
+      "title": "Yap saved with the right day/title; script still saved for the day",
+      "status": "PASS",
+      "actual": "yap prompt_id=2, title=\"Why you got into fitness\", 4.470300000000046s, scriptDone=n/a"
+    },
+    {
+      "id": "G7",
+      "title": "History lists the yap; track page renders",
+      "status": "PASS",
+      "actual": "history entries=1; track: \"Demo mode · data stays in this browser Today Your 30-day track Day 2 of 30 · 1 days yapped Week 1 Warm up Get comfortabl\""
+    },
+    {
+      "id": "G8",
+      "title": "Profile page loads; script still on day 2 after the full journey",
+      "status": "PASS",
+      "actual": "profile shows name=true; script kept=true"
+    },
+    {
+      "id": "G9",
+      "title": "No page errors during the whole journey",
+      "status": "PASS",
+      "actual": "none"
+    }
+  ]
+}

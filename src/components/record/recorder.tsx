@@ -12,107 +12,35 @@ import { api, DailyLimitError } from "@/lib/data";
 import { xpForYap } from "@/lib/game";
 import { cn } from "@/lib/utils";
 import { TARGET_SECONDS, visiblePoints, weekFor } from "@/lib/curriculum";
-import { localDate, MAX_SECONDS, type Level, type Prompt } from "@/lib/yap";
+import { localDate, MAX_SECONDS, type Goal, type Level, type Prompt } from "@/lib/yap";
 import { buildScript, estimateSeconds, followPosition, speechRecognitionCtor, snapToBreak, syllableOffsets, wordAtSyllable, wordDuration } from "@/lib/prompter";
 import { checkDelivery } from "@/lib/analysis/delivery";
 import { useScrollLock } from "@/lib/use-scroll-lock";
-import { loadScript, saveScript } from "@/lib/script";
+import { isStaleOwner, loadScript, OWNER_STORAGE_KEY, saveScript } from "@/lib/script";
+
 import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { ScriptEditor } from "./script-editor";
+import { useFillerCheck } from "./use-filler-check";
 import { ScriptPreview, Teleprompter } from "./teleprompter";
 import { AudioMeter } from "@/lib/analysis/audio";
 import { FaceMeter, loadFaceModel } from "@/lib/analysis/face";
-import { analyse, type Analysis } from "@/lib/analysis/score";
+import { analyse, type AnalyseInput, type Analysis } from "@/lib/analysis/score";
+import type { Drill, PastTake } from "@/lib/analysis/yapscore";
+import { lastFear, loadScorePrefs, rememberFear } from "@/lib/score-prefs";
+import { Scale } from "@/components/yap/scale";
+import { buzz, extFor, type MediaMode, fmt, pickMimeType, unblockHelp, voiceChain, widestZoom } from "@/lib/media";
 
-type Mode = "video" | "audio";
+const STALE_TAB = "You signed in or out in another tab. Reloading so you see the right scripts.";
+
+type Mode = MediaMode;
 type Pace = "auto" | "beats" | "voice";
 type Facing = "user" | "environment";
 type Phase = "prep" | "setup" | "countdown" | "recording" | "review" | "saving";
 const TEXT_SIZES = { S: "text-xl", M: "text-[26px]", L: "text-[32px]" } as const;
 type TextSize = keyof typeof TEXT_SIZES;
 
-// iOS Safari records mp4; Chrome/Edge usually webm. mp4 first so clips share cleanly to IG/TikTok.
-function pickMimeType(mode: Mode) {
-  const candidates =
-    mode === "video"
-      ? ["video/mp4;codecs=avc1,mp4a", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"]
-      : ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"];
-  return candidates.find((t) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(t)) ?? "";
-}
 // beginRecording runs from the countdown, never during render; the compiler can't tell.
 const clock = () => performance.now();
-const extFor = (mime: string) => (mime.includes("mp4") ? (mime.startsWith("audio") ? "m4a" : "mp4") : "webm");
-const fmt = (s: number) => {
-  const t = Math.max(0, Math.floor(s));
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
-};
-const buzz = (pattern: number | number[]) => {
-  try {
-    navigator.vibrate?.(pattern);
-  } catch {}
-};
-
-/** Browser-specific steps for unblocking the camera. */
-function unblockHelp(mode: Mode) {
-  const what = mode === "video" ? "camera and microphone" : "microphone";
-  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) return `On iPhone: open Settings › Safari › ${mode === "video" ? "Camera" : "Microphone"} › Allow, then reload this page.`;
-  if (/Android/.test(ua)) return `Tap the lock icon next to the address, turn on ${what}, then reload.`;
-  return `Click the camera icon in the address bar, allow ${what}, then reload.`;
-}
-
-/** Front cameras on some phones start slightly zoomed; ask for the widest view they allow. */
-async function widestZoom(stream: MediaStream) {
-  const track = stream.getVideoTracks()[0];
-  try {
-    const caps = track?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number } }) | undefined;
-    if (caps?.zoom) await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] });
-  } catch {
-    /* not supported: keep the default */
-  }
-}
-
-/**
- * A light voice chain for the recording: cut low rumble (traffic, AC, desk bumps), lift
- * speech presence a touch, and gently even out loud and quiet words. Falls back to the raw
- * mic if the browser can't do it. Video tracks pass straight through.
- */
-function voiceChain(stream: MediaStream): { stream: MediaStream; close: () => void } | null {
-  const mic = stream.getAudioTracks()[0];
-  if (!mic) return null;
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    const src = ctx.createMediaStreamSource(new MediaStream([mic]));
-    const highpass = Object.assign(ctx.createBiquadFilter(), { type: "highpass" });
-    highpass.frequency.value = 85;
-    const mud = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
-    mud.frequency.value = 300;
-    mud.gain.value = -2;
-    mud.Q.value = 1;
-    const presence = Object.assign(ctx.createBiquadFilter(), { type: "peaking" });
-    presence.frequency.value = 3200;
-    presence.gain.value = 2.5;
-    presence.Q.value = 0.9;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -26;
-    comp.knee.value = 12;
-    comp.ratio.value = 3;
-    comp.attack.value = 0.006;
-    comp.release.value = 0.2;
-    const out = ctx.createMediaStreamDestination();
-    src.connect(highpass).connect(mud).connect(presence).connect(comp).connect(out);
-    void ctx.resume();
-    const track = out.stream.getAudioTracks()[0];
-    if (!track) throw new Error("no processed track");
-    return {
-      stream: new MediaStream([...stream.getVideoTracks(), track]),
-      close: () => void ctx.close().catch(() => {}),
-    };
-  } catch {
-    return null;
-  }
-}
 
 /** Video or audio only, as one clear switch. */
 function ModeToggle({ mode, onChange, glass, className }: { mode: Mode; onChange: (m: Mode) => void; glass?: boolean; className?: string }) {
@@ -138,10 +66,32 @@ function ModeToggle({ mode, onChange, glass, className }: { mode: Mode; onChange
   );
 }
 
-export function Recorder({ prompt, firstToday, level, first, script }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null }) {
+/** What the Yap score needs beyond the take itself (see lib/analysis/yapscore). */
+export type Scoring = { goal: Goal | null; history: PastTake[] };
+
+export function Recorder({ prompt, firstToday, level, first, script, scoring, drill }: { prompt: Prompt; firstToday: boolean; level: Level | null; first?: boolean; script?: string[] | null; scoring?: Scoring; drill?: Drill | null }) {
+  // Self-reports around the take: tracked next to the Yap score, never inside it.
+  const [fearBefore, setFearBefore] = useState<number | null>(() => lastFear());
+  const [predicted, setPredicted] = useState<number | null>(null);
+  const [observed, setObserved] = useState<number | null>(null);
+  const [fearAfter, setFearAfter] = useState<number | null>(null);
+  const [predictDone, setPredictDone] = useState(false);
+  const takesRef = useRef(1);
+  const [streamReady, setStreamReady] = useState(false);
   // Any day can be read from a script: the one they wrote (saved on this device), or the one
   // we made from their onboarding answers (intro days). Beginners start in script mode when one exists.
   const [saved] = useState(() => loadScript(prompt.id));
+  // Another tab signed someone else in (or out): this tab's scripts are no longer theirs.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if ((e.key === OWNER_STORAGE_KEY || e.key === null) && isStaleOwner()) {
+        toast(STALE_TAB);
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const [lines, setLines] = useState<string[] | null>(saved ?? script ?? null);
   const [useScript, setUseScript] = useState(Boolean(saved) || (Boolean(script) && level !== "pro" && level !== "intermediate"));
   const [editing, setEditing] = useState(false);
@@ -182,6 +132,16 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   const [showSettings, setShowSettings] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [clip, setClip] = useState<{ blob: Blob; url: string; seconds: number; analysis: Analysis | null } | null>(null);
+  // Filler-word check: free on-device Whisper (Hugging Face Transformers.js) listens back after
+  // the take and the score is recomputed with the words. Runs in the background; never blocks.
+  const analysisRef = useRef<Analysis | null>(null); // the latest analysis (updated when words arrive)
+  const fillers = useFillerCheck(
+    useCallback((next: Analysis) => {
+      analysisRef.current = next;
+      setClip((c) => (c ? { ...c, analysis: next } : c));
+    }, []),
+  );
+  const asr = fillers.status;
   // On-device analysis: voice meter always, face meter for video. Nothing is uploaded.
   const audioMeterRef = useRef<AudioMeter | null>(null);
   const voiceRef = useRef<{ stream: MediaStream; close: () => void } | null>(null);
@@ -206,6 +166,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     let cancelled = false;
     (async () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      setStreamReady(false);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           // Ask for clean speech: the browser's own noise suppression and echo cancellation.
@@ -219,6 +180,7 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         streamRef.current = stream;
         if (previewRef.current) previewRef.current.srcObject = stream;
         setError(null);
+        setStreamReady(true);
       } catch {
         setError(unblockHelp(mode));
       }
@@ -372,6 +334,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     wordTimesRef.current = [];
     setCount(3);
     setPhase("countdown");
+    // Gaze calibration: the face check starts now, while they look at the lens for the 3-2-1.
+    if (mode === "video") {
+      faceMeterRef.current?.stop();
+      faceMeterRef.current = new FaceMeter();
+      void faceMeterRef.current.start(previewRef.current, 2400);
+    }
   }
 
   function beginRecording() {
@@ -394,23 +362,31 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType });
       const seconds = Math.min(MAX_SECONDS, (performance.now() - startedAtRef.current) / 1000);
       let analysis: Analysis | null = null;
+      let input: AnalyseInput | null = null;
+      let frames: { rms: number[]; times: number[] } | null = null;
+      const prefs = loadScorePrefs();
       try {
         const meter = audioMeterRef.current;
         const audio = meter?.stop() ?? null;
+        frames = meter?.frames() ?? null;
         const paced = usedPacedRef.current && model && meter ? checkDelivery(model.words, wordTimesRef.current, meter.frames()) : null;
-        analysis = analyse({
+        input = {
           audio,
           delivery: paced,
           face: faceMeterRef.current?.stop() ?? null,
           scriptDone: usedVoiceRef.current && model ? Math.min(1, cursorRef.current / model.words.length) : null,
           skill: prompt.skill,
-        });
+          v2: { seconds, targetSeconds: target ?? MAX_SECONDS, day: prompt.day_index, goal: scoring?.goal ?? null, prefs, history: scoring?.history ?? [] },
+        };
+        analysis = analyse(input);
       } catch {
         /* analysis is a bonus; never block saving the clip */
       }
       audioMeterRef.current = faceMeterRef.current = null;
+      analysisRef.current = analysis;
       setClip({ blob, url: URL.createObjectURL(blob), seconds, analysis });
       setPhase("review");
+      if (input?.audio && frames && prefs.transcribe !== false) fillers.start(blob, input, frames);
     };
     recorderRef.current = recorder;
     startedAtRef.current = clock();
@@ -425,8 +401,11 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
     audioMeterRef.current = meter;
     meter.start(stream);
     if (mode === "video") {
-      faceMeterRef.current = new FaceMeter();
-      void faceMeterRef.current.start(previewRef.current);
+      if (faceMeterRef.current) faceMeterRef.current.markStart();
+      else {
+        faceMeterRef.current = new FaceMeter();
+        void faceMeterRef.current.start(previewRef.current);
+      }
     }
     buzz(30);
     setPhase("recording");
@@ -474,6 +453,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   }
 
   function retake() {
+    fillers.cancel(); // drop any transcript still on its way for the old take
+    takesRef.current += 1;
+    setPredicted(null);
+    setObserved(null);
+    setFearAfter(null);
+    setPredictDone(false);
     if (clip) URL.revokeObjectURL(clip.url);
     setClip(null);
     setElapsed(0);
@@ -494,8 +479,11 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
 
   // Leave the camera and go back to the prep card (script, mode, length). The camera turns off.
   function backToPrep() {
+    faceMeterRef.current?.stop();
+    faceMeterRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
+    setStreamReady(false);
     setShowSettings(false);
     setPreviewing(false);
     setCursor(0);
@@ -512,8 +500,13 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
   async function save() {
     if (!clip) return;
     setPhase("saving");
+    // Still listening back? Wait for it (usually a few seconds), unless they skip.
+    await fillers.settle();
     try {
-      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate(), analysis: clip.analysis });
+      if (fearBefore !== null) rememberFear(fearBefore);
+      const latest = analysisRef.current ?? clip.analysis;
+      const analysis = latest ? { ...latest, confidence: { fearBefore, fearAfter, predicted, observed, takes: takesRef.current } } : null;
+      const { id } = await api.saveYap({ prompt, media: mode, blob: clip.blob, seconds: clip.seconds, localDate: localDate(), analysis });
       router.push(`/feedback/${id}?celebrate=1`);
     } catch (e) {
       toast.error(e instanceof DailyLimitError ? e.message : (e as Error).message || "Couldn't save your yap.");
@@ -543,6 +536,12 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           </div>
 
           {first && <MascotSays mood="cheer" className="mt-6">Your first yap! Don&apos;t aim for perfect. Just talk.</MascotSays>}
+          {drill && (
+            <section className="bg-sun-soft mt-6 rounded-[20px] px-4 py-3">
+              <p className="text-sm"><span className="text-stone">Drill · </span><span className="font-semibold">{drill.name}</span></p>
+              <p className="mt-0.5 text-sm leading-snug">{drill.how}</p>
+            </section>
+          )}
 
           <h1 className="mt-6 text-[34px] leading-[1.08]">{prompt.title}</h1>
           {prompt.milestone && <p className="bg-sun mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold"><Star className="size-4 fill-current" /> Milestone yap: worth posting</p>}
@@ -602,16 +601,18 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             <p className="text-stone mt-3 flex items-center gap-1.5 text-sm"><Target className="size-4" /> {prompt.focus}</p>
           </section>
 
+          <Scale label="How nervous are you right now?" value={fearBefore} onChange={setFearBefore} className="surface mt-3 rounded-[24px] p-4" />
+
           <ModeToggle mode={mode} onChange={setMode} className="mt-3" />
 
           <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm font-semibold">
-            <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`Length: ${target ? `${target} second goal` : "no time limit"}. Tap to change.`}>
+            <button onClick={cycleLength} className="surface tap flex flex-col items-center gap-1 rounded-[20px] py-3" aria-label={`${target ? `${target}s goal` : "No limit"}: tap to change the length`}>
               <Timer className="size-4" />{target ? `${target}s goal` : "No limit"}
             </button>
             <span className="surface flex flex-col items-center gap-1 rounded-[20px] py-3"><Star className="size-4" />+{xpForYap(target ?? estimate ?? 0, firstToday)} XP</span>
           </div>
 
-          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-[calc(100%-2rem)] to-paper/0 px-5 pt-8 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <p className="text-stone mb-3 flex items-center justify-center gap-1.5 text-center text-sm">
               <Lock className="size-3.5" /> Next, your browser asks for {mode === "video" ? "camera and mic" : "mic"} access. Your yap stays private.
             </p>
@@ -636,10 +637,16 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             prompt={prompt}
             seconds={TARGET_SECONDS[level ?? "beginner"]}
             onSave={(next) => {
-              setLines(next);
-              setUseScript(true);
+              setLines(next.length ? next : null);
+              setUseScript(next.length > 0);
               setCursor(0);
-              saveScript(prompt.id, next);
+              // Still used for this visit; but say so if the device couldn't keep it.
+              if (!saveScript(prompt.id, next)) {
+                if (isStaleOwner()) {
+                  toast.error(STALE_TAB);
+                  setTimeout(() => window.location.reload(), 1500);
+                } else toast.error("Couldn't save the script on this device (storage is full or blocked). It works for now, but won't be here next time.");
+              }
               setEditing(false);
             }}
             onClose={() => {
@@ -680,7 +687,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
           ))}
         {clip && !live &&
           (mode === "video" ? (
-            <video src={clip.url} controls playsInline autoPlay className="absolute inset-0 h-full w-full bg-black object-contain" />
+            // Asked "how nervous do you think you looked?" first, so the replay waits for that answer.
+            <video key={predictDone ? "play" : "wait"} src={clip.url} controls playsInline autoPlay={predictDone} className="absolute inset-0 h-full w-full bg-black object-contain" />
           ) : (
             <div className="bg-[#1f2229] absolute inset-0 flex flex-col items-center justify-center gap-6 px-8 pb-48">
               <Yapper shape="puff" color={YAPPY_BLUE} mood="cheer" className="size-40" />
@@ -868,7 +876,10 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
         {/* ---------- Countdown ---------- */}
         {phase === "countdown" && (
           <div className="absolute inset-0 grid place-items-center bg-black/30">
-            <span key={count} className="font-display animate-pop text-[140px] leading-none drop-shadow-lg">{count}</span>
+            <div className="flex flex-col items-center gap-3">
+              <span key={count} className="font-display animate-pop text-[140px] leading-none drop-shadow-lg">{count}</span>
+              {mode === "video" && <p className="glass rounded-full px-4 py-2 text-sm font-bold">Look at the lens</p>}
+            </div>
           </div>
         )}
 
@@ -885,7 +896,8 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
             )}
             <button
               onClick={phase === "recording" ? stop : startCountdown}
-              disabled={!!error || phase === "countdown"}
+              // Not before the camera/mic is live: an early tap used to do nothing, silently.
+              disabled={!!error || phase === "countdown" || (phase !== "recording" && !streamReady)}
               className="relative grid size-24 place-items-center disabled:opacity-50"
               aria-label={phase === "recording" ? "Stop recording" : "Start recording"}
             >
@@ -910,10 +922,23 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="bg-sun rounded-full px-3 py-1.5 text-sm font-bold">+{xpForYap(clip.seconds, firstToday)} XP</span>
-                {clip.analysis && clip.analysis.parts.length > 0 && <span className="text-stone text-xs font-bold">Yap score {clip.analysis.overall}</span>}
+                {clip.analysis && (clip.analysis.yap || clip.analysis.parts.length > 0) && <span className="text-stone text-xs font-bold">Yap score {clip.analysis.overall}</span>}
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-[auto_auto_1fr] gap-2">
+            <div className="mt-4">
+              {!predictDone ? (
+                <>
+                  <Scale label="Before you watch it: how nervous do you think you looked?" value={predicted} onChange={(v) => { setPredicted(v); if (v !== null) setPredictDone(true); }} low="Calm" high="Very" />
+                  <button onClick={() => setPredictDone(true)} className="text-stone mt-1 text-sm font-semibold underline-offset-4 hover:underline">Skip</button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <Scale label="Now you've watched it: how nervous did you actually look?" value={observed} onChange={setObserved} low="Calm" high="Very" />
+                  <Scale label="How nervous do you feel about yapping now?" value={fearAfter} onChange={setFearAfter} />
+                </div>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-[auto_auto_1fr] gap-2">
               <YapButton variant="soft" size="icon" className="size-14" onClick={retake} disabled={phase === "saving"} aria-label="Retake">
                 <RotateCcw />
               </YapButton>
@@ -925,9 +950,21 @@ export function Recorder({ prompt, firstToday, level, first, script }: { prompt:
                 <Share2 />
               </YapButton>
               <YapButton size="lg" className="h-14" arrow onClick={save} disabled={phase === "saving"}>
-                {phase === "saving" ? "Saving…" : "Get feedback"}
+                {fillers.waiting ? "Checking…" : phase === "saving" ? "Saving…" : "Get feedback"}
               </YapButton>
             </div>
+            {asr && asr.stage !== "failed" && (
+              <p className="text-stone mt-2 flex items-center justify-between gap-2 text-xs" role="status" aria-live="polite">
+                <span>
+                  {asr.stage === "download"
+                    ? `Getting the filler-word checker ready (one-time download${asr.pct ? `, ${asr.pct}%` : ""})…`
+                    : asr.stage === "transcribing"
+                      ? "Listening back for filler words, on your phone…"
+                      : asr.fillers === 0 ? "Filler-word check done: none heard." : `Filler-word check done: ${asr.fillers} heard.`}
+                </span>
+                {fillers.waiting && <button onClick={fillers.skip} className="font-semibold text-ink underline underline-offset-4">Skip</button>}
+              </p>
+            )}
           </div>
         )}
       </div>

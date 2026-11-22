@@ -13,8 +13,8 @@ function isPublic(pathname: string) {
 // This is an optimistic check only; RLS in the database is the real guard.
 export async function updateSession(request: NextRequest) {
   // Demo mode keeps everything in the browser, so screens check sign-in themselves.
-  // Guests (the "Continue as guest" cookie) also keep their data in the browser.
-  if (envDemo || request.cookies.get(GUEST_COOKIE)?.value === "1") return NextResponse.next({ request });
+  if (envDemo) return NextResponse.next({ request });
+  const guest = request.cookies.get(GUEST_COOKIE)?.value === "1";
 
   let response = NextResponse.next({ request });
 
@@ -39,10 +39,24 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims);
 
+  // A real account always wins over guest mode: someone who tried the app as a guest and then
+  // signed in must get their account, not the browser-only guest store. The guest cookie is
+  // read by the page's scripts, so expire it on this response before they run.
+  if (signedIn && guest) {
+    request.cookies.delete(GUEST_COOKIE);
+    response.cookies.set(GUEST_COOKIE, "", { path: "/", maxAge: 0, sameSite: "lax" });
+    return response;
+  }
+  // Guests (the "Continue as guest" cookie, no account) keep their data in the browser.
+  if (guest) return response;
+
   if (!signedIn && !isPublic(request.nextUrl.pathname)) {
+    // An API call can't follow a redirect to a login page: tell it plainly instead.
+    if (request.nextUrl.pathname.startsWith("/api/")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", request.nextUrl.pathname);
+    url.search = ""; // only "next" (the original query belongs inside it, not on /login)
+    url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

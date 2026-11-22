@@ -1,0 +1,240 @@
+
+ RUN  v5.1.1 /home/user/Yap101
+
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R1 baseline: same IP, cookie carried, 4th request is blocked
+R1 statuses [ 200, 200, 200, 429 ]
+
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R2 race: 10 simultaneous requests from one fresh guest
+R2 successes out of 10 concurrent: 10 AI calls made: 10
+
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R1 baseline: same IP, cookie carried, 4th request is blocked 248ms
+ × qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R2 race: 10 simultaneous requests from one fresh guest 65ms
+   → only 3 should succeed: expected 10 to be 3 // Object.is equality
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > is only made for intro prompts 34ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > builds day 1 from their onboarding answers 3ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > uses placeholders for guests with no answers 1ms
+ ✓ src/lib/script.test.ts > introScript (the day 1 / day 30 suggestion) > writes the day 30 version 0ms
+ ✓ src/lib/script.test.ts > textToLines / linesToText > splits paragraphs into sentences and drops blank lines 1ms
+ ✓ src/lib/script.test.ts > textToLines / linesToText > round-trips 0ms
+ ✓ src/lib/script.test.ts > saved scripts > saves, loads and deletes a day's script 1ms
+ ✓ src/lib/script.test.ts > saved scripts > lists other days' scripts, newest first 0ms
+ ✓ src/lib/script.test.ts > saved suggestions > saves and loads a day's suggestion 1ms
+ ✓ src/lib/script.test.ts > saved suggestions > ignores broken storage 0ms
+ ✓ src/lib/script.test.ts > saved suggestions > keeps only the newest 40 days 1ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R3 spoofed IP header + no cookie: unlimited
+R3 successes with a new X-Forwarded-For each time: 10 of 10
+
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: the topic > shows today's day, topic and talking points 107ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: the topic > starts empty with both paths offered and polish waiting for words 27ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > writes from today's topic, talking points and the user's profile 44ms
+ × qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R3 spoofed IP header + no cookie: unlimited 512ms
+   → only 3 should succeed: expected 10 to be 3 // Object.is equality
+ ✓ src/lib/ai-script.test.ts > parseLoose > reads plain JSON and JSON in a code fence 3ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > salvages complete lines from cut-off JSON 1ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > falls back to plain lines of text, without bullets 1ms
+ ✓ src/lib/ai-script.test.ts > parseLoose > returns null for nothing 0ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > picks OpenRouter when its key is set 0ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > sends the polish task and returns cleaned lines 21ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > moves on to the next model when one is rate-limited 2ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > reports busy when every model is rate-limited 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > stops at once on a bad key 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > replaces any redirect message with ours 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > passes a clarifying question through 1ms
+ ✓ src/lib/ai-script.test.ts > writeScript via OpenRouter > treats empty answers as unavailable 1ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R4 cookie dropped, same IP, new server instance: allowance resets
+R4 same instance 4th: 429 | new instance, no cookie: 200
+
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > then offers another take, sending the current one to avoid, and turns polish off 65ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R5 a forged cookie is ignored (signature check)
+R5 forged cookie -> 200 2026-11-21.1
+
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > includes what they typed in 'Anything our suggestion should include?' 110ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > is instant and free on intro days: our onboarding script, no AI call 23ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > opens intro days with the suggestion already in, ready for another take 11ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > reuses the suggestion saved for today instead of calling again 22ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > saves a new suggestion for next time 33ms
+ × qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R4 cookie dropped, same IP, new server instance: allowance resets 209ms
+   → should still be blocked: expected 200 to be 429 // Object.is equality
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R5 a forged cookie is ignored (signature check) 53ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R6 a valid exhausted cookie blocks even from a new IP
+R6 exhausted cookie, new IP + instance -> 429
+
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > falls back to a talking-point starter with [blanks] when the writer is down 23ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > falls back the same way when offline 25ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > shows the writer's clarifying question instead of changing the text 25ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > rejects bad bodies, including polish with too few words 7ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > suggest: passes the mode through and returns the script 3ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > polish: a clarifying question becomes a local tidy, never a question 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > polish: a draft that is only filler gets a nudge, not an empty script 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > suggest: a clarifying question is passed to the user 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > demo builds with no key use the template for both modes 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > reports setup when there is no key outside demo builds 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > maps AI errors to busy, setup and upstream 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > count finished scripts in a signed cookie 2ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > don't spend their allowance on questions 1ms
+ ✓ src/app/api/script/route.test.ts > POST /api/script > guests > are stopped after 3 scripts a day 1ms
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R6 a valid exhausted cookie blocks even from a new IP 156ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R7 suggest and polish share one allowance
+R7 suggest/polish/suggest/polish: [ 200, 200, 200, 429 ]
+
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R8 failed AI calls don't use the allowance
+R8 5 failures: [ 502, 502, 502, 502, 502 ] then success: 200
+
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R7 suggest and polish share one allowance 157ms
+stdout | qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R9 AI timeout (abort) maps to 502 upstream, JSON body
+R9 timeout -> 502 {"error":"upstream"}
+
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R8 failed AI calls don't use the allowance 60ms
+ ✓ qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R9 AI timeout (abort) maps to 502 upstream, JSON body 4ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > replacing their own words can be undone 171ms
+ ✓ src/lib/write-script.test.ts > wordCount > counts words across spaces and new lines 3ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > rejects bodies without a title 1ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > keeps an explicit mode 1ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > infers the mode for older clients: a draft means polish, none means suggest 1ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > refuses to polish fewer than 4 words 1ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > drops the draft for suggestions, so they start from the topic 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > drops avoid for polish, which only works from the draft 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > clamps the length to 15–60 seconds and the day to 1–60 0ms
+ ✓ src/lib/write-script.test.ts > parseWriteRequest > trims and caps untrusted strings and lists 2ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > sends the profile and today's prompt 1ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > suggest: asks for a script and includes the request and avoid, never a draft 0ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > suggest: with no request, writes for today's prompt 0ms
+ ✓ src/lib/write-script.test.ts > scriptUserMessage > polish: sends the draft and the polish task, no request 0ms
+ ✓ src/lib/write-script.test.ts > SCRIPT_SYSTEM > briefs the writer on both jobs 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > cuts filler words and doubled words 2ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > puts one sentence on each line and ends each with punctuation 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > keeps [placeholders] and drops lines with no words 0ms
+ ✓ src/lib/write-script.test.ts > tidyDraft > leaves words that only contain filler, like 'umbrella', alone 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > uses their name, niche, the topic and each talking point 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > leaves a placeholder when we don't know their name 0ms
+ ✓ src/lib/write-script.test.ts > templateSuggestion > uses their request as the topic when they gave one 0ms
+ ✓ src/lib/write-script.test.ts > demoWrittenScript > polishes the draft in polish mode and suggests otherwise 0ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Use our suggestion > keeps their original draft as the undo target across several takes 142ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: reopening a saved suggestion > still knows it's ours: no polish, and the next tap is another take 23ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: reopening a saved suggestion > calls for a fresh one instead of putting back the same text 74ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Import .txt > imports a file, one sentence per line, and the same file twice 34ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Import .txt > is locked while the writer is busy 28ms
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M1 chatty preamble, plain text
+M1 chatty preamble, plain text -> script: 3 lines, longest 25 chars, first "Sure! Here's your script:"
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M2 markdown bullets and bold
+M2 markdown bullets and bold -> script: 2 lines, longest 17 chars, first "**Hey**, I'm Sam."
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M3 JSON with numbers in lines
+M3 JSON with numbers in lines -> script: 1 lines, longest 3 chars, first "Hi."
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M4 unknown kind
+M4 unknown kind -> script: 1 lines, longest 6 chars, first "Roses."
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M5 one 20,000-character line
+M5 one 20,000-character line -> script: 1 lines, longest 20000 chars, first "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M6 60 lines
+M6 60 lines -> script: 20 lines, longest 8 chars, first "Line 0."
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M7 cut off mid-JSON
+M7 cut off mid-JSON -> script: 1 lines, longest 4 chars, first "One."
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M8 empty content
+M8 empty content -> throws AiUnavailableError
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M9 question with empty message
+M9 question with empty message -> throws AiUnavailableError
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M10 HTML in lines
+M10 HTML in lines -> script: 1 lines, longest 28 chars, first "<img src=x onerror=alert(1)>"
+
+stdout | qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M11 system prompt echoed as text
+M11 system prompt echoed as text -> script: 2 lines, longest 59 chars, first "# Role"
+
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M1 chatty preamble, plain text 23ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M2 markdown bullets and bold 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M3 JSON with numbers in lines 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M4 unknown kind 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M5 one 20,000-character line 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M6 60 lines 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M7 cut off mid-JSON 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M8 empty content 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M9 question with empty message 2ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M10 HTML in lines 1ms
+ ✓ qa-report/scripts/ai-parse.qa.test.ts > AI responses the app must survive > M11 system prompt echoed as text 0ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > needs a few words of their own first 99ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > sends their draft in polish mode and shows the polished version 202ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > doesn't send the suggestion box text with a polish 124ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > can be undone back to exactly what they typed 117ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > works again once they edit the polished version 178ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > becomes available after they edit our suggestion 54ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > does a quick local tidy when the writer is down 113ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: Polish it for me > shows an error instead when the tidy would change nothing 76ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > saves one teleprompter line per sentence 72ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > locks the box and Save while writing 32ms
+ ✓ src/components/record/script-editor.test.tsx > ScriptEditor: saving > Escape closes without saving 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R2 race: 10 simultaneous requests from one fresh guest
+AssertionError: only 3 should succeed: expected 10 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 10
+
+ ❯ qa-report/scripts/allowance.qa.test.ts:48:46
+     46|     const ok = res.filter((r) => r.status === 200).length;
+     47|     console.log("R2 successes out of 10 concurrent:", ok, "AI calls ma…
+     48|     expect.soft(ok, "only 3 should succeed").toBe(3);
+       |                                              ^
+     49|   });
+     50|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R3 spoofed IP header + no cookie: unlimited
+AssertionError: only 3 should succeed: expected 10 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 10
+
+ ❯ qa-report/scripts/allowance.qa.test.ts:57:46
+     55|     for (let i = 0; i < 10; i++) if ((await POST(req({ "x-forwarded-fo…
+     56|     console.log("R3 successes with a new X-Forwarded-For each time:", …
+     57|     expect.soft(ok, "only 3 should succeed").toBe(3);
+       |                                              ^
+     58|   });
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  qa-report/scripts/allowance.qa.test.ts > guest allowance (3 a day) > R4 cookie dropped, same IP, new server instance: allowance resets
+AssertionError: should still be blocked: expected 200 to be 429 // Object.is equality
+
+- Expected
++ Received
+
+- 429
++ 200
+
+ ❯ qa-report/scripts/allowance.qa.test.ts:70:62
+     68|     console.log("R4 same instance 4th:", blocked, "| new instance, no …
+     69|     expect(blocked).toBe(429);
+     70|     expect.soft(afterNewInstance, "should still be blocked").toBe(429);
+       |                                                              ^
+     71|   });
+     72|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 6 passed (7)
+      Tests  3 failed | 102 passed (105)
+   Start at  21:41:16
+   Duration  3.10s (tests 58%, environment 16%, setup 12%, import 9%, transform 5%)
+
+    Isolate  7 workers spawned · ~241ms startup each (spawn + environment, per file)
+             at least ~321ms faster with isolate: false — reuses workers across files instead of one per file
+

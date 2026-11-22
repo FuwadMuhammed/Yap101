@@ -1,0 +1,71 @@
+{
+  "at": "2026-11-22T07:19:25.585Z",
+  "results": [
+    {
+      "id": "Y1",
+      "title": "Replay waits for the 'how nervous did you look' guess",
+      "status": "PASS",
+      "actual": "video paused before answering=true"
+    },
+    {
+      "id": "Y2",
+      "title": "Take saved as Yap score v2 with 16 parameters and the confidence answers",
+      "status": "PASS",
+      "actual": "version 2, params 16, overall 52, confidence {\"fearBefore\":7,\"fearAfter\":5,\"predicted\":8,\"observed\":5,\"takes\":2}"
+    },
+    {
+      "id": "Y3",
+      "title": "Results: score, first-7 line, confidence line, group bars",
+      "status": "PASS",
+      "actual": "Yap score | Keep practising | Take 1 of your first 7 · this is your day-1 baseline | Nerves 7 → 5 · You rated yourself 3 points harsher than the tape. | Hook | 91 | Voice | 35 | Presence | – | Audio-only take, or the cam"
+    },
+    {
+      "id": "Y4",
+      "title": "One win and up to two fixes, each with a drill",
+      "status": "PASS",
+      "actual": "fixes 2; win shown=true"
+    },
+    {
+      "id": "Y5",
+      "title": "Details list all 16 measures; transcript ones marked 'Coming soon'",
+      "status": "PASS",
+      "actual": "rows 16, coming soon 3, timeline shown"
+    },
+    {
+      "id": "Y6",
+      "title": "Drill button opens the same prompt with the drill card",
+      "status": "PASS",
+      "actual": "href /record?prompt=2&drill=pace"
+    },
+    {
+      "id": "Y7",
+      "title": "Second take compares with day 1 and judges self-rating",
+      "status": "PASS",
+      "actual": "Take 2 of your first 7 · 0 vs your day 1  || Demo mode · data stays in this browser | Yap report | Talk about your day without stopping | 52 | Yap score | Keep practising | Take 2 of your first 7 · 0 vs your day 1 | Nerves 4 → 3 · You judged yourself spot on. | Hook | 91 | Voice | 35 | Presence | – | Audio-only take, or the camera check couldn"
+    },
+    {
+      "id": "Y8",
+      "title": "Tips don't repeat from the previous take",
+      "status": "PASS",
+      "actual": "take 1 fixes [\"pace\",\"pauses\"] → take 2 fixes [\"pitch\",\"energy\"]"
+    },
+    {
+      "id": "Y9",
+      "title": "Profile: score + nerves trend, groups vs day 1, day 1 vs now",
+      "status": "PASS",
+      "actual": "Your progress | Yap score: 52 → 52 | Nerves before recording (0–10): 7 → 4 | EACH GROUP VS YOUR DAY 1 | Hook | 91 → 91 | Voice | 35 → 35 | Presence | – | Structure | 75 → 75 | DAY 1 VS NOW | Your day 1 · 2026-11-22 | 52 | Hook | 91 | Voice | 35 | Presence | – "
+    },
+    {
+      "id": "Y10",
+      "title": "Score settings toggle and persist",
+      "status": "PASS",
+      "actual": "{\"appearanceSensitive\":true,\"noEyeContact\":false,\"nonNative\":false}"
+    },
+    {
+      "id": "Y11",
+      "title": "No page errors",
+      "status": "PASS",
+      "actual": "none"
+    }
+  ]
+}

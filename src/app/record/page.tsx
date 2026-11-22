@@ -5,21 +5,25 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Mascot } from "@/components/brand/mascot";
 import { Recorder } from "@/components/record/recorder";
-import { YapLink } from "@/components/yap/yap-button";
+import { YapButton, YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
 import { api } from "@/lib/data";
 import { nicheForDay } from "@/lib/options";
-import { introScript } from "@/lib/script";
+import { claimDevice, introScript } from "@/lib/script";
+import { DRILLS } from "@/lib/analysis/yapscore";
+import type { Scoring } from "@/components/record/recorder";
 import { DAILY_LIMIT, localDate, trackDay, type Level, type Prompt } from "@/lib/yap";
 
-type Ready = { kind: "ready"; prompt: Prompt; firstToday: boolean; level: Level | null; script: string[] | null };
-type Blocked = { kind: "missing" } | { kind: "locked"; day: number; unlocks: string } | { kind: "limit" };
+type Ready = { kind: "ready"; prompt: Prompt; firstToday: boolean; level: Level | null; script: string[] | null; scoring: Scoring };
+type Blocked = { kind: "missing" } | { kind: "offline" } | { kind: "locked"; day: number; unlocks: string } | { kind: "limit" };
 
 function RecordScreen() {
   const params = useSearchParams();
   const id = Number(params.get("prompt"));
   const first = params.get("first") === "1";
+  const drill = DRILLS[params.get("drill") ?? ""] ?? null;
   const [state, setState] = useState<Ready | Blocked | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const today = localDate();
@@ -27,6 +31,8 @@ function RecordScreen() {
     Promise.all([id ? api.getPromptById(id) : null, api.listYaps({ includeDeleted: true }), api.getProfile()])
       .then(([prompt, yaps, profile]) => {
         if (!prompt) return setState({ kind: "missing" });
+        // Saved scripts belong to one person: wipe them if someone else used this device.
+        claimDevice(profile?.id ?? "local");
         // Days unlock one at a time from the track start; earlier days stay open for catch-up.
         if (profile?.track_start_date) {
           const day = trackDay(profile.track_start_date, today);
@@ -44,19 +50,25 @@ function RecordScreen() {
           firstToday: usedToday === 0,
           level: profile?.level ?? null,
           script: introScript(prompt, profile),
+          // Earlier takes, oldest first: personal baselines, "since day 1", tips that don't repeat.
+          scoring: { goal: profile?.goal ?? null, history: [...yaps].reverse().filter((y) => y.analysis).map((y) => ({ yap: y.analysis!.yap ?? null, audio: y.analysis!.audio ?? null })) },
         });
       })
-      .catch(() => setState({ kind: "missing" }));
-  }, [id]);
+      .catch(() => setState({ kind: "offline" }));
+  }, [id, attempt]);
 
   if (!state) return <Loading />;
-  if (state.kind === "ready") return <Recorder prompt={state.prompt} firstToday={state.firstToday} level={state.level} first={first} script={state.script} />;
+  if (state.kind === "offline")
+    return <BlockedScreen state={state} onRetry={() => { setState(null); setAttempt((n) => n + 1); }} />;
+  if (state.kind === "ready") return <Recorder prompt={state.prompt} firstToday={state.firstToday} level={state.level} first={first} script={state.script} scoring={state.scoring} drill={drill} />;
   return <BlockedScreen state={state} />;
 }
 
-function BlockedScreen({ state }: { state: Blocked }) {
+function BlockedScreen({ state, onRetry }: { state: Blocked; onRetry?: () => void }) {
   const copy =
-    state.kind === "locked"
+    state.kind === "offline"
+      ? { mood: "sleepy" as const, title: "We couldn't load this yap", body: "Something went wrong on our side or with your connection. Your progress is safe; try again in a moment." }
+      : state.kind === "locked"
       ? { mood: "think" as const, title: `Day ${state.day} is locked`, body: `It unlocks on ${state.unlocks}. One day at a time is how the habit sticks.` }
       : state.kind === "limit"
         ? { mood: "cheer" as const, title: "That's 3 yaps today!", body: `You've used all ${DAILY_LIMIT} of today's yaps. Rest that voice and come back tomorrow.` }
@@ -71,8 +83,9 @@ function BlockedScreen({ state }: { state: Blocked }) {
         </h1>
         <p className="text-stone text-lg">{copy.body}</p>
         <div className="flex w-full flex-col gap-2">
-          <YapLink href="/home" size="xl" block arrow>Back to today</YapLink>
-          {state.kind !== "missing" && <YapLink href="/track" variant="soft" size="lg" block>See your 30 days</YapLink>}
+          {onRetry && <YapButton size="xl" block arrow onClick={onRetry}>Try again</YapButton>}
+          <YapLink href="/home" size={onRetry ? "lg" : "xl"} variant={onRetry ? "soft" : "primary"} block arrow={!onRetry}>Back to today</YapLink>
+          {(state.kind === "locked" || state.kind === "limit") && <YapLink href="/track" variant="soft" size="lg" block>See your 30 days</YapLink>}
         </div>
       </div>
     </div>

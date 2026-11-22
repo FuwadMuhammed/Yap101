@@ -1,0 +1,16 @@
+S01 PASS API with no session → 401 JSON (not a login page) :: 401 {"error":"unauthorized"}
+S02 PASS Page with no session → login redirect :: /login?prompt=2&next=%2Frecord
+S03 PASS Signed in: record screen and editor load from the Supabase profile :: title "Why you got into fitness"; request name=Sam, niche=fitness, platform=TikTok, level=Beginner; device owner=Sam's id; box starts "Hey, I'm Sam and I talk about fitness!"
+S04 PASS Signed in: never limited like a guest (6 calls), no guest cookie :: 429:busy, 429:busy, 429:busy, 429:busy, 429:busy, 429:busy; guest cookie set=false (AI quota is exhausted today, so "busy" is the provider, not our limit)
+S05 PASS Switch account without signing out: previous person's scripts wiped :: Sam saved ✓; as Priya: scripts=null, owner=Priya, request name=Priya, previous=[], day title "Why you got into travel"
+S06 PASS Sign out from profile: scripts cleared, back to start :: after sign-out: scripts=null, suggestions=null; now at /
+S07 PASS Session revoked mid-edit: clear sign-in message, text untouched :: API 401; toast "Your session ended. Sign in again to use the script writer."; box "My half-written draft here."
+S08 PASS Supabase auth outage during a request :: API 401; toast "Your session ended. Sign in again to use the script writer."; draft kept=true
+S09 PASS Profile changed on the backend: new suggestion, cache not reused :: requests=2; last name=Samuel, niche=travel; title "Why you got into travel"
+S10 PASS Pro user (Alex, hooks): own words by default, opener only; editor shows all points; 60 s :: own words=true, opener label=true, editor points=3, seconds=60, level=Pro, goal="Grab attention in 3 seconds"
+S11 PASS Intermediate, two niches: day titles rotate niches :: day 2 "Why you got into travel"; day 5 "The best food advice you ever got"
+S12 PASS Keyboard only: open editor, type, save :: Save reached by Tab=true; saved=true
+S13 PASS 320 px wide screen: no sideways scroll, both buttons visible :: overflow 0px; buttons 136 and 136 px wide, right edge 300
+S14 PASS Slow 3G: writing state, Cancel, no duplicate request :: "Writing…" shown=true; requests=1; after Cancel box="", toasts=""
+S15 PASS Dark mode: editor readable :: text rgb(21, 23, 28) on rgb(255, 255, 255) (see shots/S15-dark.png)
+S16 PASS Saved script reaches the camera screen (fake camera) :: Script text shown on the camera screen

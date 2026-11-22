@@ -1,0 +1,21 @@
+Q01 suggest, complete profile, day 2: 200 15439ms script
+Q02 suggest, no profile at all: 200 12355ms script
+Q03 suggest, no talking points: 200 12699ms script
+Q04 suggest, very short topic: 200 6175ms script
+Q05 suggest, very long topic: 200 6710ms script
+Q06 suggest, special characters: 200 7052ms script
+Q07 suggest, pro level 60s hot take: 200 16906ms script
+Q08 suggest, steer: nurse: 200 12933ms script
+Q09 suggest, off-topic request: 200 2038ms redirect
+Q10 suggest, prompt injection in request: 200 3003ms redirect
+Q11 suggest, story day, minimal profile (fabrication check): 200 11869ms script
+P01 polish, names/dates/numbers: 200 7477ms script
+P02 polish, strong opinion: 200 6761ms script
+P03 polish, spelling mistakes: 200 5026ms script
+P04 polish, informal slang: 200 11538ms script
+P05 polish, long draft (~280 words) at 30s: 200 48411ms script
+P06 polish, short draft stays short: 200 7061ms script
+P07 polish, Spanish draft: 200 7231ms script
+P08 polish, prompt injection in draft: 200 2594ms redirect
+P09 polish, keeps placeholder: 200 5363ms script
+P10 polish, HTML in draft: 200 13093ms script

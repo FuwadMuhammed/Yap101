@@ -1,0 +1,203 @@
+{
+  "at": "2026-11-21T22:29:55.851Z",
+  "results": [
+    {
+      "id": "A1",
+      "area": "Auth",
+      "title": "Expired access token + valid refresh token: silently refreshed",
+      "status": "PASS",
+      "actual": "stayed on /record=true; API status 429 (not 401); successful refreshes=1",
+      "at": "2026-11-21T22:29:02.459Z"
+    },
+    {
+      "id": "A2",
+      "area": "Auth",
+      "title": "Expired access token + invalid refresh token: signed out cleanly",
+      "status": "PASS",
+      "actual": "page → /login?prompt=2&next=%2Frecord; API → 401",
+      "at": "2026-11-21T22:29:02.823Z"
+    },
+    {
+      "id": "A3",
+      "area": "Isolation",
+      "title": "Account switched in another tab while the first tab is still open",
+      "status": "FAIL",
+      "actual": "owner after Priya's tab=Priya; Sam's stale tab saved into Priya's store; Priya sees it on /record?prompt=2=true; sent to AI in Priya's request=true",
+      "severity": "P1",
+      "at": "2026-11-21T22:29:06.881Z"
+    },
+    {
+      "id": "A4",
+      "area": "Isolation",
+      "title": "Same user, two devices: scripts don't follow the account",
+      "status": "PASS",
+      "actual": "device two sees the script=false (scripts are device-only by design: product decision, not a defect)",
+      "at": "2026-11-21T22:29:08.841Z"
+    },
+    {
+      "id": "A5",
+      "area": "Guest removal",
+      "title": "Signed-in user who still has the guest cookie",
+      "status": "FAIL",
+      "actual": "landed on /record?prompt=2; heading \"Why you got into your niche\"; guest/demo banner=true; Supabase profile requests=0 (0 = the app ignored the real account and used the browser-only guest store)",
+      "severity": "P1",
+      "at": "2026-11-21T22:29:09.723Z"
+    },
+    {
+      "id": "A6",
+      "area": "Security",
+      "title": "User-id manipulation in the API body is ignored; no server-side script store to reach",
+      "status": "PASS",
+      "actual": "with foreign user ids: 429:{\"error\":\"busy\"} | without: 429:{\"error\":\"busy\"} (identical: ids ignored)",
+      "at": "2026-11-21T22:29:10.671Z"
+    },
+    {
+      "id": "D1",
+      "area": "Security",
+      "title": "HTML in an AI question/coach message renders as text",
+      "status": "PASS",
+      "actual": "script executed=false; markup shown as text",
+      "at": "2026-11-21T22:29:11.698Z"
+    },
+    {
+      "id": "E1",
+      "area": "Recovery",
+      "title": "Backend restarts while a request is in flight",
+      "status": "PASS",
+      "actual": "after the server died: box=\"Draft before the restart here.\"; message=\"\"; server restarted for later tests",
+      "at": "2026-11-21T22:29:19.792Z"
+    },
+    {
+      "id": "E2",
+      "area": "Recovery",
+      "title": "Network drops mid-request, then returns",
+      "status": "PASS",
+      "actual": "box got the offline starter=true; nothing saved behind the user's back=true",
+      "at": "2026-11-21T22:29:24.364Z"
+    },
+    {
+      "id": "E3",
+      "area": "Recovery",
+      "title": "localStorage completely unavailable (blocked by the browser)",
+      "status": "PASS",
+      "actual": "editor opened, script used for this visit=true; warning=\"Couldn't save the script on this device (storage is full or blocked). It works for now, bu\"; page errors=0",
+      "at": "2026-11-21T22:29:25.526Z"
+    },
+    {
+      "id": "H1",
+      "area": "Failure injection",
+      "title": "API returns 500 with an HTML error page",
+      "status": "PASS",
+      "actual": "box=\"Hey, I'm Sam and I talk about fitness!\"; message=\"Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks].\"; page errors=0",
+      "at": "2026-11-21T22:29:27.811Z"
+    },
+    {
+      "id": "H2",
+      "area": "Failure injection",
+      "title": "API returns 200 with malformed JSON",
+      "status": "PASS",
+      "actual": "box=\"Hey, I'm Sam and I talk about fitness!\"; message=\"Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks].\"; page errors=0",
+      "at": "2026-11-21T22:29:30.133Z"
+    },
+    {
+      "id": "H3",
+      "area": "Failure injection",
+      "title": "API returns 200 with an empty object",
+      "status": "PASS",
+      "actual": "box=\"Hey, I'm Sam and I talk about fitness!\"; message=\"Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks].\"; page errors=0",
+      "at": "2026-11-21T22:29:32.429Z"
+    },
+    {
+      "id": "H4",
+      "area": "Failure injection",
+      "title": "API returns lines that are not strings",
+      "status": "PASS",
+      "actual": "box=\"1\"; message=\"\"; page errors=0",
+      "at": "2026-11-21T22:29:34.655Z"
+    },
+    {
+      "id": "H5",
+      "area": "Failure injection",
+      "title": "Database unavailable when opening the record screen",
+      "status": "FAIL",
+      "actual": "shows \"We couldn't find that yap\" — We couldn't find that yap  The link may be old or mistyped. Today's prompt is waiting for you.  Back to today",
+      "severity": "P3",
+      "at": "2026-11-21T22:29:42.365Z"
+    },
+    {
+      "id": "H6",
+      "area": "Failure injection",
+      "title": "Database unavailable while the editor is open (profile fetch fails)",
+      "status": "FAIL",
+      "actual": "request still sent (name=undefined, niche=undefined); box filled=false — profile silently missing from the suggestion",
+      "severity": "P3",
+      "at": "2026-11-21T22:29:44.942Z"
+    },
+    {
+      "id": "F1",
+      "area": "Layout",
+      "title": "Small phone 360×640",
+      "status": "PASS",
+      "actual": "sideways overflow 0px; Save visible with 40-line script=true; editor column 360px",
+      "at": "2026-11-21T22:29:46.015Z"
+    },
+    {
+      "id": "F2",
+      "area": "Layout",
+      "title": "Large phone 430×932",
+      "status": "PASS",
+      "actual": "sideways overflow 0px; Save visible with 40-line script=true; editor column 430px",
+      "at": "2026-11-21T22:29:47.101Z"
+    },
+    {
+      "id": "F3",
+      "area": "Layout",
+      "title": "Tablet 768×1024",
+      "status": "PASS",
+      "actual": "sideways overflow 0px; Save visible with 40-line script=true; editor column 512px",
+      "at": "2026-11-21T22:29:48.197Z"
+    },
+    {
+      "id": "F4",
+      "area": "Layout",
+      "title": "Desktop 1440×900",
+      "status": "PASS",
+      "actual": "sideways overflow 0px; Save visible with 40-line script=true; editor column 512px",
+      "at": "2026-11-21T22:29:49.253Z"
+    },
+    {
+      "id": "F5",
+      "area": "Accessibility",
+      "title": "Text scaled to 200% (root font size)",
+      "status": "FAIL",
+      "actual": "sideways overflow 0px; buttons with clipped text: [\"Use our suggestion\",\"Polish it for me\"]",
+      "severity": "P3",
+      "at": "2026-11-21T22:29:50.603Z"
+    },
+    {
+      "id": "F6",
+      "area": "Accessibility",
+      "title": "Touch targets ≥ 44×44 px (WCAG 2.5.5) / ≥ 24 px (2.5.8 AA)",
+      "status": "FAIL",
+      "actual": "under 24 px: [{\"n\":\"Clear\",\"w\":36,\"h\":20}]; under 44 px (AAA advisory): Clear 36×20; Import .txt 132×40",
+      "severity": "P3",
+      "at": "2026-11-21T22:29:51.632Z"
+    },
+    {
+      "id": "F7",
+      "area": "Accessibility",
+      "title": "Accessibility tree of the editor (screen-reader view)",
+      "status": "PASS",
+      "actual": "roles and names present; missing: [] (full tree in evidence/phase2-editor-aria.txt)",
+      "at": "2026-11-21T22:29:52.585Z"
+    },
+    {
+      "id": "F8",
+      "area": "UI states",
+      "title": "Loading, empty and error states captured",
+      "status": "PASS",
+      "actual": "error message: \"Our script writer is busy right now. Here's a starter from today's talking points: fill in the [blanks].\" (screenshots F8-*.png)",
+      "at": "2026-11-21T22:29:55.807Z"
+    }
+  ]
+}

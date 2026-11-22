@@ -1,0 +1,4 @@
+"I knew that that was wrong" -> ["I knew that was wrong."]
+"She had had enough of it" -> ["She had enough of it."]
+"Bye bye for now" -> ["Bye for now."]
+"It is very very good" -> ["It is very good."]

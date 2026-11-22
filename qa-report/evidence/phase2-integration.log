@@ -1,0 +1,9 @@
+G1 PASS Home → today's yap opens the record screen for day 2 :: link /record?prompt=2; heading "Why you got into fitness"
+G2 PASS Saved script shows on the prep card :: card shows script=true
+G3 PASS Teleprompter on the camera screen uses the saved script :: script on camera screen=true
+G4 PASS Recording stops and reaches review :: 4 s · "Why you got into fitness"
+G5 PASS Feedback page loads after a scripted yap :: Demo mode · data stays in this browser Yap complete! +15 XP Streak +1 1 day streak Level 1 Mumbler 15 XP 🎤 New badge First words 📸 New badge Camera brave See 
+G6 PASS Yap saved with the right day/title; script still saved for the day :: yap prompt_id=2, title="Why you got into fitness", 4.459300000000047s, scriptDone=n/a
+G7 PASS History lists the yap; track page renders :: history entries=1; track: "Demo mode · data stays in this browser Today Your 30-day track Day 2 of 30 · 1 days yapped Week 1 Warm up Get comfortabl"
+G8 PASS Profile page loads; script still on day 2 after the full journey :: profile shows name=true; script kept=true
+G9 PASS No page errors during the whole journey :: none

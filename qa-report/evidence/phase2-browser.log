@@ -1,0 +1,24 @@
+A1 [Auth] PASS Expired access token + valid refresh token: silently refreshed :: stayed on /record=true; API status 429 (not 401); successful refreshes=1
+A2 [Auth] PASS Expired access token + invalid refresh token: signed out cleanly :: page → /login?prompt=2&next=%2Frecord; API → 401
+A3 [Isolation] FAIL Account switched in another tab while the first tab is still open :: owner after Priya's tab=Priya; Sam's stale tab saved into Priya's store; Priya sees it on /record?prompt=2=true; sent to AI in Priya's request=true
+A4 [Isolation] PASS Same user, two devices: scripts don't follow the account :: device two sees the script=false (scripts are device-only by design: product decision, not a defect)
+A5 [Guest removal] FAIL Signed-in user who still has the guest cookie :: landed on /record?prompt=2; heading "Why you got into your niche"; guest/demo banner=true; Supabase profile requests=0 (0 = the app ignored the real account and used the browser-only guest store)
+A6 [Security] PASS User-id manipulation in the API body is ignored; no server-side script store to reach :: with foreign user ids: 429:{"error":"busy"} | without: 429:{"error":"busy"} (identical: ids ignored)
+D1 [Security] PASS HTML in an AI question/coach message renders as text :: script executed=false; markup shown as text
+E1 [Recovery] PASS Backend restarts while a request is in flight :: after the server died: box="Draft before the restart here."; message=""; server restarted for later tests
+E2 [Recovery] PASS Network drops mid-request, then returns :: box got the offline starter=true; nothing saved behind the user's back=true
+E3 [Recovery] PASS localStorage completely unavailable (blocked by the browser) :: editor opened, script used for this visit=true; warning="Couldn't save the script on this device (storage is full or blocked). It works for now, bu"; page errors=0
+H1 [Failure injection] PASS API returns 500 with an HTML error page :: box="Hey, I'm Sam and I talk about fitness!"; message="Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks]."; page errors=0
+H2 [Failure injection] PASS API returns 200 with malformed JSON :: box="Hey, I'm Sam and I talk about fitness!"; message="Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks]."; page errors=0
+H3 [Failure injection] PASS API returns 200 with an empty object :: box="Hey, I'm Sam and I talk about fitness!"; message="Our script writer had a hiccup. Here's a starter from today's talking points: fill in the [blanks]."; page errors=0
+H4 [Failure injection] PASS API returns lines that are not strings :: box="1"; message=""; page errors=0
+H5 [Failure injection] FAIL Database unavailable when opening the record screen :: shows "We couldn't find that yap" — We couldn't find that yap  The link may be old or mistyped. Today's prompt is waiting for you.  Back to today
+H6 [Failure injection] FAIL Database unavailable while the editor is open (profile fetch fails) :: request still sent (name=undefined, niche=undefined); box filled=false — profile silently missing from the suggestion
+F1 [Layout] PASS Small phone 360×640 :: sideways overflow 0px; Save visible with 40-line script=true; editor column 360px
+F2 [Layout] PASS Large phone 430×932 :: sideways overflow 0px; Save visible with 40-line script=true; editor column 430px
+F3 [Layout] PASS Tablet 768×1024 :: sideways overflow 0px; Save visible with 40-line script=true; editor column 512px
+F4 [Layout] PASS Desktop 1440×900 :: sideways overflow 0px; Save visible with 40-line script=true; editor column 512px
+F5 [Accessibility] FAIL Text scaled to 200% (root font size) :: sideways overflow 0px; buttons with clipped text: ["Use our suggestion","Polish it for me"]
+F6 [Accessibility] FAIL Touch targets ≥ 44×44 px (WCAG 2.5.5) / ≥ 24 px (2.5.8 AA) :: under 24 px: [{"n":"Clear","w":36,"h":20}]; under 44 px (AAA advisory): Clear 36×20; Import .txt 132×40
+F7 [Accessibility] PASS Accessibility tree of the editor (screen-reader view) :: roles and names present; missing: [] (full tree in evidence/phase2-editor-aria.txt)
+F8 [UI states] PASS Loading, empty and error states captured :: error message: "Our script writer is busy right now. Here's a starter from today's talking points: fill in the [blanks]." (screenshots F8-*.png)

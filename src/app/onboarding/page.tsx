@@ -229,7 +229,7 @@ export default function Onboarding() {
             )}
           </div>
 
-          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-[calc(100%-2rem)] to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <YapButton size="xl" block arrow disabled={!a[current.key].trim()} onClick={next}>
               {editing ? "Save" : "Continue"}
             </YapButton>
@@ -270,7 +270,7 @@ export default function Onboarding() {
               </div>
             )}
           </div>
-          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-70% to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="sticky bottom-0 z-20 -mx-5 mt-auto bg-gradient-to-t from-paper from-[calc(100%-2rem)] to-paper/0 px-5 pt-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <YapButton size="xl" block arrow onClick={finish} disabled={saving}>{saving ? "Setting up…" : "Do my first yap"}</YapButton>
           </div>
         </div>

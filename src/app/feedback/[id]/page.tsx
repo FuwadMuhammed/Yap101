@@ -9,6 +9,7 @@ import { Mascot, MascotSays, Yapper, YapperAvatar, YapperCluster } from "@/compo
 import { Confetti } from "@/components/yap/confetti";
 import { ShareSheet, prefersNativeShare, shareCaption, shareNatively } from "@/components/yap/share-sheet";
 import { Bar, Flame, Ring } from "@/components/yap/stats";
+import { YapReport } from "@/components/yap/yap-report";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { YapButton, YapLink } from "@/components/yap/yap-button";
 import { personalize } from "@/lib/curriculum";
@@ -111,6 +112,9 @@ function FeedbackScreen() {
   const celebrate = useSearchParams().get("celebrate") === "1";
   const [yap, setYap] = useState<YapDetail | null>(null);
   const [missing, setMissing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [noFeedback, setNoFeedback] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const [all, setAll] = useState<YapSummary[]>([]);
   const [usedToday, setUsedToday] = useState(0);
@@ -121,42 +125,71 @@ function FeedbackScreen() {
 
   useEffect(() => {
     // Deleted yaps still count for XP and today's limit, so load them too.
-    Promise.all([api.listYaps({ includeDeleted: true }), api.getProfile()]).then(async ([list, p]) => {
-      const t = localDate();
-      setAll(list.filter((y) => !y.deleted));
-      setUsedToday(list.filter((y) => y.local_date === t).length);
-      setProfile(p);
-      setToday(t);
-      if (celebrate) {
-        const after = computeGame(list, t, p?.track_start_date);
-        const before = computeGame(list.filter((y) => y.id !== id), t, p?.track_start_date);
-        setCelebration({ before, after, diff: gameDiff(before, after) });
-      }
-      if (p?.level && p.goal && p.track_start_date) {
-        const day = trackDay(p.track_start_date, t);
-        if (day < 30) {
-          const track = (await api.getPrompts(p.level, p.goal)).map((x) => personalize(x, nicheForDay(p.niche, x.day_index)));
-          setTomorrow(pickPrompt(track, day + 1)?.title ?? null);
+    let alive = true;
+    Promise.all([api.listYaps({ includeDeleted: true }), api.getProfile()])
+      .then(async ([list, p]) => {
+        const t = localDate();
+        let next: string | null = null;
+        if (p?.level && p.goal && p.track_start_date) {
+          const day = trackDay(p.track_start_date, t);
+          if (day < 30) {
+            const track = (await api.getPrompts(p.level, p.goal).catch(() => [])).map((x) => personalize(x, nicheForDay(p.niche, x.day_index)));
+            next = pickPrompt(track, day + 1)?.title ?? null;
+          }
         }
-      }
-    });
+        if (!alive) return;
+        // Set together (one render), so "What's next" appears once, in its final shape.
+        setAll(list.filter((y) => !y.deleted));
+        setUsedToday(list.filter((y) => y.local_date === t).length);
+        setProfile(p);
+        setTomorrow(next);
+        setToday(t);
+        if (celebrate) {
+          const after = computeGame(list, t, p?.track_start_date);
+          const before = computeGame(list.filter((y) => y.id !== id), t, p?.track_start_date);
+          setCelebration({ before, after, diff: gameDiff(before, after) });
+        }
+      })
+      // The report itself still loads; "What's next" falls back to plain links.
+      .catch(() => alive && setToday(localDate()));
+    return () => {
+      alive = false;
+    };
   }, [celebrate, id]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let url: string | null = null;
+    let alive = true;
+    let polls = 0;
     const load = async () => {
-      const y = await api.getYap(id);
+      let y;
+      try {
+        y = await api.getYap(id);
+      } catch {
+        if (alive) setLoadFailed(true);
+        return;
+      }
+      if (!alive) return;
+      setLoadFailed(false);
       if (!y) return setMissing(true);
       // Keep the first playback URL so the player doesn't reset while polling.
       if (url && y.url && y.url !== url && y.url.startsWith("blob:")) URL.revokeObjectURL(y.url);
       url ??= y.url;
       setYap({ ...y, url });
-      if (!y.feedback) timer = setTimeout(load, 1500);
+      // Feedback is saved with the take, so it's normally here already. Check a few more
+      // times, backing off, then stop: a take saved without analysis never gets any.
+      if (!y.feedback) {
+        if (++polls <= 8) timer = setTimeout(load, Math.min(8000, 1000 * 1.5 ** polls));
+        else setNoFeedback(true);
+      }
     };
     load();
-    return () => clearTimeout(timer);
-  }, [id]);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [id, attempt]);
 
   const shareFile = useCallback(async () => {
     if (!yap?.url) return null;
@@ -174,6 +207,15 @@ function FeedbackScreen() {
     };
   }, [shareFile]);
 
+  if (loadFailed && !yap)
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+        <MascotSays mood="sleepy">We couldn&apos;t load this yap right now. It&apos;s safe; check your connection and try again.</MascotSays>
+        <YapButton onClick={() => setAttempt((n) => n + 1)} arrow>Try again</YapButton>
+        <YapLink href="/home" variant="soft">Back to today</YapLink>
+      </div>
+    );
+
   if (missing)
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
@@ -188,7 +230,8 @@ function FeedbackScreen() {
   const idx = all.findIndex((y) => y.id === id);
   const prev = idx >= 0 ? all.slice(idx + 1).find((y) => y.filler_count !== null) : undefined;
   const fillerDelta = f?.filler_count != null && prev?.filler_count != null ? f.filler_count - prev.filler_count : null;
-  const a = f?.analysis && f.analysis.parts.length ? f.analysis : null;
+  // v2 reports always show (even a take with no speech has a score and fixes); v1 only with parts.
+  const a = f?.analysis && (f.analysis.yap || f.analysis.parts.length) ? f.analysis : null;
   const prevScored = idx >= 0 ? all.slice(idx + 1).find((y) => y.score !== null) : undefined;
   const scoreDelta = a && prevScored?.score != null ? a.overall - prevScored.score : null;
   const leftToday = today ? DAILY_LIMIT - usedToday : 0;
@@ -228,10 +271,15 @@ function FeedbackScreen() {
 
         {!f ? (
           <div className="surface flex flex-col items-center gap-3 rounded-[28px] px-6 py-10 text-center">
-            <Mascot mood="think" className="animate-wiggle size-16" />
-            <p className="text-lg font-semibold">Yappy is listening back…</p>
-            <p className="text-stone text-sm">Checking your pace, pauses and energy.</p>
+            <Mascot mood={noFeedback ? "sleepy" : "think"} className={cn("size-16", !noFeedback && "animate-wiggle")} />
+            <p className="text-lg font-semibold">{noFeedback ? "No report for this yap" : "Yappy is listening back…"}</p>
+            <p className="text-stone text-sm">{noFeedback ? "We couldn't measure this take. Your clip is saved; try another yap with the mic on." : "Checking your pace, pauses and energy."}</p>
           </div>
+        ) : a?.yap ? (
+          <>
+            <YapReport analysis={a as typeof a & { yap: NonNullable<typeof a.yap> }} history={all} yapId={id} localDate={yap?.local_date ?? ""} promptId={yap?.prompt_id ?? null} />
+            <p className="text-stone text-center text-xs">Measured on your phone: nothing was uploaded.{a.transcript?.length ? " Pace and words in the first 3 seconds come from the transcript." : " Pace and the first-3-second word count are estimates from your voice rhythm."}</p>
+          </>
         ) : (
           <>
             {a && (
@@ -325,7 +373,8 @@ function FeedbackScreen() {
           </>
         )}
 
-        {/* What next */}
+        {/* What next: shown once the report and today's numbers are in, so nothing jumps. */}
+        {yap && today && (
         <section className="mt-2 flex flex-col gap-2">
           <h2 className="text-[22px]">What&apos;s next</h2>
           {tomorrow && (
@@ -359,6 +408,7 @@ function FeedbackScreen() {
             <YapLink href="/history" variant="soft" size="lg">All my yaps</YapLink>
           </div>
         </section>
+        )}
         </div>
         </div>
       </div>

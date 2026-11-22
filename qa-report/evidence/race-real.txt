@@ -1,0 +1,5 @@
+req3 200 3.228544s
+req4 200 3.523723s
+req2 200 3.523697s
+req1 200 5.567783s
+then a 5th, sequential: 200

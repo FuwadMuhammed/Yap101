@@ -2,8 +2,10 @@
 
 import { DAILY_LIMIT, localDate } from "@/lib/yap";
 import { ALL_PROMPTS } from "@/lib/curriculum";
+import { clearLocalScripts } from "@/lib/script";
+import { transcriptFields } from "@/lib/analysis/transcript";
 import { endGuest, envDemo } from "./mode";
-import { DailyLimitError, type DataApi, type Feedback, type Media, type Profile } from "./types";
+import { DailyLimitError, summarise, type DataApi, type Feedback, type Media, type Profile } from "./types";
 
 // Demo backend: JSON in localStorage, recordings in IndexedDB (too big for localStorage).
 // Nothing leaves the browser.
@@ -117,11 +119,12 @@ export const demoApi: DataApi = {
     if (s.yaps.filter((y) => y.local_date === day).length >= DAILY_LIMIT) throw new DailyLimitError();
     const id = crypto.randomUUID();
     await clipStore("readwrite", (st) => st.put(blob, id));
-    // Feedback is the real on-device analysis. Filler words need a transcript, so they stay empty.
+    // Feedback is the real on-device analysis; filler words come from the on-device transcript.
+    const { filler_count, filler_words } = transcriptFields(analysis?.transcript);
     const feedback: Feedback = {
       words_per_minute: analysis?.wpm ?? null,
-      filler_count: null,
-      filler_words: {},
+      filler_count,
+      filler_words,
       tips: analysis?.tips ?? ["Watch your clip back once. You'll spot one thing to try next time."],
       analysis: analysis ?? null,
     };
@@ -140,7 +143,7 @@ export const demoApi: DataApi = {
       save(s);
     }
     const blob = await clipStore<Blob | undefined>("readonly", (st) => st.get(id)).catch(() => undefined);
-    return { url: blob ? URL.createObjectURL(blob) : null, media: yap.media, title: yap.title, local_date: yap.local_date, feedback: yap.feedback };
+    return { url: blob ? URL.createObjectURL(blob) : null, media: yap.media, title: yap.title, local_date: yap.local_date, feedback: yap.feedback, prompt_id: yap.prompt_id || null };
   },
 
   async listYaps(opts) {
@@ -155,6 +158,7 @@ export const demoApi: DataApi = {
       filler_count: feedback?.filler_count ?? null,
       words_per_minute: feedback?.words_per_minute ?? null,
       score: feedback?.analysis?.overall ?? null,
+      analysis: summarise(feedback?.analysis),
       deleted: Boolean(deleted),
     }));
   },
@@ -171,6 +175,7 @@ export const demoApi: DataApi = {
     const s = load();
     s.signedIn = false;
     save(s);
+    clearLocalScripts();
     endGuest();
   },
 };
@@ -187,6 +192,7 @@ export async function demoReset() {
   try {
     localStorage.removeItem(KEY);
   } catch {}
+  clearLocalScripts();
   await clipStore("readwrite", (st) => st.clear()).catch(() => {});
   endGuest();
 }

@@ -1,0 +1,10 @@
+X1 FINDING Android back gesture with the editor open and unsaved text :: Back left the record screen (now /home) instead of closing the sheet; no warning; draft kept=false
+X2 FINDING Reload the page with unsaved text in the editor :: after reload the unsaved text is gone (no draft autosave, no beforeunload warning)
+X3 FINDING Change level after saving scripts (re-done onboarding) :: new day 2 (id 102) shows old script=false; script still stored under ids ["2"] and still sent to the AI as "previous"
+X4 FINDING There's no way to delete a saved script :: cleared box → Save disabled=true; after switching to "My own words" and reloading, the day reopens in script mode=true with the old script
+X5 OK Rotate/resize the phone mid-edit :: text kept=true; Save visible in landscape=true; overflow 0px
+X6 OK Paste Windows line endings and tabs :: ["Line one.","Line two.","Line three."]
+X7 OK Draft length boundary: 3,000 vs 3,001 characters :: 3,000 chars → Polish enabled=true; 3,001 → disabled=true
+X8 OK Steer box: 500-character cap and emoji :: steer box holds 500 UTF-16 units (cap 500); suggestion produced
+X9 OK Change of mind: suggestion → own edit → undo bar gone → Polish → Undo :: undo after polish returns the edited suggestion exactly=true
+X10 OK Day 30 'Introduce yourself, again' reuses the day-30 onboarding script :: day-30 script shown=true

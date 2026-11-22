@@ -7,7 +7,6 @@ import { YapperAvatar } from "@/components/brand/mascot";
 import { TopBar } from "@/components/yap/app-shell";
 import { ReminderButton } from "@/components/yap/reminder-button";
 import { PageSkeleton } from "@/components/yap/skeleton";
-import { Sparkline } from "@/components/yap/sparkline";
 import { Bar, Flame } from "@/components/yap/stats";
 import { YapButton } from "@/components/yap/yap-button";
 import { api, isDemo } from "@/lib/data";
@@ -18,6 +17,7 @@ import { FREEZE, LEVELS } from "@/lib/game";
 import { GOAL_OPTIONS, LEVEL_OPTIONS, PLATFORMS, YAP_TIMES, labelFor, nicheOptions } from "@/lib/options";
 import { useGame } from "@/lib/use-game";
 import { cn } from "@/lib/utils";
+import { ScoreSettings, YapTrends } from "@/components/yap/yap-trends";
 
 
 export default function Me() {
@@ -32,8 +32,6 @@ export default function Me() {
   }, []);
   if (loading || !profile) return <PageSkeleton rows={4} />;
 
-  // Yap score trend (on-device analysis). Filler words join once transcripts arrive.
-  const scores = [...yaps].reverse().flatMap((y) => (y.score == null ? [] : [y.score]));
 
   const picks = nicheOptions(profile.niche);
   const nicheChip = picks[0] && { ...picks[0], value: "niche", label: picks.map((o) => o.label).join(", ") };
@@ -105,17 +103,16 @@ export default function Me() {
         </details>
       </section>
 
-      {/* Yap score trend */}
+      {/* Yap score trend: score and nerves over the programme, each group vs day 1 */}
       <section className="surface rounded-[24px] p-4">
-        <p className="font-semibold">Yap score</p>
-        {scores.length >= 2 ? (
-          <>
-            <Sparkline values={scores} className="mt-2 h-14 w-full" label={`Yap score went from ${scores[0]} to ${scores[scores.length - 1]}`} />
-            <p className="text-stone mt-1 text-sm">{scores[0]} on your first scored yap → {scores[scores.length - 1]} now</p>
-          </>
-        ) : (
-          <p className="text-stone mt-1 text-sm">Do two yaps to see your trend.</p>
-        )}
+        <p className="font-semibold">Your progress</p>
+        <YapTrends yaps={yaps} />
+      </section>
+
+      {/* How the Yap score treats you */}
+      <section className="surface rounded-[24px] p-4">
+        <p className="mb-3 font-semibold">Yap score settings</p>
+        <ScoreSettings />
       </section>
 
       {/* Badges: compact, details on hover/long-press */}
@@ -160,7 +157,7 @@ export default function Me() {
       </section>
 
       <p className="text-stone flex items-center gap-1.5 px-1 text-sm">
-        <Sparkles className="size-4 shrink-0" /> Coming soon: filler-word counts, an AI script writer and an AI coach.
+        <Sparkles className="size-4 shrink-0" /> Coming soon: an AI coach that talks you through each take.
       </p>
 
       <section className="flex flex-wrap gap-2 pt-2">

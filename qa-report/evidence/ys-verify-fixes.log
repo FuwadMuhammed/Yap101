@@ -1,0 +1,10 @@
+V-E12 BUG-04 PASS :: Polish disabled=true, hint shown=true, API answers 413 for a 5,000-char draft
+V-E14 BUG-06 PASS :: Record screen loads with storage = null
+V-E16 BUG-09 PASS :: Saved over the bad value; present after reload
+V-E17b BUG-05 PASS :: storage FULL; warning toast shown
+V-E18 BUG-11 PASS :: cached suggestion: "Response B (latest)."
+V-E20 BUG-12 PASS :: Hey, I'm Alex and I talk about fitness!
+V-E31 BUG-18 PASS :: after sign-out storage=null; next person sees it=false; sent to AI=false
+V-E32 BUG-19 PASS :: keys left: []
+V-A20/26 BUG-10 PASS :: 5 MB → 413; text/plain → 415; same-site JSON → 200; Origin evil.example → 403
+V-CANCEL BUG-21 PASS :: box after cancel + 4.5 s: "my own words for today here"; Polish enabled=true
